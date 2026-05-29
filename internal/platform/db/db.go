@@ -12,14 +12,28 @@ import (
 	"github.com/Akins20/postal/internal/platform/db/sqlc"
 )
 
-// pgUniqueViolation is the PostgreSQL SQLSTATE for a unique-constraint breach.
-const pgUniqueViolation = "23505"
+// PostgreSQL SQLSTATEs we map to domain errors.
+const (
+	pgUniqueViolation     = "23505"
+	pgForeignKeyViolation = "23503"
+)
 
 // IsUniqueViolation reports whether err is (or wraps) a Postgres unique-
 // constraint violation. Shared so each domain store need not re-derive it.
 func IsUniqueViolation(err error) bool {
+	return hasPGCode(err, pgUniqueViolation)
+}
+
+// IsForeignKeyViolation reports whether err is (or wraps) a Postgres
+// foreign-key-constraint violation (e.g. referencing a row deleted concurrently).
+func IsForeignKeyViolation(err error) bool {
+	return hasPGCode(err, pgForeignKeyViolation)
+}
+
+// hasPGCode reports whether err carries the given PostgreSQL SQLSTATE.
+func hasPGCode(err error, code string) bool {
 	var pgErr *pgconn.PgError
-	return errors.As(err, &pgErr) && pgErr.Code == pgUniqueViolation
+	return errors.As(err, &pgErr) && pgErr.Code == code
 }
 
 // Pool wraps a pgx connection pool. Domains receive it via constructors; there

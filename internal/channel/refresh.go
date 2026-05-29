@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/Akins20/postal/internal/platform/apperr"
 	"github.com/Akins20/postal/internal/platform/db/sqlc"
 )
 
@@ -94,6 +95,23 @@ func (s *Service) PublishContext(ctx context.Context, channelID uuid.UUID) (stri
 		return "", Token{}, err
 	}
 	return ch.Platform, Token{AccessToken: access}, nil
+}
+
+// PlatformFor returns a channel's platform, verifying it belongs to the
+// workspace (tenant isolation). Used by the composer to pick the adapter for
+// compose-time validation. A missing or foreign channel yields a not-found error.
+func (s *Service) PlatformFor(ctx context.Context, workspaceID, channelID uuid.UUID) (string, error) {
+	ch, err := s.pool.Queries().GetChannel(ctx, channelID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", apperr.NotFound("channel_not_found", "channel not found")
+		}
+		return "", apperr.Internal(err)
+	}
+	if ch.WorkspaceID != workspaceID {
+		return "", apperr.NotFound("channel_not_found", "channel not found")
+	}
+	return ch.Platform, nil
 }
 
 // Refresh refreshes a channel's token (persisting it) and returns the new

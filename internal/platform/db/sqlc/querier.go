@@ -18,16 +18,23 @@ type Querier interface {
 	CreateEmailVerificationToken(ctx context.Context, arg CreateEmailVerificationTokenParams) (EmailVerificationToken, error)
 	CreateMember(ctx context.Context, arg CreateMemberParams) (WorkspaceMember, error)
 	CreatePasswordResetToken(ctx context.Context, arg CreatePasswordResetTokenParams) (PasswordResetToken, error)
+	CreatePost(ctx context.Context, arg CreatePostParams) (Post, error)
+	CreatePostVariant(ctx context.Context, arg CreatePostVariantParams) (PostVariant, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams) (Workspace, error)
 	DeleteChannel(ctx context.Context, id uuid.UUID) error
 	DeleteChannelCredential(ctx context.Context, channelID uuid.UUID) error
+	DeletePost(ctx context.Context, id uuid.UUID) error
+	DeletePostVariant(ctx context.Context, id uuid.UUID) error
+	DeleteVariantsForPost(ctx context.Context, postID uuid.UUID) error
 	GetChannel(ctx context.Context, id uuid.UUID) (Channel, error)
 	GetChannelByAccount(ctx context.Context, arg GetChannelByAccountParams) (Channel, error)
 	GetChannelCredential(ctx context.Context, channelID uuid.UUID) (ChannelCredential, error)
 	GetEmailVerificationToken(ctx context.Context, tokenHash string) (EmailVerificationToken, error)
 	GetMember(ctx context.Context, arg GetMemberParams) (WorkspaceMember, error)
 	GetPasswordResetToken(ctx context.Context, tokenHash string) (PasswordResetToken, error)
+	GetPost(ctx context.Context, id uuid.UUID) (Post, error)
+	GetPostVariant(ctx context.Context, id uuid.UUID) (PostVariant, error)
 	GetPublishResultByKey(ctx context.Context, idempotencyKey string) (PublishResult, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
@@ -40,12 +47,17 @@ type Querier interface {
 	ListChannels(ctx context.Context, workspaceID uuid.UUID) ([]Channel, error)
 	ListChannelsDueForRefresh(ctx context.Context, arg ListChannelsDueForRefreshParams) ([]ListChannelsDueForRefreshRow, error)
 	ListMembers(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceMember, error)
+	ListPostsByWorkspace(ctx context.Context, arg ListPostsByWorkspaceParams) ([]Post, error)
+	ListVariantsByPost(ctx context.Context, postID uuid.UUID) ([]PostVariant, error)
 	ListWorkspacesForUser(ctx context.Context, userID uuid.UUID) ([]Workspace, error)
 	SetEmailVerified(ctx context.Context, id uuid.UUID) error
+	TouchPost(ctx context.Context, id uuid.UUID) error
 	UpdateChannelIdentity(ctx context.Context, arg UpdateChannelIdentityParams) error
 	UpdateChannelStatus(ctx context.Context, arg UpdateChannelStatusParams) error
 	UpdateMemberPermissions(ctx context.Context, arg UpdateMemberPermissionsParams) (WorkspaceMember, error)
 	UpdatePasswordHash(ctx context.Context, arg UpdatePasswordHashParams) error
+	UpdatePostStatus(ctx context.Context, arg UpdatePostStatusParams) error
+	UpdatePostVariant(ctx context.Context, arg UpdatePostVariantParams) (PostVariant, error)
 	UpsertChannelCredential(ctx context.Context, arg UpsertChannelCredentialParams) error
 }
 

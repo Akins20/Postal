@@ -62,6 +62,26 @@ type PasswordResetToken struct {
 	CreatedAt  pgtype.Timestamptz `json:"created_at"`
 }
 
+type Post struct {
+	ID           uuid.UUID          `json:"id"`
+	WorkspaceID  uuid.UUID          `json:"workspace_id"`
+	AuthorUserID *uuid.UUID         `json:"author_user_id"`
+	Status       string             `json:"status"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+}
+
+type PostVariant struct {
+	ID              uuid.UUID          `json:"id"`
+	PostID          uuid.UUID          `json:"post_id"`
+	ChannelID       uuid.UUID          `json:"channel_id"`
+	Body            string             `json:"body"`
+	MediaRefs       []byte             `json:"media_refs"`
+	PlatformOptions []byte             `json:"platform_options"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+}
+
 type PublishResult struct {
 	ID             int64              `json:"id"`
 	ChannelID      uuid.UUID          `json:"channel_id"`

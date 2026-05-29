@@ -11,6 +11,8 @@ import (
 	"github.com/Akins20/postal/internal/platform/db"
 	"github.com/Akins20/postal/internal/platform/metrics"
 	"github.com/Akins20/postal/internal/platform/redis"
+	"github.com/Akins20/postal/internal/post"
+	"github.com/Akins20/postal/internal/publish"
 	"github.com/Akins20/postal/internal/publish/twitter"
 	"github.com/Akins20/postal/internal/ratelimit"
 	"github.com/Akins20/postal/internal/security"
@@ -122,38 +124,52 @@ func (w *wiring) wireAuth(deps *server.Deps) error {
 	return nil
 }
 
-// wireChannels constructs the channel/OAuth-vault stack. It requires both the
+// wireChannels constructs the channel/OAuth-vault stack AND the composer (posts),
+// which share the platform adapters and the workspace service. Both require the
 // encryption key (to seal tokens) and the auth/workspace stack; absent either,
-// channel endpoints are disabled. Concrete OAuth providers are registered in
-// Phase 4 (X/Twitter), so the registry starts empty.
+// they are disabled.
 func (w *wiring) wireChannels(deps *server.Deps) {
 	if w.enc == nil {
-		w.log.Warn("POSTAL_MASTER_KEY not set; channel connection disabled (token vault unavailable)")
+		w.log.Warn("POSTAL_MASTER_KEY not set; channel/composer disabled (token vault unavailable)")
 		return
 	}
 	if deps.WorkspaceHandler == nil {
-		w.log.Warn("auth/workspace disabled; channel endpoints disabled")
+		w.log.Warn("auth/workspace disabled; channel/composer endpoints disabled")
 		return
 	}
-	registry := channel.NewRegistry(w.oauthProviders()...)
-	svc := channel.NewService(w.pool, registry, w.enc, w.cache, w.wsSvc, w.auditor, nil)
-	deps.ChannelHandler = channel.NewHandler(svc, w.wsSvc, w.log)
+
+	adapters := w.buildAdapters()
+	channelSvc := channel.NewService(w.pool, channel.NewRegistry(toOAuthProviders(adapters)...), w.enc, w.cache, w.wsSvc, w.auditor, nil)
+	deps.ChannelHandler = channel.NewHandler(channelSvc, w.wsSvc, w.log)
+
+	// The composer resolves channels via channelSvc and validates variants
+	// against the platform adapters (publish.Registry).
+	postSvc := post.NewService(w.pool, channelSvc, publish.NewRegistry(adapters...), w.auditor, nil)
+	deps.PostHandler = post.NewHandler(postSvc, w.wsSvc, w.log)
 }
 
-// oauthProviders builds the set of OAuth providers to register. The X adapter is
-// included only when its app credentials are configured (the publish pipeline
-// that uses it as a full adapter is wired with the worker in Phase 6).
-func (w *wiring) oauthProviders() []channel.OAuthProvider {
+// buildAdapters constructs the platform adapters from config. The X adapter is
+// included only when its app credentials are configured.
+func (w *wiring) buildAdapters() []publish.Adapter {
 	if w.cfg.Twitter.ClientID == "" {
-		w.log.Warn("POSTAL_X_CLIENT_ID not set; X/Twitter channel is disabled")
+		w.log.Warn("POSTAL_X_CLIENT_ID not set; X/Twitter is disabled")
 		return nil
 	}
-	x := twitter.New(twitter.Config{
+	return []publish.Adapter{twitter.New(twitter.Config{
 		ClientID:     w.cfg.Twitter.ClientID,
 		ClientSecret: w.cfg.Twitter.ClientSecret,
 		RedirectURI:  w.cfg.Twitter.RedirectURI,
-	})
-	return []channel.OAuthProvider{x}
+	})}
+}
+
+// toOAuthProviders views the publish adapters as channel OAuth providers (each
+// adapter embeds the OAuthProvider interface).
+func toOAuthProviders(adapters []publish.Adapter) []channel.OAuthProvider {
+	out := make([]channel.OAuthProvider, len(adapters))
+	for i, a := range adapters {
+		out[i] = a
+	}
+	return out
 }
 
 // initEncryptor validates the configured master key and builds the encryptor. A
