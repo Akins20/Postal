@@ -3,12 +3,24 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/Akins20/postal/internal/platform/db/sqlc"
 )
+
+// pgUniqueViolation is the PostgreSQL SQLSTATE for a unique-constraint breach.
+const pgUniqueViolation = "23505"
+
+// IsUniqueViolation reports whether err is (or wraps) a Postgres unique-
+// constraint violation. Shared so each domain store need not re-derive it.
+func IsUniqueViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == pgUniqueViolation
+}
 
 // Pool wraps a pgx connection pool. Domains receive it via constructors; there
 // is no package-level global.

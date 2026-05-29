@@ -28,9 +28,11 @@ type Querier interface {
 	GetEmailVerificationToken(ctx context.Context, tokenHash string) (EmailVerificationToken, error)
 	GetMember(ctx context.Context, arg GetMemberParams) (WorkspaceMember, error)
 	GetPasswordResetToken(ctx context.Context, tokenHash string) (PasswordResetToken, error)
+	GetPublishResultByKey(ctx context.Context, idempotencyKey string) (PublishResult, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	InsertAuditLog(ctx context.Context, arg InsertAuditLogParams) (InsertAuditLogRow, error)
+	InsertPublishResult(ctx context.Context, arg InsertPublishResultParams) (PublishResult, error)
 	// Trivial query proving the sqlc generation chain works. Replaced by real
 	// domain queries from Phase 2 onward.
 	InsertSmoke(ctx context.Context, note string) (SchemaSmoke, error)

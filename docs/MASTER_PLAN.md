@@ -31,20 +31,41 @@
 | **X / Twitter** *(first target)* | API v2. OAuth 2.0 with PKCE. **Tiered paid access** (Free tier exists but heavily write-limited; Basic ~$100/mo; Pro much higher). Strict rate limits. | The app is free to users, but whoever runs Postal pays X. Build for tight rate limits and quota awareness from day one. Free X tier allows very few posts/day per app — design the simulator to mirror these limits. |
 | Instagram / Facebook | Meta Graph API; Business/Creator only; requires Meta App Review. | Phase later; start App Review early. |
 | LinkedIn | Requires Marketing Developer Platform partner approval. | Phase later. |
-| TikTok | Content Posting API; app audit required. | Phase later. |
+| TikTok *(2nd target, after X)* | Content Posting API; app audit required for public posts. | **Next integration after X.** Research in progress → `docs/TIKTOK_INTEGRATION.md`. |
 | **Bluesky / Mastodon** | Open, free, no approval. | Ideal *secondary* targets to prove multi-platform abstraction cheaply. |
 
 **Design rule:** the publishing layer must treat every platform's limits (char count, media
 specs, rate limits, duplicate rejection, token expiry) as data-driven config, so adding a
 platform is "implement the adapter + declare its constraints," not rewrite the engine.
 
-**Feature toggles (planned, later phase):** Not all social-API features are paid — e.g. X's
-free tier allows some posting. Postal must let the **operator (system-level)** and **workspace
-admins (workspace-level)** independently enable/disable individual social features (publish,
-media, analytics, …), since availability/cost varies by platform and API tier. Effective
-availability = system-enabled AND workspace-enabled AND user-has-capability. Build adapter
-features as data-driven descriptors so a feature can be turned off without code changes;
-dedicated feature-flag slice to be scheduled (~Phase 8/9 or when a 2nd platform lands).
+**Feature toggles (planned, later phase):** Cost/availability varies by platform and API tier
+(e.g. X is pay-per-use as of 2026). Postal must let the **operator (system-level)** and
+**workspace admins (workspace-level)** independently enable/disable individual social features
+(publish, media, analytics, …). Effective availability = system-enabled AND workspace-enabled
+AND user-has-capability. Build adapter features as data-driven descriptors so a feature can be
+turned off without code changes; dedicated feature-flag slice scheduled ~Phase 8/9.
+
+**Billing & wallet (planned, future phase — reconciles pay-per-use with "no-paywall"):**
+X bills via a **prepaid credit** system (operator buys credits in X's console; X deducts per
+call; auto-recharge + spend cap). Real money reaches X only via the **operator's** prepaid
+balance — Postal never pays X per request. **Decided model (2026-05-29):** the **operator
+pre-funds X**, and Postal keeps an **internal per-workspace ledger that tracks usage and
+enforces spend caps** so no workspace can burn the operator's X credits. No end-user payments /
+Stripe for now (ledger built so pass-through top-ups could be added later). This does NOT
+paywall any Postal feature — features stay free; the ledger only meters external API spend.
+The publish pipeline (and analytics poller) debit the ledger per billable action via
+per-platform/per-action cost descriptors, idempotently (reuse the publish idempotency key).
+Ties into feature toggles (disable costly features when capped). Rates are config/data
+(re-verify vs docs.x.com). Its own phase (~before backend freeze); Phase 4 `publish.Pipeline`
+is the debit hook. See memory `billing-wallet-system`.
+
+**Cross-platform publish & sync (planned):** (1) **compose-once, multi-publish** — one post
+fanned out to many channels (already modeled via per-channel `post_variant`s; natural part of
+Phases 5–6). (2) **import/mirror existing posts** across platforms (full/batch/single) — its own
+later feature: needs per-adapter read/list methods, media re-hosting, a **content-type
+compatibility matrix** (text↔video do NOT map — a tweet can't become a YouTube video), a
+sync-mapping/dedupe table, and cost estimate+cap (reads are billed on X). See memory
+`cross-platform-sync`.
 
 ---
 
@@ -261,14 +282,14 @@ come up; `scripts/curl/health.sh` passes; `make check` runs green (full enforcem
 - [x] Authorization: `manage_channels` capability for connect/disconnect, `read` for list; callback re-checks capability + binds to initiating user; tokens never returned or logged
 **Tests/DoD:** ✅ Go integration test (fake provider) proves full OAuth round trip + **ciphertext at rest** (asserts plaintext absent) + refresh rotation + disconnect-purge + foreign-user rejection. `scripts/curl/channels.sh` 9/9 (capability gating, isolation, validation). `make check` green. **`/security-review` run — all 8 areas clean, no findings.**
 
-### Phase 4 — Publishing pipeline + **X/Twitter adapter** + simulator ⭐ FIRST SOCIAL
+### Phase 4 — Publishing pipeline + **X/Twitter adapter** + simulator ⭐ FIRST SOCIAL ✅ DONE (2026-05-29)
 **Goal:** end-to-end publish to X (via simulator), proving the whole core.
-- [ ] `PlatformAdapter` interface + `PlatformConstraints` (§6)
-- [ ] **X/Twitter adapter**: OAuth2 PKCE auth URL / code exchange / refresh; `Validate` (280-char weighted count, media rules); `Publish` (create Tweet, with media upload sequence); `FetchMetrics`; error mapping (401/403/429/duplicate/5xx). See `docs/X_TWITTER_INTEGRATION.md`.
-- [ ] **X simulator** (`internal/publish/simulator/twitter`): faithful HTTP fake — same endpoints, schemas, error codes, rate-limit (429 + reset headers), duplicate-tweet rejection, char-limit rejection, media upload chunking, expired/invalid token responses.
-- [ ] Adapter base URL injectable → tests hit simulator; live tests gated by `POSTAL_LIVE_X=1`.
-- [ ] Publish service: validate → publish via adapter → record result → retry/backoff/idempotency.
-**Tests/DoD:** simulator test matrix (valid post, >280, bad media, expired token→refresh, 429→backoff, duplicate→terminal, 5xx→retry, timeout). Real output captured. **Run `/security-review` + `/code-review`.** Research X API current specs before building (`deep-research`/WebSearch).
+- [x] `PlatformAdapter` interface + `Constraints` + retry-class error model (`internal/publish/adapter.go`); embeds the Phase 3 `OAuthProvider`
+- [x] **X/Twitter adapter** (`internal/publish/twitter`): OAuth2 PKCE auth/exchange/refresh; `Validate` (weighted 280 count via twitter-text ranges, media exclusivity/size); `Publish` (create tweet + chunked media upload); `FetchMetrics` (`public_metrics`); error mapping (401→refresh / 403+duplicate→terminal / 429→backoff w/ reset header / 5xx→retry)
+- [x] **X simulator** (`internal/publish/simulator/twitter`): faithful fake — token/users.me/create(201)/media INIT-APPEND-FINALIZE-STATUS/metrics + injectable 429/401/403-duplicate/5xx/over-limit and async-processing knob
+- [x] Adapter base URL injectable → tests hit simulator (live `POSTAL_LIVE_X=1` path TBD when real creds exist)
+- [x] Publish pipeline: validate → publish → record → retry/backoff + refresh-once + **idempotency** (`publish_results`, migration `00005`); debit-hook point for future billing
+**Tests/DoD:** ✅ simulator matrix (happy, media image+video/STATUS-poll, >280→terminal-no-API, duplicate→terminal, 429→retry→success, 5xx→retry→success, expired→refresh→success incl. maxAttempts=1) + Store PG-integration idempotency. `make check` green. **`/security-review` clean; `/code-review` (high) run — fixed 5 issues** (auth-retry attempt accounting, token-429 wrongly expiring channel, URL-regex undercount, shared `db.IsUniqueViolation`, documented double-Validate). Real X creds + live smoke gated for when an X app exists.
 
 ### Phase 5 — Posts, drafts, composer API
 **Goal:** create/manage content (no schedule yet).
@@ -361,4 +382,6 @@ Keep a running note here of what phase we're in and what's done.
 - 2026-05-29: **Phase 0 complete & verified.** Go 1.26.3 installed system-wide (`/usr/local/go`). Module `github.com/Akins20/postal`. Stdlib-only typed config, chi server + health/readyz + slog/request-ID middleware, two-role binary (serve/worker) with graceful shutdown, goose+sqlc chain proven, docker-compose deps, golangci-lint + ≤800-line check all green.
 - 2026-05-29: **Phase 1 complete & verified.** Foundation primitives: response envelope + error taxonomy (`apperr`/`web`), central error handler, strict bounded JSON decoding, AES-256-GCM envelope encryption with key rotation (`security`), audit-log writer + `audit_log` table, Redis token-bucket rate limiter + middleware (`ratelimit`), Prometheus `/metrics` (`platform/metrics`), and SECURITY.md/ANTI_ABUSE.md. `make check` green; rate-limit curl proves 429.
 - 2026-05-29: **Phase 2 complete & verified.** Auth/tenancy: Argon2id passwords, email verification, JWT access + sliding rotating refresh in Redis (cookies + Bearer, CSRF double-submit), password reset, `RequireUser`, auto personal workspace, capability-based membership (`internal/workspace`) with `RequireCapability`, add-member/update-capabilities (no escalation, owner immutable), layered anti-abuse. `/security-review` run (no must-fix; fixed login-timing enumeration + prod console-mailer guard). auth.sh 13/13, capabilities.sh 12/12, make check green.
-- 2026-05-29: **Phase 3 complete & verified.** Channels + OAuth token vault (`internal/channel`): generic OAuthProvider + PKCE/state connect flow, envelope-encrypted credential storage (migration 00004), token refresh, disconnect-purge, capability-gated + workspace-isolated. `/security-review` clean (all 8 areas). Integration test proves OAuth round trip + ciphertext at rest; channels.sh 9/9; make check green. **Next: Phase 4 — Publishing pipeline + X/Twitter adapter + X simulator** (first social). Run `/security-review` + `/code-review` after Phase 4; research current X API specs first.
+- 2026-05-29: **Phase 3 complete & verified.** Channels + OAuth token vault (`internal/channel`): generic OAuthProvider + PKCE/state connect flow, envelope-encrypted credential storage (migration 00004), token refresh, disconnect-purge, capability-gated + workspace-isolated. `/security-review` clean (all 8 areas). Integration test proves OAuth round trip + ciphertext at rest; channels.sh 9/9; make check green.
+- 2026-05-29: **X API research** (deep-research) → posting is PAY-PER-USE/metered (no free tier since Feb 2026); updated `docs/X_TWITTER_INTEGRATION.md`. Decisions: social feature toggles + billing/usage model (operator pre-funds X credits; Postal tracks+caps per workspace — see memories `social-feature-toggles`, `billing-wallet-system`, `cross-platform-sync`).
+- 2026-05-29: **Phase 4 complete & verified.** Publishing pipeline + X adapter + X simulator (`internal/publish`). PlatformAdapter contract, weighted-280 validation, chunked media upload, metrics, retry/backoff/refresh/idempotency (`publish_results`, migration 00005). `/security-review` clean; `/code-review` (high) fixed 5 issues. Simulator matrix + PG idempotency green; make check green. TikTok research done (→ `docs/TIKTOK_INTEGRATION.md`). **Next: Phase 5 — Posts, drafts, composer API** (compose-once multi-publish lands here).

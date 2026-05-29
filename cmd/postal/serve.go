@@ -11,6 +11,7 @@ import (
 	"github.com/Akins20/postal/internal/platform/db"
 	"github.com/Akins20/postal/internal/platform/metrics"
 	"github.com/Akins20/postal/internal/platform/redis"
+	"github.com/Akins20/postal/internal/publish/twitter"
 	"github.com/Akins20/postal/internal/ratelimit"
 	"github.com/Akins20/postal/internal/security"
 	"github.com/Akins20/postal/internal/server"
@@ -134,9 +135,25 @@ func (w *wiring) wireChannels(deps *server.Deps) {
 		w.log.Warn("auth/workspace disabled; channel endpoints disabled")
 		return
 	}
-	registry := channel.NewRegistry() // providers wired in Phase 4
+	registry := channel.NewRegistry(w.oauthProviders()...)
 	svc := channel.NewService(w.pool, registry, w.enc, w.cache, w.wsSvc, w.auditor, nil)
 	deps.ChannelHandler = channel.NewHandler(svc, w.wsSvc, w.log)
+}
+
+// oauthProviders builds the set of OAuth providers to register. The X adapter is
+// included only when its app credentials are configured (the publish pipeline
+// that uses it as a full adapter is wired with the worker in Phase 6).
+func (w *wiring) oauthProviders() []channel.OAuthProvider {
+	if w.cfg.Twitter.ClientID == "" {
+		w.log.Warn("POSTAL_X_CLIENT_ID not set; X/Twitter channel is disabled")
+		return nil
+	}
+	x := twitter.New(twitter.Config{
+		ClientID:     w.cfg.Twitter.ClientID,
+		ClientSecret: w.cfg.Twitter.ClientSecret,
+		RedirectURI:  w.cfg.Twitter.RedirectURI,
+	})
+	return []channel.OAuthProvider{x}
 }
 
 // initEncryptor validates the configured master key and builds the encryptor. A

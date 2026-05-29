@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/Akins20/postal/internal/platform/apperr"
@@ -26,9 +25,6 @@ const (
 
 // defaultWorkspaceName is the personal workspace auto-created at signup.
 const defaultWorkspaceName = "Personal"
-
-// pgUniqueViolation is the PostgreSQL error code for a unique-constraint breach.
-const pgUniqueViolation = "23505"
 
 // Service orchestrates identity flows over the database, token issuer, session
 // store, mailer, and audit log.
@@ -224,8 +220,7 @@ func invalidCredentials() error {
 
 // mapCreateUserErr converts a duplicate-email unique violation into a conflict.
 func mapCreateUserErr(err error) error {
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) && pgErr.Code == pgUniqueViolation {
+	if db.IsUniqueViolation(err) {
 		return apperr.Conflict("email_taken", "that email address is already registered")
 	}
 	return fmt.Errorf("creating user: %w", err)

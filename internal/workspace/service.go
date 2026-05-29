@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/Akins20/postal/internal/platform/apperr"
 	"github.com/Akins20/postal/internal/platform/db"
@@ -117,8 +116,7 @@ func (s *Service) AddMember(ctx context.Context, actorID, workspaceID uuid.UUID,
 		Permissions: finalCaps,
 	})
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		if db.IsUniqueViolation(err) {
 			return Member{}, apperr.Conflict("already_member", "that user is already a member")
 		}
 		return Member{}, apperr.Internal(err)

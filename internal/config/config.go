@@ -36,11 +36,20 @@ const envPrefix = "POSTAL_"
 
 // Config is the fully resolved, validated runtime configuration.
 type Config struct {
-	HTTP   HTTP
-	DB     DB
-	Redis  Redis
-	Crypto Crypto
-	Auth   Auth
+	HTTP    HTTP
+	DB      DB
+	Redis   Redis
+	Crypto  Crypto
+	Auth    Auth
+	Twitter Twitter
+}
+
+// Twitter holds the X/Twitter OAuth app credentials. When ClientID is empty the
+// X adapter is not registered (channels for X are disabled).
+type Twitter struct {
+	ClientID     string
+	ClientSecret string
+	RedirectURI  string
 }
 
 // Auth holds authentication and session settings. JWTSecret is validated by the
@@ -134,6 +143,11 @@ func Load() (Config, error) {
 			RefreshTokenMaxTTL: getDuration("REFRESH_TOKEN_MAX_TTL", defaultRefreshTokenMaxTTL),
 			CookieDomain:       getString("COOKIE_DOMAIN", ""),
 			CookieSecure:       getBool("COOKIE_SECURE", defaultCookieSecure),
+		},
+		Twitter: Twitter{
+			ClientID:     getString("X_CLIENT_ID", ""),
+			ClientSecret: getString("X_CLIENT_SECRET", ""),
+			RedirectURI:  getString("X_REDIRECT_URI", ""),
 		},
 	}
 

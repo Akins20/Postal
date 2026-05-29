@@ -62,6 +62,16 @@ type PasswordResetToken struct {
 	CreatedAt  pgtype.Timestamptz `json:"created_at"`
 }
 
+type PublishResult struct {
+	ID             int64              `json:"id"`
+	ChannelID      uuid.UUID          `json:"channel_id"`
+	PostID         *uuid.UUID         `json:"post_id"`
+	IdempotencyKey string             `json:"idempotency_key"`
+	PlatformPostID string             `json:"platform_post_id"`
+	RawResponse    []byte             `json:"raw_response"`
+	PublishedAt    pgtype.Timestamptz `json:"published_at"`
+}
+
 type SchemaSmoke struct {
 	ID        int64              `json:"id"`
 	Note      string             `json:"note"`

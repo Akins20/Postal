@@ -47,7 +47,12 @@ func (s *Service) RefreshChannel(ctx context.Context, channelID uuid.UUID) error
 
 	token, err := provider.RefreshToken(ctx, refreshToken)
 	if err != nil {
-		s.markExpired(ctx, ch, err)
+		// Only a terminal failure (e.g. invalid_grant) means the user must
+		// reconnect; a transient error (429/5xx/network) leaves the channel
+		// active so a later refresh can succeed.
+		if !isRetryable(err) {
+			s.markExpired(ctx, ch, err)
+		}
 		return fmt.Errorf("refreshing token: %w", err)
 	}
 
@@ -70,6 +75,37 @@ func (s *Service) RefreshChannel(ctx context.Context, channelID uuid.UUID) error
 	return nil
 }
 
+// PublishContext returns a channel's platform and decrypted access token for
+// the publish pipeline. It errors if the channel is missing or not active.
+func (s *Service) PublishContext(ctx context.Context, channelID uuid.UUID) (string, Token, error) {
+	ch, err := s.pool.Queries().GetChannel(ctx, channelID)
+	if err != nil {
+		return "", Token{}, fmt.Errorf("loading channel: %w", err)
+	}
+	if ch.Status != statusActive {
+		return "", Token{}, fmt.Errorf("channel %s is not active (status %q)", channelID, ch.Status)
+	}
+	cred, err := s.pool.Queries().GetChannelCredential(ctx, channelID)
+	if err != nil {
+		return "", Token{}, fmt.Errorf("loading credential: %w", err)
+	}
+	access, err := s.vault.openAccess(cred)
+	if err != nil {
+		return "", Token{}, err
+	}
+	return ch.Platform, Token{AccessToken: access}, nil
+}
+
+// Refresh refreshes a channel's token (persisting it) and returns the new
+// decrypted access token, for the pipeline's auth-expired retry path.
+func (s *Service) Refresh(ctx context.Context, channelID uuid.UUID) (Token, error) {
+	if err := s.RefreshChannel(ctx, channelID); err != nil {
+		return Token{}, err
+	}
+	_, tok, err := s.PublishContext(ctx, channelID)
+	return tok, err
+}
+
 // DueForRefresh returns channels whose credentials expire before `before`, for
 // the refresh worker to process (Phase 6).
 func (s *Service) DueForRefresh(ctx context.Context, before time.Time, limit int32) ([]uuid.UUID, error) {
@@ -85,6 +121,14 @@ func (s *Service) DueForRefresh(ctx context.Context, before time.Time, limit int
 		ids[i] = r.ID
 	}
 	return ids, nil
+}
+
+// isRetryable reports whether err signals a transient failure, detected
+// structurally (the provider's publish.Error exposes Retryable) so channel need
+// not import the publish package.
+func isRetryable(err error) bool {
+	var r interface{ Retryable() bool }
+	return errors.As(err, &r) && r.Retryable()
 }
 
 // markExpired flags a channel expired after a failed refresh and audits it.
