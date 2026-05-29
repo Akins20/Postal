@@ -16,19 +16,25 @@ Legend: `[ ]` not yet · `[~]` partial · `[x]` in place & tested.
 - [ ] Key rotation runbook + re-encryption job (mechanism ready; ops doc TBD).
 - [ ] Master key sourced from a KMS in production (env acceptable for dev).
 
-## 2. Authentication & sessions (Phase 2)
-- [ ] Passwords hashed with Argon2id (per-password salt, tuned params).
-- [ ] Sessions: short-lived access + rotating refresh (or opaque Redis sessions).
-- [ ] Login throttling + account lockout; generic auth-failure messages.
-- [ ] Email verification required before publishing is enabled.
-- [ ] Password reset tokens single-use, short-lived, hashed at rest.
+## 2. Authentication & sessions (Phase 2 ✅)
+- [x] Passwords hashed with Argon2id (per-password random salt, PHC-encoded params).
+- [x] Sessions: short-lived JWT access + rotating refresh in Redis (sliding TTL,
+      absolute cap, single-use rotation); JWT enforces HS256/issuer/expiry.
+- [x] Login throttling (per-IP + per-email); generic auth-failure message; login
+      timing equalized with a dummy Argon2id verify (enumeration defense).
+- [x] Password reset tokens single-use, short-lived, hashed (SHA-256) at rest;
+      email verification tokens likewise.
+- [ ] Email verification required before publishing is enabled (flag set; gate
+      enforced in the publish pipeline, Phase 4+).
+- [ ] Revoke all sessions on password reset (needs session-versioning; deferred).
 
-## 3. Authorization & tenancy
-- [ ] Capability-based authz (`RequireCapability`); workspace isolation enforced
-      on every resource (see MASTER_PLAN §5.1). A user can never touch another
-      workspace's data.
-- [ ] No privilege escalation: a member cannot grant a capability they lack.
-- [ ] Object-level checks on every read/write, not just route-level.
+## 3. Authorization & tenancy (Phase 2 ✅)
+- [x] Capability-based authz (`RequireCapability`); workspace isolation enforced —
+      membership resolved per `{workspaceID}` for the authenticated user; non-members
+      get 403 (existence not revealed). See MASTER_PLAN §5.1.
+- [x] No privilege escalation: `CanGrant` blocks granting a capability the actor
+      lacks; workspace owner membership is immutable.
+- [x] Object-level checks: capability middleware gates each workspace route.
 
 ## 4. Input handling & output
 - [x] Standard error envelope; internal causes never leak to clients

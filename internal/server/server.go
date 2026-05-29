@@ -13,8 +13,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
+	"github.com/Akins20/postal/internal/auth"
 	"github.com/Akins20/postal/internal/platform/metrics"
 	"github.com/Akins20/postal/internal/ratelimit"
+	"github.com/Akins20/postal/internal/workspace"
 )
 
 // Pinger reports whether a backing dependency is reachable. Both the Postgres
@@ -26,12 +28,15 @@ type Pinger interface {
 
 // Deps are the dependencies the server needs to wire its routes and readiness checks.
 type Deps struct {
-	Logger         *slog.Logger
-	DB             Pinger
-	Redis          Pinger
-	Metrics        *metrics.Metrics
-	Limiter        *ratelimit.Limiter
-	RequestTimeout time.Duration
+	Logger           *slog.Logger
+	DB               Pinger
+	Redis            Pinger
+	Metrics          *metrics.Metrics
+	Limiter          *ratelimit.Limiter
+	Tokens           *auth.TokenIssuer
+	AuthHandler      *auth.Handler
+	WorkspaceHandler *workspace.Handler
+	RequestTimeout   time.Duration
 }
 
 // Server owns the HTTP router and underlying http.Server.
@@ -73,7 +78,7 @@ func New(addr string, deps Deps) *Server {
 	if deps.Metrics != nil {
 		s.mux.Handle("/metrics", deps.Metrics.Handler())
 	}
-	s.mountAPI(deps.Logger, deps.Limiter)
+	s.mountAPI(deps)
 	return s
 }
 

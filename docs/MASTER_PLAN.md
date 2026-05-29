@@ -230,18 +230,18 @@ come up; `scripts/curl/health.sh` passes; `make check` runs green (full enforcem
 - [x] Metrics endpoint (`/metrics`) + base Prometheus counters + middleware (`platform/metrics`)
 **Tests/DoD:** ✅ crypto unit tests (round-trip, tamper detection, key rotation, wrong key); rate-limit math + Redis-backed integration tests; `make check` green; curl test (`scripts/curl/ratelimit.sh`) proves 429 past threshold with standard envelope + `Retry-After`; `/metrics` exposed.
 
-### Phase 2 — Auth, users, workspaces, roles
+### Phase 2 — Auth, users, workspaces, roles ✅ DONE (2026-05-29)
 **Goal:** identity and tenancy.
-- [ ] Signup (email + password, Argon2id), email verification flow (token issue/verify; mail via console/sink locally)
-- [ ] Login, logout, refresh; session strategy (JWT access + refresh in Redis, or opaque sessions)
-- [ ] Password reset
-- [ ] Auth middleware (`RequireUser`) + current-user context
-- [ ] Workspaces: create, list; auto-create personal workspace on signup
-- [ ] Membership + **capability-based permissions** (role presets `owner/admin/editor/viewer` expand to capability sets; admin can toggle individual capabilities per user — see §5.1); invite flow (stub email)
-- [ ] Capability registry + preset→capability expansion; endpoint to update a member's capabilities (guarded by `manage_members`, no privilege escalation)
-- [ ] **Workspace authorization middleware** (`RequireUser` → membership resolution → `RequireCapability(cap)`) — enforce capability checks + workspace isolation everywhere
-- [ ] Anti-abuse: signup velocity limit, disposable-email block, password strength, login throttling/lockout
-**Tests/DoD:** curl scripts for full signup→verify→login→refresh→logout; negative tests (wrong password, unverified publish blocked, cross-workspace access denied, brute-force lockout). **Capability authz tests:** a `read+upload`-only member is denied `delete`/`publish` (403); a member without `manage_members` cannot change capabilities; privilege-escalation attempt (granting a capability the actor lacks) is rejected; capability changes are audited. **Run `/security-review`.**
+- [x] Signup (email + password, Argon2id), email verification flow (token issue/verify; console-sink mailer locally — guarded off in production)
+- [x] Login, logout, refresh; **session strategy:** short-lived JWT access (HS256, 15m) + rotating refresh token in Redis with **sliding expiration** + absolute cap; **cookie delivery** (httpOnly+Secure+SameSite refresh cookie auth-path-scoped, access cookie + body token) and **CSRF double-submit** on refresh/logout; `Authorization: Bearer` also accepted. Logout revokes refresh + clears cookies
+- [x] Password reset (request/confirm; single-use hashed tokens; no account enumeration)
+- [x] Auth middleware (`RequireUser`) + current-user context (`web.UserID`)
+- [x] Workspaces: list; **personal workspace auto-created on signup** (transactional with user + owner membership)
+- [x] Membership + **capability-based permissions** (presets expand to capability sets; per-user capability toggling — §5.1). Member add is direct-add-existing-user-by-email (full email-invite-for-new-users deferred to a later phase)
+- [x] Capability registry + preset→capability expansion; update-capabilities + add-member endpoints (guarded by `manage_members`, no privilege escalation, owner immutable)
+- [x] **Workspace authorization** (`RequireUser` → `RequireCapability(cap)` resolving membership) — capability checks + workspace isolation enforced
+- [x] Anti-abuse: signup velocity (per-IP), disposable-email block, password strength, login throttling (per-IP + per-email); timing-equalized login (enumeration defense)
+**Tests/DoD:** ✅ `make check` green (unit + Redis/PG integration incl. full auth flow). Curl suites: `scripts/curl/auth.sh` (13/13: signup→verify→login→/me→refresh→logout + negatives: dup email 409, wrong pw 401, weak pw 400, disposable 400, CSRF-less refresh 403, post-logout refresh 401) and `scripts/curl/capabilities.sh` (12/12: capability gating, privilege-escalation blocked 403, owner immutable 403, workspace isolation 403). Argon2id hashes + hashed tokens verified at rest; audit log populated. **`/security-review` run — no must-fix findings; two sub-threshold items (login timing, prod mailer token logging) fixed.**
 
 ### Phase 3 — Channels & OAuth token vault
 **Goal:** connect social accounts securely (generic, X wired in Phase 4).
@@ -351,4 +351,5 @@ Keep a running note here of what phase we're in and what's done.
 - 2026-05-29: Plan created. Next action: **Phase 0 — scaffolding.** First social = X/Twitter (Phase 4).
 - 2026-05-29: Authorization model decided — **capability flags + role presets** (§5.1), not fixed-role hierarchy. Admin can grant any combination of `read/create/update/delete/upload/publish/manage_*`. Affects Phase 2 data model (`workspace_member.permissions`) and middleware (`RequireCapability`).
 - 2026-05-29: **Phase 0 complete & verified.** Go 1.26.3 installed system-wide (`/usr/local/go`). Module `github.com/Akins20/postal`. Stdlib-only typed config, chi server + health/readyz + slog/request-ID middleware, two-role binary (serve/worker) with graceful shutdown, goose+sqlc chain proven, docker-compose deps, golangci-lint + ≤800-line check all green.
-- 2026-05-29: **Phase 1 complete & verified.** Foundation primitives: response envelope + error taxonomy (`apperr`/`web`), central error handler, strict bounded JSON decoding, AES-256-GCM envelope encryption with key rotation (`security`), audit-log writer + `audit_log` table, Redis token-bucket rate limiter + middleware (`ratelimit`), Prometheus `/metrics` (`platform/metrics`), and SECURITY.md/ANTI_ABUSE.md. `make check` green; rate-limit curl proves 429. **Next: Phase 2 — auth, users, workspaces, capability-based roles** (see §5.1). Run `/security-review` at the end of Phase 2.
+- 2026-05-29: **Phase 1 complete & verified.** Foundation primitives: response envelope + error taxonomy (`apperr`/`web`), central error handler, strict bounded JSON decoding, AES-256-GCM envelope encryption with key rotation (`security`), audit-log writer + `audit_log` table, Redis token-bucket rate limiter + middleware (`ratelimit`), Prometheus `/metrics` (`platform/metrics`), and SECURITY.md/ANTI_ABUSE.md. `make check` green; rate-limit curl proves 429.
+- 2026-05-29: **Phase 2 complete & verified.** Auth/tenancy: Argon2id passwords, email verification, JWT access + sliding rotating refresh in Redis (cookies + Bearer, CSRF double-submit), password reset, `RequireUser`, auto personal workspace, capability-based membership (`internal/workspace`) with `RequireCapability`, add-member/update-capabilities (no escalation, owner immutable), layered anti-abuse. `/security-review` run (no must-fix; fixed login-timing enumeration + prod console-mailer guard). auth.sh 13/13, capabilities.sh 12/12, make check green. **Next: Phase 3 — Channels & OAuth token vault** (uses the Phase 1 envelope-encryption `security.Encryptor`). Run `/security-review` after Phase 3.

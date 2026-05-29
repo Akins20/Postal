@@ -6,6 +6,8 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/Akins20/postal/internal/platform/db/sqlc"
 )
 
 // Pool wraps a pgx connection pool. Domains receive it via constructors; there
@@ -32,6 +34,32 @@ func Connect(ctx context.Context, dsn string) (*Pool, error) {
 func (p *Pool) Ping(ctx context.Context) error {
 	if err := p.Pool.Ping(ctx); err != nil {
 		return fmt.Errorf("postgres ping: %w", err)
+	}
+	return nil
+}
+
+// Queries returns a sqlc query set bound to the pool for non-transactional use.
+func (p *Pool) Queries() *sqlc.Queries {
+	return sqlc.New(p.Pool)
+}
+
+// WithTx runs fn inside a database transaction, committing on success and
+// rolling back on error or panic. The sqlc query set passed to fn is bound to
+// the transaction, so all statements share it atomically.
+func (p *Pool) WithTx(ctx context.Context, fn func(q *sqlc.Queries) error) error {
+	tx, err := p.Pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	// Rollback is a no-op once the tx is committed; the error is intentionally
+	// ignored in that case.
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	if err := fn(sqlc.New(tx)); err != nil {
+		return err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit tx: %w", err)
 	}
 	return nil
 }

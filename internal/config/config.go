@@ -24,6 +24,11 @@ const (
 	defaultRequestTimeout  = 30 * time.Second
 	defaultRedisAddr       = "localhost:6379"
 	defaultRedisDB         = 0
+
+	defaultAccessTokenTTL     = 15 * time.Minute
+	defaultRefreshTokenTTL    = 30 * 24 * time.Hour // sliding window per use
+	defaultRefreshTokenMaxTTL = 90 * 24 * time.Hour // absolute session cap
+	defaultCookieSecure       = true
 )
 
 // envPrefix namespaces every Postal environment variable.
@@ -35,6 +40,25 @@ type Config struct {
 	DB     DB
 	Redis  Redis
 	Crypto Crypto
+	Auth   Auth
+}
+
+// Auth holds authentication and session settings. JWTSecret is validated by the
+// auth domain at construction (not here) so the server can still run scaffolding
+// roles without it configured.
+type Auth struct {
+	// JWTSecret signs HS256 access tokens. Required before auth is used; never logged.
+	JWTSecret string
+	// AccessTokenTTL is the lifetime of a JWT access token.
+	AccessTokenTTL time.Duration
+	// RefreshTokenTTL is the sliding lifetime of a refresh token, extended on each use.
+	RefreshTokenTTL time.Duration
+	// RefreshTokenMaxTTL caps total session lifetime regardless of sliding.
+	RefreshTokenMaxTTL time.Duration
+	// CookieDomain scopes auth cookies (empty = host-only).
+	CookieDomain string
+	// CookieSecure sets the Secure flag on auth cookies (disable only for local http).
+	CookieSecure bool
 }
 
 // HTTP holds API server settings.
@@ -103,6 +127,14 @@ func Load() (Config, error) {
 		Crypto: Crypto{
 			MasterKey: getString("MASTER_KEY", ""),
 		},
+		Auth: Auth{
+			JWTSecret:          getString("JWT_SECRET", ""),
+			AccessTokenTTL:     getDuration("ACCESS_TOKEN_TTL", defaultAccessTokenTTL),
+			RefreshTokenTTL:    getDuration("REFRESH_TOKEN_TTL", defaultRefreshTokenTTL),
+			RefreshTokenMaxTTL: getDuration("REFRESH_TOKEN_MAX_TTL", defaultRefreshTokenMaxTTL),
+			CookieDomain:       getString("COOKIE_DOMAIN", ""),
+			CookieSecure:       getBool("COOKIE_SECURE", defaultCookieSecure),
+		},
 	}
 
 	if err := cfg.validate(); err != nil {
@@ -136,6 +168,19 @@ func getString(key, def string) string {
 		return v
 	}
 	return def
+}
+
+// getBool returns the boolean value of POSTAL_<key>, or def if unset or unparsable.
+func getBool(key string, def bool) bool {
+	v, ok := os.LookupEnv(envPrefix + key)
+	if !ok || v == "" {
+		return def
+	}
+	b, err := strconv.ParseBool(v)
+	if err != nil {
+		return def
+	}
+	return b
 }
 
 // getInt returns the integer value of POSTAL_<key>, or def if unset or unparsable.

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/Akins20/postal/internal/auth"
 	"github.com/Akins20/postal/internal/config"
 	"github.com/Akins20/postal/internal/platform/db"
 	"github.com/Akins20/postal/internal/platform/metrics"
@@ -12,6 +13,7 @@ import (
 	"github.com/Akins20/postal/internal/ratelimit"
 	"github.com/Akins20/postal/internal/security"
 	"github.com/Akins20/postal/internal/server"
+	"github.com/Akins20/postal/internal/workspace"
 )
 
 // runServe connects backing dependencies and runs the HTTP API server until the
@@ -33,24 +35,67 @@ func runServe(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	}
 	defer func() { _ = cache.Close() }()
 
-	// Validate the encryption keyring at startup so a misconfigured master key
-	// fails fast rather than at first token write (Phase 3). Optional in early
-	// dev: a missing key disables token features but still lets the server run.
 	if err := initCrypto(cfg, log); err != nil {
 		return err
 	}
 
-	srv := server.New(cfg.HTTP.Addr, server.Deps{
+	limiter := ratelimit.NewLimiter(cache, nil)
+	auditor := security.NewAuditor(pool.Queries(), log)
+
+	deps := server.Deps{
 		Logger:         log,
 		DB:             pool,
 		Redis:          cache,
 		Metrics:        metrics.New(),
-		Limiter:        ratelimit.NewLimiter(cache, nil),
+		Limiter:        limiter,
 		RequestTimeout: cfg.HTTP.RequestTimeout,
-	})
+	}
+	if err := wireAuth(&deps, cfg, pool, cache, limiter, auditor, log); err != nil {
+		return err
+	}
 
+	srv := server.New(cfg.HTTP.Addr, deps)
 	log.Info("starting postal api server", slog.String("env", cfg.HTTP.Env))
 	return srv.Start(ctx, cfg.HTTP.ShutdownTimeout)
+}
+
+// wireAuth constructs the auth and workspace stack and attaches it to deps. With
+// no JWT secret configured, auth endpoints are disabled and the server still
+// serves health, metrics, and ping.
+func wireAuth(deps *server.Deps, cfg config.Config, pool *db.Pool, cache *redis.Client, limiter *ratelimit.Limiter, auditor *security.Auditor, log *slog.Logger) error {
+	if cfg.Auth.JWTSecret == "" {
+		log.Warn("POSTAL_JWT_SECRET not set; auth endpoints are disabled")
+		return nil
+	}
+
+	tokens, err := auth.NewTokenIssuer(cfg.Auth.JWTSecret, cfg.Auth.AccessTokenTTL, nil)
+	if err != nil {
+		return fmt.Errorf("building token issuer: %w", err)
+	}
+	sessions, err := auth.NewSessionStore(cache, cfg.Auth.RefreshTokenTTL, cfg.Auth.RefreshTokenMaxTTL, nil)
+	if err != nil {
+		return fmt.Errorf("building session store: %w", err)
+	}
+
+	// The console mailer logs verification/reset tokens (single-use account
+	// secrets), which is acceptable only for local development. Refuse to run it
+	// in production until a real mailer is wired, rather than leaking tokens.
+	if cfg.HTTP.IsProduction() {
+		return fmt.Errorf("no production mailer configured: refusing to start auth with the dev console mailer in production")
+	}
+	authSvc := auth.NewService(pool, tokens, sessions, auth.NewConsoleMailer(log), auditor, nil)
+	deps.Tokens = tokens
+	deps.AuthHandler = auth.NewHandler(auth.HandlerConfig{
+		Service:    authSvc,
+		Tokens:     tokens,
+		Limiter:    limiter,
+		Cookies:    auth.CookieSettings{Domain: cfg.Auth.CookieDomain, Secure: cfg.Auth.CookieSecure},
+		Logger:     log,
+		AccessTTL:  cfg.Auth.AccessTokenTTL,
+		RefreshTTL: cfg.Auth.RefreshTokenTTL,
+	})
+	deps.WorkspaceHandler = workspace.NewHandler(workspace.NewService(pool, auditor, nil), log)
+	return nil
 }
 
 // initCrypto validates the configured master key. A present-but-invalid key is
