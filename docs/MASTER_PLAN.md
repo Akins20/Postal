@@ -38,6 +38,14 @@
 specs, rate limits, duplicate rejection, token expiry) as data-driven config, so adding a
 platform is "implement the adapter + declare its constraints," not rewrite the engine.
 
+**Feature toggles (planned, later phase):** Not all social-API features are paid — e.g. X's
+free tier allows some posting. Postal must let the **operator (system-level)** and **workspace
+admins (workspace-level)** independently enable/disable individual social features (publish,
+media, analytics, …), since availability/cost varies by platform and API tier. Effective
+availability = system-enabled AND workspace-enabled AND user-has-capability. Build adapter
+features as data-driven descriptors so a feature can be turned off without code changes;
+dedicated feature-flag slice to be scheduled (~Phase 8/9 or when a 2nd platform lands).
+
 ---
 
 ## 3. Architecture overview
