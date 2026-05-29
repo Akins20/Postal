@@ -55,6 +55,9 @@ func mountAuthenticated(pr chi.Router, deps Deps) {
 			if deps.PostHandler != nil {
 				deps.PostHandler.RegisterWorkspaceScoped(sr)
 			}
+			if deps.ScheduleHandler != nil {
+				deps.ScheduleHandler.RegisterWorkspaceScoped(sr)
+			}
 		})
 	})
 	if deps.ChannelHandler != nil {

@@ -145,6 +145,33 @@ func (q *Queries) GetPostVariant(ctx context.Context, id uuid.UUID) (PostVariant
 	return i, err
 }
 
+const getVariantByPostChannel = `-- name: GetVariantByPostChannel :one
+SELECT id, post_id, channel_id, body, media_refs, platform_options, created_at, updated_at
+FROM post_variants
+WHERE post_id = $1 AND channel_id = $2
+`
+
+type GetVariantByPostChannelParams struct {
+	PostID    uuid.UUID `json:"post_id"`
+	ChannelID uuid.UUID `json:"channel_id"`
+}
+
+func (q *Queries) GetVariantByPostChannel(ctx context.Context, arg GetVariantByPostChannelParams) (PostVariant, error) {
+	row := q.db.QueryRow(ctx, getVariantByPostChannel, arg.PostID, arg.ChannelID)
+	var i PostVariant
+	err := row.Scan(
+		&i.ID,
+		&i.PostID,
+		&i.ChannelID,
+		&i.Body,
+		&i.MediaRefs,
+		&i.PlatformOptions,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const listPostsByWorkspace = `-- name: ListPostsByWorkspace :many
 SELECT id, workspace_id, author_user_id, status, created_at, updated_at
 FROM posts

@@ -299,16 +299,16 @@ come up; `scripts/curl/health.sh` passes; `make check` runs green (full enforcem
 - [x] Link/UTM tagging (`ApplyUTM` + `/posts/utm-preview`); link shortening deferred
 **Tests/DoD:** ✅ Go integration test (real PG, X adapter as validator): create/get/list/update/delete, validate (valid + over-limit→`text_too_long`), cross-workspace isolation, foreign-channel rejection. `scripts/curl/posts.sh` 10/10 (authz gating, validation, UTM, isolation, 401). `make check` green. **`/code-review` (high) run — fixed 5** (UTM punctuation-absorption, channel-deleted→404 not 500, variant-count cap, `updated_at` bump, shared `web.PathUUID`). Deferred (noted): list pagination, batch channel lookup (N+1).
 
-### Phase 6 — Scheduling engine (queue + workers) ⭐ CORE FEATURE
+### Phase 6 — Scheduling engine (queue + workers) ⭐ CORE FEATURE ✅ DONE (2026-05-29)
 **Goal:** Buffer's signature queue-based scheduling.
-- [ ] `schedule_slot` model: per-channel posting schedule (days/times/timezone)
-- [ ] Queue semantics: drop a post into the next open slot; reorder; specific date/time scheduling too
-- [ ] Calendar data endpoints (range query of scheduled posts)
-- [ ] asynq enqueue at `run_at`; worker executes via Phase 4 pipeline
-- [ ] Timezone correctness (store UTC, compute per channel tz); DST handling
-- [ ] Bulk scheduling (CSV import) + re-queue evergreen
-- [ ] Cancel/reschedule; status transitions; user notifications on publish/fail
-**Tests/DoD:** schedule a post → worker fires at time (use injectable clock / short delays) → simulator receives it → result recorded. Test reorder, cancel, tz edge cases, retry on simulated 429. Run `/code-review`.
+- [x] `schedule_slots` model: per-channel days/times/timezone (migration `00007`); slot CRUD
+- [x] Queue semantics: `NextOpenSlot` (next free recurring slot, multi-occurrence) + specific `run_at` scheduling; **compose-once multi-publish** schedules a job per channel variant
+- [x] Calendar range endpoint (`GET /workspaces/{id}/calendar?from=&to=`)
+- [x] **asynq** enqueue at `run_at`; `worker` subcommand runs the asynq server + executes jobs via the Phase 4 `publish.Pipeline` (idempotency key = job ID → no double-post)
+- [x] Timezone correctness: slots computed in their IANA tz, stored/compared in UTC (DST handled by tz database; spring-forward gap noted)
+- [x] Cancel + status transitions (`scheduled→publishing→published/failed`, guarded **Claim** so a canceled job is never published even if its task fires); periodic token-refresh job (reuses Phase 3 `DueForRefresh`)
+- [ ] Bulk CSV import, evergreen re-queue, reschedule, user notifications — deferred (documented)
+**Tests/DoD:** ✅ Go integration test: schedule → worker `ProcessPublish` → **simulator receives the tweet** → `publish_results` recorded + job `published`; idempotency (re-delivery skipped), **canceled job not published**, duplicate→terminal→failed, cancel, `NextOpenSlot`. `scripts/curl/scheduling.sh` 10/10; worker subcommand boots + graceful shutdown. `make check` green. **`/code-review` (high) — fixed 5** (canceled-job-published via guarded Claim, MarkRetry resurrection, queue single-occurrence, misleading cancel success, server enqueuer leak).
 
 ### Phase 7 — Media pipeline
 **Goal:** images/video/GIF handling.
@@ -385,4 +385,5 @@ Keep a running note here of what phase we're in and what's done.
 - 2026-05-29: **Phase 3 complete & verified.** Channels + OAuth token vault (`internal/channel`): generic OAuthProvider + PKCE/state connect flow, envelope-encrypted credential storage (migration 00004), token refresh, disconnect-purge, capability-gated + workspace-isolated. `/security-review` clean (all 8 areas). Integration test proves OAuth round trip + ciphertext at rest; channels.sh 9/9; make check green.
 - 2026-05-29: **X API research** (deep-research) → posting is PAY-PER-USE/metered (no free tier since Feb 2026); updated `docs/X_TWITTER_INTEGRATION.md`. Decisions: social feature toggles + billing/usage model (operator pre-funds X credits; Postal tracks+caps per workspace — see memories `social-feature-toggles`, `billing-wallet-system`, `cross-platform-sync`).
 - 2026-05-29: **Phase 4 complete & verified.** Publishing pipeline + X adapter + X simulator (`internal/publish`). PlatformAdapter contract, weighted-280 validation, chunked media upload, metrics, retry/backoff/refresh/idempotency (`publish_results`, migration 00005). `/security-review` clean; `/code-review` (high) fixed 5 issues. Simulator matrix + PG idempotency green; make check green. TikTok research done (→ `docs/TIKTOK_INTEGRATION.md`).
-- 2026-05-29: **Phase 5 complete & verified.** Composer (`internal/post`, migration 00006): post + per-channel variant CRUD (compose-once multi-publish), drafts, compose-time validation via `publish.Registry`, UTM tagging; capability-gated + workspace-isolated. `/code-review` (high) fixed 5. posts.sh 10/10 + PG integration green; make check green. **Next: Phase 6 — Scheduling engine (queue + asynq workers)** ⭐ — wires the publish pipeline to fire scheduled jobs; the worker role gets implemented here.
+- 2026-05-29: **Phase 5 complete & verified.** Composer (`internal/post`, migration 00006): post + per-channel variant CRUD (compose-once multi-publish), drafts, compose-time validation via `publish.Registry`, UTM tagging; capability-gated + workspace-isolated. `/code-review` (high) fixed 5. posts.sh 10/10 + PG integration green; make check green.
+- 2026-05-29: **Phase 6 complete & verified** ⭐. Scheduling engine (`internal/schedule` + `internal/worker`, migration 00007, asynq): schedule_slots + NextOpenSlot queue + specific-time scheduling, calendar, cancel, guarded Claim status machine, asynq worker subcommand executing the Phase 4 pipeline (idempotent), periodic token refresh. `/code-review` (high) fixed 5 incl. a real "canceled job still publishes" bug. Worker integration test (schedule→fire→simulator→recorded), scheduling.sh 10/10, make check green. **Next: Phase 7 — Media pipeline** (MinIO upload, image/video validation + transcode, attach to variants, chunked X media — wires real media bytes into the publish path).

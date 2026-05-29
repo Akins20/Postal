@@ -8,9 +8,15 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
+	CancelScheduledJob(ctx context.Context, id uuid.UUID) (int64, error)
+	// ClaimScheduledJob atomically transitions scheduled -> publishing (counting the
+	// attempt), returning the row only if the claim succeeded. A canceled/published
+	// job is NOT scheduled, so it cannot be claimed — the worker then skips it.
+	ClaimScheduledJob(ctx context.Context, id uuid.UUID) (uuid.UUID, error)
 	ConsumeEmailVerificationToken(ctx context.Context, id uuid.UUID) error
 	ConsumePasswordResetToken(ctx context.Context, id uuid.UUID) error
 	CountSmoke(ctx context.Context) (int64, error)
@@ -20,12 +26,15 @@ type Querier interface {
 	CreatePasswordResetToken(ctx context.Context, arg CreatePasswordResetTokenParams) (PasswordResetToken, error)
 	CreatePost(ctx context.Context, arg CreatePostParams) (Post, error)
 	CreatePostVariant(ctx context.Context, arg CreatePostVariantParams) (PostVariant, error)
+	CreateScheduleSlot(ctx context.Context, arg CreateScheduleSlotParams) (ScheduleSlot, error)
+	CreateScheduledJob(ctx context.Context, arg CreateScheduledJobParams) (ScheduledJob, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams) (Workspace, error)
 	DeleteChannel(ctx context.Context, id uuid.UUID) error
 	DeleteChannelCredential(ctx context.Context, channelID uuid.UUID) error
 	DeletePost(ctx context.Context, id uuid.UUID) error
 	DeletePostVariant(ctx context.Context, id uuid.UUID) error
+	DeleteScheduleSlot(ctx context.Context, id uuid.UUID) error
 	DeleteVariantsForPost(ctx context.Context, postID uuid.UUID) error
 	GetChannel(ctx context.Context, id uuid.UUID) (Channel, error)
 	GetChannelByAccount(ctx context.Context, arg GetChannelByAccountParams) (Channel, error)
@@ -36,8 +45,10 @@ type Querier interface {
 	GetPost(ctx context.Context, id uuid.UUID) (Post, error)
 	GetPostVariant(ctx context.Context, id uuid.UUID) (PostVariant, error)
 	GetPublishResultByKey(ctx context.Context, idempotencyKey string) (PublishResult, error)
+	GetScheduledJob(ctx context.Context, id uuid.UUID) (ScheduledJob, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
+	GetVariantByPostChannel(ctx context.Context, arg GetVariantByPostChannelParams) (PostVariant, error)
 	InsertAuditLog(ctx context.Context, arg InsertAuditLogParams) (InsertAuditLogRow, error)
 	InsertPublishResult(ctx context.Context, arg InsertPublishResultParams) (PublishResult, error)
 	// Trivial query proving the sqlc generation chain works. Replaced by real
@@ -48,9 +59,14 @@ type Querier interface {
 	ListChannelsDueForRefresh(ctx context.Context, arg ListChannelsDueForRefreshParams) ([]ListChannelsDueForRefreshRow, error)
 	ListMembers(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceMember, error)
 	ListPostsByWorkspace(ctx context.Context, arg ListPostsByWorkspaceParams) ([]Post, error)
+	ListScheduledJobsInRange(ctx context.Context, arg ListScheduledJobsInRangeParams) ([]ScheduledJob, error)
+	ListScheduledRunAtForChannel(ctx context.Context, arg ListScheduledRunAtForChannelParams) ([]pgtype.Timestamptz, error)
+	ListSlotsForChannel(ctx context.Context, channelID uuid.UUID) ([]ScheduleSlot, error)
 	ListVariantsByPost(ctx context.Context, postID uuid.UUID) ([]PostVariant, error)
 	ListWorkspacesForUser(ctx context.Context, userID uuid.UUID) ([]Workspace, error)
 	SetEmailVerified(ctx context.Context, id uuid.UUID) error
+	SetScheduledJobStatus(ctx context.Context, arg SetScheduledJobStatusParams) error
+	SetScheduledJobTaskID(ctx context.Context, arg SetScheduledJobTaskIDParams) error
 	TouchPost(ctx context.Context, id uuid.UUID) error
 	UpdateChannelIdentity(ctx context.Context, arg UpdateChannelIdentityParams) error
 	UpdateChannelStatus(ctx context.Context, arg UpdateChannelStatusParams) error

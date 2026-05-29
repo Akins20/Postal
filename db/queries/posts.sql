@@ -45,6 +45,11 @@ SELECT id, post_id, channel_id, body, media_refs, platform_options, created_at, 
 FROM post_variants
 WHERE id = $1;
 
+-- name: GetVariantByPostChannel :one
+SELECT id, post_id, channel_id, body, media_refs, platform_options, created_at, updated_at
+FROM post_variants
+WHERE post_id = $1 AND channel_id = $2;
+
 -- name: UpdatePostVariant :one
 UPDATE post_variants
 SET body = $2, media_refs = $3, platform_options = $4, updated_at = now()

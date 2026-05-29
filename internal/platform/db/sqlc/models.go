@@ -92,6 +92,28 @@ type PublishResult struct {
 	PublishedAt    pgtype.Timestamptz `json:"published_at"`
 }
 
+type ScheduleSlot struct {
+	ID        uuid.UUID          `json:"id"`
+	ChannelID uuid.UUID          `json:"channel_id"`
+	DayOfWeek int16              `json:"day_of_week"`
+	TimeOfDay string             `json:"time_of_day"`
+	Timezone  string             `json:"timezone"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+type ScheduledJob struct {
+	ID          uuid.UUID          `json:"id"`
+	PostID      uuid.UUID          `json:"post_id"`
+	ChannelID   uuid.UUID          `json:"channel_id"`
+	RunAt       pgtype.Timestamptz `json:"run_at"`
+	Status      string             `json:"status"`
+	Attempts    int32              `json:"attempts"`
+	LastError   string             `json:"last_error"`
+	AsynqTaskID string             `json:"asynq_task_id"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+}
+
 type SchemaSmoke struct {
 	ID        int64              `json:"id"`
 	Note      string             `json:"note"`

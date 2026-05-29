@@ -15,21 +15,26 @@ import (
 	"github.com/Akins20/postal/internal/publish"
 	"github.com/Akins20/postal/internal/publish/twitter"
 	"github.com/Akins20/postal/internal/ratelimit"
+	"github.com/Akins20/postal/internal/schedule"
 	"github.com/Akins20/postal/internal/security"
 	"github.com/Akins20/postal/internal/server"
+	"github.com/Akins20/postal/internal/worker"
 	"github.com/Akins20/postal/internal/workspace"
+
+	"github.com/hibiken/asynq"
 )
 
 // wiring holds the shared dependencies used to construct the domain stacks.
 type wiring struct {
-	cfg     config.Config
-	pool    *db.Pool
-	cache   *redis.Client
-	limiter *ratelimit.Limiter
-	auditor *security.Auditor
-	enc     *security.Encryptor
-	wsSvc   *workspace.Service
-	log     *slog.Logger
+	cfg      config.Config
+	pool     *db.Pool
+	cache    *redis.Client
+	limiter  *ratelimit.Limiter
+	auditor  *security.Auditor
+	enc      *security.Encryptor
+	wsSvc    *workspace.Service
+	enqueuer *worker.Client // asynq client; closed by runServe
+	log      *slog.Logger
 }
 
 // runServe connects backing dependencies and runs the HTTP API server until the
@@ -79,6 +84,9 @@ func runServe(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		return err
 	}
 	w.wireChannels(&deps)
+	if w.enqueuer != nil {
+		defer func() { _ = w.enqueuer.Close() }()
+	}
 
 	srv := server.New(cfg.HTTP.Addr, deps)
 	log.Info("starting postal api server", slog.String("env", cfg.HTTP.Env))
@@ -138,7 +146,7 @@ func (w *wiring) wireChannels(deps *server.Deps) {
 		return
 	}
 
-	adapters := w.buildAdapters()
+	adapters := buildAdapters(w.cfg, w.log)
 	channelSvc := channel.NewService(w.pool, channel.NewRegistry(toOAuthProviders(adapters)...), w.enc, w.cache, w.wsSvc, w.auditor, nil)
 	deps.ChannelHandler = channel.NewHandler(channelSvc, w.wsSvc, w.log)
 
@@ -146,20 +154,32 @@ func (w *wiring) wireChannels(deps *server.Deps) {
 	// against the platform adapters (publish.Registry).
 	postSvc := post.NewService(w.pool, channelSvc, publish.NewRegistry(adapters...), w.auditor, nil)
 	deps.PostHandler = post.NewHandler(postSvc, w.wsSvc, w.log)
+
+	// Scheduling: enqueue publish tasks to asynq; the worker process executes
+	// them. The asynq client satisfies schedule.Enqueuer; closed by runServe.
+	w.enqueuer = worker.NewClient(redisOpt(w.cfg))
+	scheduleSvc := schedule.NewService(w.pool, channelSvc, w.enqueuer, w.auditor, nil)
+	deps.ScheduleHandler = schedule.NewHandler(scheduleSvc, w.wsSvc, w.log)
 }
 
 // buildAdapters constructs the platform adapters from config. The X adapter is
-// included only when its app credentials are configured.
-func (w *wiring) buildAdapters() []publish.Adapter {
-	if w.cfg.Twitter.ClientID == "" {
-		w.log.Warn("POSTAL_X_CLIENT_ID not set; X/Twitter is disabled")
+// included only when its app credentials are configured. Shared by server and
+// worker wiring.
+func buildAdapters(cfg config.Config, log *slog.Logger) []publish.Adapter {
+	if cfg.Twitter.ClientID == "" {
+		log.Warn("POSTAL_X_CLIENT_ID not set; X/Twitter is disabled")
 		return nil
 	}
 	return []publish.Adapter{twitter.New(twitter.Config{
-		ClientID:     w.cfg.Twitter.ClientID,
-		ClientSecret: w.cfg.Twitter.ClientSecret,
-		RedirectURI:  w.cfg.Twitter.RedirectURI,
+		ClientID:     cfg.Twitter.ClientID,
+		ClientSecret: cfg.Twitter.ClientSecret,
+		RedirectURI:  cfg.Twitter.RedirectURI,
 	})}
+}
+
+// redisOpt builds the asynq Redis options from config.
+func redisOpt(cfg config.Config) asynq.RedisClientOpt {
+	return asynq.RedisClientOpt{Addr: cfg.Redis.Addr, Password: cfg.Redis.Password, DB: cfg.Redis.DB}
 }
 
 // toOAuthProviders views the publish adapters as channel OAuth providers (each
