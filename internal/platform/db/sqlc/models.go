@@ -20,6 +20,30 @@ type AuditLog struct {
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 }
 
+type Channel struct {
+	ID                uuid.UUID          `json:"id"`
+	WorkspaceID       uuid.UUID          `json:"workspace_id"`
+	Platform          string             `json:"platform"`
+	PlatformAccountID string             `json:"platform_account_id"`
+	Handle            string             `json:"handle"`
+	DisplayName       string             `json:"display_name"`
+	Status            string             `json:"status"`
+	ConnectedBy       *uuid.UUID         `json:"connected_by"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
+}
+
+type ChannelCredential struct {
+	ChannelID             uuid.UUID          `json:"channel_id"`
+	EncryptedAccessToken  []byte             `json:"encrypted_access_token"`
+	EncryptedRefreshToken []byte             `json:"encrypted_refresh_token"`
+	Scopes                []string           `json:"scopes"`
+	ExpiresAt             pgtype.Timestamptz `json:"expires_at"`
+	KeyVersion            int32              `json:"key_version"`
+	CreatedAt             pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt             pgtype.Timestamptz `json:"updated_at"`
+}
+
 type EmailVerificationToken struct {
 	ID         uuid.UUID          `json:"id"`
 	UserID     uuid.UUID          `json:"user_id"`

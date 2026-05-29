@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/Akins20/postal/internal/auth"
+	"github.com/Akins20/postal/internal/channel"
 	"github.com/Akins20/postal/internal/config"
 	"github.com/Akins20/postal/internal/platform/db"
 	"github.com/Akins20/postal/internal/platform/metrics"
@@ -15,6 +16,18 @@ import (
 	"github.com/Akins20/postal/internal/server"
 	"github.com/Akins20/postal/internal/workspace"
 )
+
+// wiring holds the shared dependencies used to construct the domain stacks.
+type wiring struct {
+	cfg     config.Config
+	pool    *db.Pool
+	cache   *redis.Client
+	limiter *ratelimit.Limiter
+	auditor *security.Auditor
+	enc     *security.Encryptor
+	wsSvc   *workspace.Service
+	log     *slog.Logger
+}
 
 // runServe connects backing dependencies and runs the HTTP API server until the
 // context is canceled, then shuts down gracefully.
@@ -35,24 +48,34 @@ func runServe(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	}
 	defer func() { _ = cache.Close() }()
 
-	if err := initCrypto(cfg, log); err != nil {
+	enc, err := initEncryptor(cfg, log)
+	if err != nil {
 		return err
 	}
 
-	limiter := ratelimit.NewLimiter(cache, nil)
-	auditor := security.NewAuditor(pool.Queries(), log)
+	w := &wiring{
+		cfg:     cfg,
+		pool:    pool,
+		cache:   cache,
+		limiter: ratelimit.NewLimiter(cache, nil),
+		auditor: security.NewAuditor(pool.Queries(), log),
+		enc:     enc,
+		wsSvc:   workspace.NewService(pool, security.NewAuditor(pool.Queries(), log), nil),
+		log:     log,
+	}
 
 	deps := server.Deps{
 		Logger:         log,
 		DB:             pool,
 		Redis:          cache,
 		Metrics:        metrics.New(),
-		Limiter:        limiter,
+		Limiter:        w.limiter,
 		RequestTimeout: cfg.HTTP.RequestTimeout,
 	}
-	if err := wireAuth(&deps, cfg, pool, cache, limiter, auditor, log); err != nil {
+	if err := w.wireAuth(&deps); err != nil {
 		return err
 	}
+	w.wireChannels(&deps)
 
 	srv := server.New(cfg.HTTP.Addr, deps)
 	log.Info("starting postal api server", slog.String("env", cfg.HTTP.Env))
@@ -62,53 +85,71 @@ func runServe(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 // wireAuth constructs the auth and workspace stack and attaches it to deps. With
 // no JWT secret configured, auth endpoints are disabled and the server still
 // serves health, metrics, and ping.
-func wireAuth(deps *server.Deps, cfg config.Config, pool *db.Pool, cache *redis.Client, limiter *ratelimit.Limiter, auditor *security.Auditor, log *slog.Logger) error {
-	if cfg.Auth.JWTSecret == "" {
-		log.Warn("POSTAL_JWT_SECRET not set; auth endpoints are disabled")
+func (w *wiring) wireAuth(deps *server.Deps) error {
+	if w.cfg.Auth.JWTSecret == "" {
+		w.log.Warn("POSTAL_JWT_SECRET not set; auth endpoints are disabled")
 		return nil
 	}
 
-	tokens, err := auth.NewTokenIssuer(cfg.Auth.JWTSecret, cfg.Auth.AccessTokenTTL, nil)
+	tokens, err := auth.NewTokenIssuer(w.cfg.Auth.JWTSecret, w.cfg.Auth.AccessTokenTTL, nil)
 	if err != nil {
 		return fmt.Errorf("building token issuer: %w", err)
 	}
-	sessions, err := auth.NewSessionStore(cache, cfg.Auth.RefreshTokenTTL, cfg.Auth.RefreshTokenMaxTTL, nil)
+	sessions, err := auth.NewSessionStore(w.cache, w.cfg.Auth.RefreshTokenTTL, w.cfg.Auth.RefreshTokenMaxTTL, nil)
 	if err != nil {
 		return fmt.Errorf("building session store: %w", err)
 	}
 
 	// The console mailer logs verification/reset tokens (single-use account
-	// secrets), which is acceptable only for local development. Refuse to run it
-	// in production until a real mailer is wired, rather than leaking tokens.
-	if cfg.HTTP.IsProduction() {
+	// secrets), acceptable only for local development. Refuse it in production.
+	if w.cfg.HTTP.IsProduction() {
 		return fmt.Errorf("no production mailer configured: refusing to start auth with the dev console mailer in production")
 	}
-	authSvc := auth.NewService(pool, tokens, sessions, auth.NewConsoleMailer(log), auditor, nil)
+	authSvc := auth.NewService(w.pool, tokens, sessions, auth.NewConsoleMailer(w.log), w.auditor, nil)
+
 	deps.Tokens = tokens
 	deps.AuthHandler = auth.NewHandler(auth.HandlerConfig{
 		Service:    authSvc,
 		Tokens:     tokens,
-		Limiter:    limiter,
-		Cookies:    auth.CookieSettings{Domain: cfg.Auth.CookieDomain, Secure: cfg.Auth.CookieSecure},
-		Logger:     log,
-		AccessTTL:  cfg.Auth.AccessTokenTTL,
-		RefreshTTL: cfg.Auth.RefreshTokenTTL,
+		Limiter:    w.limiter,
+		Cookies:    auth.CookieSettings{Domain: w.cfg.Auth.CookieDomain, Secure: w.cfg.Auth.CookieSecure},
+		Logger:     w.log,
+		AccessTTL:  w.cfg.Auth.AccessTokenTTL,
+		RefreshTTL: w.cfg.Auth.RefreshTokenTTL,
 	})
-	deps.WorkspaceHandler = workspace.NewHandler(workspace.NewService(pool, auditor, nil), log)
+	deps.WorkspaceHandler = workspace.NewHandler(w.wsSvc, w.log)
 	return nil
 }
 
-// initCrypto validates the configured master key. A present-but-invalid key is
-// a fatal misconfiguration; an absent key only disables token features.
-func initCrypto(cfg config.Config, log *slog.Logger) error {
+// wireChannels constructs the channel/OAuth-vault stack. It requires both the
+// encryption key (to seal tokens) and the auth/workspace stack; absent either,
+// channel endpoints are disabled. Concrete OAuth providers are registered in
+// Phase 4 (X/Twitter), so the registry starts empty.
+func (w *wiring) wireChannels(deps *server.Deps) {
+	if w.enc == nil {
+		w.log.Warn("POSTAL_MASTER_KEY not set; channel connection disabled (token vault unavailable)")
+		return
+	}
+	if deps.WorkspaceHandler == nil {
+		w.log.Warn("auth/workspace disabled; channel endpoints disabled")
+		return
+	}
+	registry := channel.NewRegistry() // providers wired in Phase 4
+	svc := channel.NewService(w.pool, registry, w.enc, w.cache, w.wsSvc, w.auditor, nil)
+	deps.ChannelHandler = channel.NewHandler(svc, w.wsSvc, w.log)
+}
+
+// initEncryptor validates the configured master key and builds the encryptor. A
+// present-but-invalid key is fatal; an absent key disables token features.
+func initEncryptor(cfg config.Config, log *slog.Logger) (*security.Encryptor, error) {
 	if cfg.Crypto.MasterKey == "" {
 		log.Warn("POSTAL_MASTER_KEY not set; token-vault features are disabled until configured")
-		return nil
+		return nil, nil
 	}
 	enc, err := security.NewEncryptorFromSpec(cfg.Crypto.MasterKey)
 	if err != nil {
-		return fmt.Errorf("invalid POSTAL_MASTER_KEY: %w", err)
+		return nil, fmt.Errorf("invalid POSTAL_MASTER_KEY: %w", err)
 	}
 	log.Info("encryption keyring loaded", slog.Int("current_key_version", int(enc.CurrentVersion())))
-	return nil
+	return enc, nil
 }

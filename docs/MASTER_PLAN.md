@@ -243,15 +243,15 @@ come up; `scripts/curl/health.sh` passes; `make check` runs green (full enforcem
 - [x] Anti-abuse: signup velocity (per-IP), disposable-email block, password strength, login throttling (per-IP + per-email); timing-equalized login (enumeration defense)
 **Tests/DoD:** ✅ `make check` green (unit + Redis/PG integration incl. full auth flow). Curl suites: `scripts/curl/auth.sh` (13/13: signup→verify→login→/me→refresh→logout + negatives: dup email 409, wrong pw 401, weak pw 400, disposable 400, CSRF-less refresh 403, post-logout refresh 401) and `scripts/curl/capabilities.sh` (12/12: capability gating, privilege-escalation blocked 403, owner immutable 403, workspace isolation 403). Argon2id hashes + hashed tokens verified at rest; audit log populated. **`/security-review` run — no must-fix findings; two sub-threshold items (login timing, prod mailer token logging) fixed.**
 
-### Phase 3 — Channels & OAuth token vault
+### Phase 3 — Channels & OAuth token vault ✅ DONE (2026-05-29)
 **Goal:** connect social accounts securely (generic, X wired in Phase 4).
-- [ ] Channel CRUD (list/disconnect; status tracking)
-- [ ] OAuth connect flow scaffolding (state param, PKCE, callback handler) — generic over adapter
-- [ ] `channel_credential` storage: encrypted tokens, scopes, expiry, key_version
-- [ ] Token refresh service (worker job; refresh before expiry; mark expired on failure)
-- [ ] Disconnect = revoke + purge credentials + audit
-- [ ] Authorization: only workspace admins can connect/disconnect; tokens never returned to clients or logged
-**Tests/DoD:** simulator-backed OAuth round trip; verify tokens are encrypted at rest (inspect DB shows ciphertext); refresh job test; disconnect purges creds. **Run `/security-review`.**
+- [x] Channel CRUD (list/disconnect; status tracking active/expired) — `internal/channel`
+- [x] OAuth connect flow (CSRF `state` + PKCE S256, Redis-backed single-use state, callback handler) — generic over `OAuthProvider`; `Registry` (empty until Phase 4)
+- [x] `channel_credentials` storage: envelope-encrypted access+refresh tokens (BYTEA), scopes, expiry, key_version (migration `00004`)
+- [x] Token refresh service (`RefreshChannel` + `DueForRefresh`; re-encrypts, marks channel expired on failure) — worker scheduling deferred to Phase 6
+- [x] Disconnect = best-effort provider revoke + purge credential + delete channel + audit
+- [x] Authorization: `manage_channels` capability for connect/disconnect, `read` for list; callback re-checks capability + binds to initiating user; tokens never returned or logged
+**Tests/DoD:** ✅ Go integration test (fake provider) proves full OAuth round trip + **ciphertext at rest** (asserts plaintext absent) + refresh rotation + disconnect-purge + foreign-user rejection. `scripts/curl/channels.sh` 9/9 (capability gating, isolation, validation). `make check` green. **`/security-review` run — all 8 areas clean, no findings.**
 
 ### Phase 4 — Publishing pipeline + **X/Twitter adapter** + simulator ⭐ FIRST SOCIAL
 **Goal:** end-to-end publish to X (via simulator), proving the whole core.
@@ -352,4 +352,5 @@ Keep a running note here of what phase we're in and what's done.
 - 2026-05-29: Authorization model decided — **capability flags + role presets** (§5.1), not fixed-role hierarchy. Admin can grant any combination of `read/create/update/delete/upload/publish/manage_*`. Affects Phase 2 data model (`workspace_member.permissions`) and middleware (`RequireCapability`).
 - 2026-05-29: **Phase 0 complete & verified.** Go 1.26.3 installed system-wide (`/usr/local/go`). Module `github.com/Akins20/postal`. Stdlib-only typed config, chi server + health/readyz + slog/request-ID middleware, two-role binary (serve/worker) with graceful shutdown, goose+sqlc chain proven, docker-compose deps, golangci-lint + ≤800-line check all green.
 - 2026-05-29: **Phase 1 complete & verified.** Foundation primitives: response envelope + error taxonomy (`apperr`/`web`), central error handler, strict bounded JSON decoding, AES-256-GCM envelope encryption with key rotation (`security`), audit-log writer + `audit_log` table, Redis token-bucket rate limiter + middleware (`ratelimit`), Prometheus `/metrics` (`platform/metrics`), and SECURITY.md/ANTI_ABUSE.md. `make check` green; rate-limit curl proves 429.
-- 2026-05-29: **Phase 2 complete & verified.** Auth/tenancy: Argon2id passwords, email verification, JWT access + sliding rotating refresh in Redis (cookies + Bearer, CSRF double-submit), password reset, `RequireUser`, auto personal workspace, capability-based membership (`internal/workspace`) with `RequireCapability`, add-member/update-capabilities (no escalation, owner immutable), layered anti-abuse. `/security-review` run (no must-fix; fixed login-timing enumeration + prod console-mailer guard). auth.sh 13/13, capabilities.sh 12/12, make check green. **Next: Phase 3 — Channels & OAuth token vault** (uses the Phase 1 envelope-encryption `security.Encryptor`). Run `/security-review` after Phase 3.
+- 2026-05-29: **Phase 2 complete & verified.** Auth/tenancy: Argon2id passwords, email verification, JWT access + sliding rotating refresh in Redis (cookies + Bearer, CSRF double-submit), password reset, `RequireUser`, auto personal workspace, capability-based membership (`internal/workspace`) with `RequireCapability`, add-member/update-capabilities (no escalation, owner immutable), layered anti-abuse. `/security-review` run (no must-fix; fixed login-timing enumeration + prod console-mailer guard). auth.sh 13/13, capabilities.sh 12/12, make check green.
+- 2026-05-29: **Phase 3 complete & verified.** Channels + OAuth token vault (`internal/channel`): generic OAuthProvider + PKCE/state connect flow, envelope-encrypted credential storage (migration 00004), token refresh, disconnect-purge, capability-gated + workspace-isolated. `/security-review` clean (all 8 areas). Integration test proves OAuth round trip + ciphertext at rest; channels.sh 9/9; make check green. **Next: Phase 4 — Publishing pipeline + X/Twitter adapter + X simulator** (first social). Run `/security-review` + `/code-review` after Phase 4; research current X API specs first.

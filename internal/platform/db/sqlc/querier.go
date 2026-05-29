@@ -14,11 +14,17 @@ type Querier interface {
 	ConsumeEmailVerificationToken(ctx context.Context, id uuid.UUID) error
 	ConsumePasswordResetToken(ctx context.Context, id uuid.UUID) error
 	CountSmoke(ctx context.Context) (int64, error)
+	CreateChannel(ctx context.Context, arg CreateChannelParams) (Channel, error)
 	CreateEmailVerificationToken(ctx context.Context, arg CreateEmailVerificationTokenParams) (EmailVerificationToken, error)
 	CreateMember(ctx context.Context, arg CreateMemberParams) (WorkspaceMember, error)
 	CreatePasswordResetToken(ctx context.Context, arg CreatePasswordResetTokenParams) (PasswordResetToken, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams) (Workspace, error)
+	DeleteChannel(ctx context.Context, id uuid.UUID) error
+	DeleteChannelCredential(ctx context.Context, channelID uuid.UUID) error
+	GetChannel(ctx context.Context, id uuid.UUID) (Channel, error)
+	GetChannelByAccount(ctx context.Context, arg GetChannelByAccountParams) (Channel, error)
+	GetChannelCredential(ctx context.Context, channelID uuid.UUID) (ChannelCredential, error)
 	GetEmailVerificationToken(ctx context.Context, tokenHash string) (EmailVerificationToken, error)
 	GetMember(ctx context.Context, arg GetMemberParams) (WorkspaceMember, error)
 	GetPasswordResetToken(ctx context.Context, tokenHash string) (PasswordResetToken, error)
@@ -29,11 +35,16 @@ type Querier interface {
 	// domain queries from Phase 2 onward.
 	InsertSmoke(ctx context.Context, note string) (SchemaSmoke, error)
 	ListAuditLogByWorkspace(ctx context.Context, arg ListAuditLogByWorkspaceParams) ([]AuditLog, error)
+	ListChannels(ctx context.Context, workspaceID uuid.UUID) ([]Channel, error)
+	ListChannelsDueForRefresh(ctx context.Context, arg ListChannelsDueForRefreshParams) ([]ListChannelsDueForRefreshRow, error)
 	ListMembers(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceMember, error)
 	ListWorkspacesForUser(ctx context.Context, userID uuid.UUID) ([]Workspace, error)
 	SetEmailVerified(ctx context.Context, id uuid.UUID) error
+	UpdateChannelIdentity(ctx context.Context, arg UpdateChannelIdentityParams) error
+	UpdateChannelStatus(ctx context.Context, arg UpdateChannelStatusParams) error
 	UpdateMemberPermissions(ctx context.Context, arg UpdateMemberPermissionsParams) (WorkspaceMember, error)
 	UpdatePasswordHash(ctx context.Context, arg UpdatePasswordHashParams) error
+	UpsertChannelCredential(ctx context.Context, arg UpsertChannelCredentialParams) error
 }
 
 var _ Querier = (*Queries)(nil)

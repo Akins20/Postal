@@ -13,6 +13,10 @@ Legend: `[ ]` not yet · `[~]` partial · `[x]` in place & tested.
 - [x] Token encryption: AES-256-GCM **envelope encryption** with per-secret data
       keys and a versioned master key (`internal/security`). Tamper-evident
       (GCM auth tag); ciphertext self-describes its key version for rotation.
+- [x] Social OAuth tokens encrypted at rest (`channel_credentials` BYTEA via the
+      vault, Phase 3); never returned to clients or logged; ciphertext-at-rest
+      proven by integration test. PKCE S256 + single-use CSRF state (Redis GetDel)
+      bound to the initiating user defeats OAuth code-injection.
 - [ ] Key rotation runbook + re-encryption job (mechanism ready; ops doc TBD).
 - [ ] Master key sourced from a KMS in production (env acceptable for dev).
 

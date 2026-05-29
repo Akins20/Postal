@@ -24,21 +24,27 @@ func NewHandler(svc *Service, log *slog.Logger) *Handler {
 	return &Handler{svc: svc, log: log}
 }
 
-// Routes returns the workspace subrouter to mount under /api/v1/workspaces
-// behind RequireUser.
-func (h *Handler) Routes() chi.Router {
-	r := chi.NewRouter()
+// RegisterTop registers routes at the /workspaces root (mounted behind
+// RequireUser by the server).
+func (h *Handler) RegisterTop(r chi.Router) {
 	r.Get("/", web.Handler(h.log, h.list))
-	r.Route("/{"+workspaceURLParam+"}", func(r chi.Router) {
-		r.With(RequireCapability(h.svc, CapRead, h.log)).
-			Get("/members", web.Handler(h.log, h.listMembers))
-		r.With(RequireCapability(h.svc, CapManageMembers, h.log)).
-			Post("/members", web.Handler(h.log, h.addMember))
-		r.With(RequireCapability(h.svc, CapManageMembers, h.log)).
-			Patch("/members/{userID}/capabilities", web.Handler(h.log, h.updateCapabilities))
-	})
-	return r
 }
+
+// RegisterWorkspaceScoped registers member routes onto a router already scoped
+// to /workspaces/{workspaceID}. The server composes this subtree so multiple
+// domains (members, channels) can share the single {workspaceID} route.
+func (h *Handler) RegisterWorkspaceScoped(r chi.Router) {
+	r.With(RequireCapability(h.svc, CapRead, h.log)).
+		Get("/members", web.Handler(h.log, h.listMembers))
+	r.With(RequireCapability(h.svc, CapManageMembers, h.log)).
+		Post("/members", web.Handler(h.log, h.addMember))
+	r.With(RequireCapability(h.svc, CapManageMembers, h.log)).
+		Patch("/members/{userID}/capabilities", web.Handler(h.log, h.updateCapabilities))
+}
+
+// WorkspaceURLParam is the chi route parameter naming the workspace, exposed so
+// the server can build the shared /workspaces/{workspaceID} subtree.
+const WorkspaceURLParam = workspaceURLParam
 
 type memberResponse struct {
 	WorkspaceID uuid.UUID `json:"workspace_id"`

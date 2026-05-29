@@ -8,6 +8,7 @@ import (
 	"github.com/Akins20/postal/internal/auth"
 	"github.com/Akins20/postal/internal/platform/web"
 	"github.com/Akins20/postal/internal/ratelimit"
+	"github.com/Akins20/postal/internal/workspace"
 )
 
 // pingRateRule bounds the demo ping endpoint: a small burst with slow refill, so
@@ -31,12 +32,31 @@ func (s *Server) mountAPI(deps Deps) {
 			r.Group(func(pr chi.Router) {
 				pr.Use(auth.RequireUser(deps.Tokens, deps.Logger))
 				pr.Use(auth.CSRFProtect(deps.Logger))
-				if deps.WorkspaceHandler != nil {
-					pr.Mount("/workspaces", deps.WorkspaceHandler.Routes())
-				}
+				mountAuthenticated(pr, deps)
 			})
 		}
 	})
+}
+
+// mountAuthenticated wires the authenticated API surface. The /workspaces
+// subtree is composed here so the workspace and channel domains can share the
+// single {workspaceID} route without an import cycle.
+func mountAuthenticated(pr chi.Router, deps Deps) {
+	if deps.WorkspaceHandler == nil {
+		return
+	}
+	pr.Route("/workspaces", func(wr chi.Router) {
+		deps.WorkspaceHandler.RegisterTop(wr)
+		wr.Route("/{"+workspace.WorkspaceURLParam+"}", func(sr chi.Router) {
+			deps.WorkspaceHandler.RegisterWorkspaceScoped(sr)
+			if deps.ChannelHandler != nil {
+				deps.ChannelHandler.RegisterWorkspaceScoped(sr)
+			}
+		})
+	})
+	if deps.ChannelHandler != nil {
+		deps.ChannelHandler.RegisterCallback(pr)
+	}
 }
 
 // mountPing wires the demo /ping endpoint behind its own rate limiter.
