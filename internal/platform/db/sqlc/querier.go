@@ -10,9 +10,11 @@ import (
 
 type Querier interface {
 	CountSmoke(ctx context.Context) (int64, error)
+	InsertAuditLog(ctx context.Context, arg InsertAuditLogParams) (InsertAuditLogRow, error)
 	// Trivial query proving the sqlc generation chain works. Replaced by real
 	// domain queries from Phase 2 onward.
 	InsertSmoke(ctx context.Context, note string) (SchemaSmoke, error)
+	ListAuditLogByWorkspace(ctx context.Context, arg ListAuditLogByWorkspaceParams) ([]AuditLog, error)
 }
 
 var _ Querier = (*Queries)(nil)

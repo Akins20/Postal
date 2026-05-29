@@ -5,8 +5,20 @@
 package sqlc
 
 import (
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
+
+type AuditLog struct {
+	ID          int64              `json:"id"`
+	WorkspaceID *uuid.UUID         `json:"workspace_id"`
+	ActorUserID *uuid.UUID         `json:"actor_user_id"`
+	Action      string             `json:"action"`
+	Target      string             `json:"target"`
+	Metadata    []byte             `json:"metadata"`
+	Ip          string             `json:"ip"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
 
 type SchemaSmoke struct {
 	ID        int64              `json:"id"`

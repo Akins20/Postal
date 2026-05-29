@@ -12,6 +12,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+
+	"github.com/Akins20/postal/internal/platform/metrics"
+	"github.com/Akins20/postal/internal/ratelimit"
 )
 
 // Pinger reports whether a backing dependency is reachable. Both the Postgres
@@ -26,6 +29,8 @@ type Deps struct {
 	Logger         *slog.Logger
 	DB             Pinger
 	Redis          Pinger
+	Metrics        *metrics.Metrics
+	Limiter        *ratelimit.Limiter
 	RequestTimeout time.Duration
 }
 
@@ -45,6 +50,9 @@ func New(addr string, deps Deps) *Server {
 	// panic recovery can reference it.
 	mux.Use(middleware.RequestID)
 	mux.Use(middleware.RealIP)
+	if deps.Metrics != nil {
+		mux.Use(deps.Metrics.Middleware())
+	}
 	mux.Use(requestLogger(deps.Logger))
 	mux.Use(recoverer(deps.Logger))
 	if deps.RequestTimeout > 0 {
@@ -62,6 +70,10 @@ func New(addr string, deps Deps) *Server {
 	}
 
 	s.mountHealth(deps.DB, deps.Redis)
+	if deps.Metrics != nil {
+		s.mux.Handle("/metrics", deps.Metrics.Handler())
+	}
+	s.mountAPI(deps.Logger, deps.Limiter)
 	return s
 }
 

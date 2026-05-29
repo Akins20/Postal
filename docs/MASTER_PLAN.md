@@ -218,17 +218,17 @@ full Definition of Done (`CLAUDE.md` §4).
 **Tests/DoD:** ✅ `make run` serves `/healthz` 200 & `/readyz` 200 (real PG+Redis pings); deps
 come up; `scripts/curl/health.sh` passes; `make check` runs green (full enforcement chain).
 
-### Phase 1 — Foundation primitives
+### Phase 1 — Foundation primitives ✅ DONE (2026-05-29)
 **Goal:** shared building blocks every domain reuses.
-- [ ] Standard JSON response envelope + standard error type/codes
-- [ ] Central error handling middleware (maps errors → HTTP + safe messages)
-- [ ] Input validation helpers
-- [ ] Crypto module: AES-256-GCM envelope encryption (for tokens) + key versioning
-- [ ] Audit log writer
-- [ ] Rate-limit primitive (Redis token bucket) — reusable middleware
-- [ ] `docs/SECURITY.md` checklist + `docs/ANTI_ABUSE.md` checklist created
-- [ ] Metrics endpoint + base Prometheus counters
-**Tests/DoD:** unit tests for crypto (round-trip, tamper detection), rate-limit math; curl test proving rate-limit middleware returns 429 past threshold.
+- [x] Standard JSON response envelope + standard error type/codes (`platform/web` + `platform/apperr`)
+- [x] Central error handling (`web.Handler`/`web.Fail` maps `apperr.Kind` → HTTP + safe messages; internal causes never leak)
+- [x] Input validation helpers (`web.DecodeJSON`: bounded body, strict, content-type checked)
+- [x] Crypto module: AES-256-GCM **envelope encryption** (per-secret DEK wrapped by versioned KEK) + key versioning/rotation (`internal/security`)
+- [x] Audit log writer (`security.Auditor` + `audit_log` table, migration `00002`)
+- [x] Rate-limit primitive (Redis token bucket, atomic Lua, clock-injected) + reusable middleware (`internal/ratelimit`)
+- [x] `docs/SECURITY.md` + `docs/ANTI_ABUSE.md` checklists created
+- [x] Metrics endpoint (`/metrics`) + base Prometheus counters + middleware (`platform/metrics`)
+**Tests/DoD:** ✅ crypto unit tests (round-trip, tamper detection, key rotation, wrong key); rate-limit math + Redis-backed integration tests; `make check` green; curl test (`scripts/curl/ratelimit.sh`) proves 429 past threshold with standard envelope + `Retry-After`; `/metrics` exposed.
 
 ### Phase 2 — Auth, users, workspaces, roles
 **Goal:** identity and tenancy.
@@ -350,4 +350,5 @@ See `CLAUDE.md` §5–6. Write a memory entry after each phase; load `/security-
 Keep a running note here of what phase we're in and what's done.
 - 2026-05-29: Plan created. Next action: **Phase 0 — scaffolding.** First social = X/Twitter (Phase 4).
 - 2026-05-29: Authorization model decided — **capability flags + role presets** (§5.1), not fixed-role hierarchy. Admin can grant any combination of `read/create/update/delete/upload/publish/manage_*`. Affects Phase 2 data model (`workspace_member.permissions`) and middleware (`RequireCapability`).
-- 2026-05-29: **Phase 0 complete & verified.** Go 1.26.3 installed system-wide (`/usr/local/go`). Module `github.com/Akins20/postal`. Stdlib-only typed config, chi server + health/readyz + slog/request-ID middleware, two-role binary (serve/worker) with graceful shutdown, goose+sqlc chain proven, docker-compose deps, golangci-lint + ≤800-line check all green. **Next: Phase 1 — foundation primitives** (JSON envelope, error handling, crypto/envelope encryption, rate-limit, audit log, SECURITY.md/ANTI_ABUSE.md).
+- 2026-05-29: **Phase 0 complete & verified.** Go 1.26.3 installed system-wide (`/usr/local/go`). Module `github.com/Akins20/postal`. Stdlib-only typed config, chi server + health/readyz + slog/request-ID middleware, two-role binary (serve/worker) with graceful shutdown, goose+sqlc chain proven, docker-compose deps, golangci-lint + ≤800-line check all green.
+- 2026-05-29: **Phase 1 complete & verified.** Foundation primitives: response envelope + error taxonomy (`apperr`/`web`), central error handler, strict bounded JSON decoding, AES-256-GCM envelope encryption with key rotation (`security`), audit-log writer + `audit_log` table, Redis token-bucket rate limiter + middleware (`ratelimit`), Prometheus `/metrics` (`platform/metrics`), and SECURITY.md/ANTI_ABUSE.md. `make check` green; rate-limit curl proves 429. **Next: Phase 2 — auth, users, workspaces, capability-based roles** (see §5.1). Run `/security-review` at the end of Phase 2.

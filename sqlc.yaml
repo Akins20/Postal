@@ -12,3 +12,15 @@ sql:
         emit_pointers_for_null_types: true
         emit_interface: true
         emit_empty_slices: true
+        overrides:
+          # Use google/uuid for uuid columns instead of pgtype.UUID for a clean API.
+          - db_type: "uuid"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+          - db_type: "uuid"
+            nullable: true
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+              pointer: true
