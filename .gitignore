@@ -1,0 +1,25 @@
+# Binaries
+/bin/
+/postal
+*.exe
+*.test
+*.out
+
+# Local environment & secrets (never commit real secrets)
+.env
+.env.local
+*.local
+
+# Go build/test caches
+/vendor/
+coverage.out
+coverage.html
+
+# Editor/OS noise
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Local data volumes (docker-compose mounts)
+/.data/

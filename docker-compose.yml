@@ -1,0 +1,62 @@
+# Local development dependencies for Postal.
+# Bring up with `make up` (or `docker compose up -d`); tear down with `make down`.
+# These are dev defaults ONLY — never reuse these credentials anywhere real.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: postal-postgres
+    environment:
+      POSTGRES_USER: postal
+      POSTGRES_PASSWORD: postal
+      POSTGRES_DB: postal
+    ports:
+      # Host port is overridable (this machine may already run Postgres on 5432).
+      - "${POSTAL_PG_HOST_PORT:-5432}:5432"
+    volumes:
+      - postal-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postal -d postal"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: postal-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      # Host port is overridable (this machine may already run Redis on 6379).
+      - "${POSTAL_REDIS_HOST_PORT:-6379}:6379"
+    volumes:
+      - postal-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Object storage for media (Phase 7). Declared now so the dev stack is stable;
+  # nothing connects to it until then.
+  minio:
+    image: minio/minio:latest
+    container_name: postal-minio
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: postal
+      MINIO_ROOT_PASSWORD: postalminio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - postal-minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postal-pg-data:
+  postal-redis-data:
+  postal-minio-data:

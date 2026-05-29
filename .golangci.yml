@@ -1,0 +1,50 @@
+# golangci-lint configuration for Postal. Enforced by `make lint` / `make check`.
+# Do not weaken without explicit approval (see docs/CODING_STANDARDS.md).
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  enable:
+    - govet
+    - staticcheck
+    - errcheck
+    - revive
+    - gocyclo
+    - cyclop
+    - gosec
+    - ineffassign
+    - unconvert
+    - unparam
+    - misspell
+    - bodyclose
+    - noctx
+    - sqlclosecheck
+    - gocritic
+
+linters-settings:
+  gocyclo:
+    min-complexity: 15
+  cyclop:
+    max-complexity: 15
+  revive:
+    rules:
+      - name: exported
+        # Require godoc comments on exported symbols.
+        arguments: ["checkPrivateReceivers"]
+  misspell:
+    locale: US
+
+issues:
+  # Show all issues; do not cap per-linter.
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-rules:
+    # Test files may use weaker error handling and higher complexity for table tests.
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gosec
+        - gocyclo
+        - cyclop
