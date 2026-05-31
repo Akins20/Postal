@@ -33,21 +33,23 @@ func (q *Queries) GetPublishResultByKey(ctx context.Context, idempotencyKey stri
 }
 
 const insertPublishResult = `-- name: InsertPublishResult :one
-INSERT INTO publish_results (channel_id, idempotency_key, platform_post_id, raw_response)
-VALUES ($1, $2, $3, $4)
+INSERT INTO publish_results (channel_id, post_id, idempotency_key, platform_post_id, raw_response)
+VALUES ($1, $2, $3, $4, $5)
 RETURNING id, channel_id, post_id, idempotency_key, platform_post_id, raw_response, published_at
 `
 
 type InsertPublishResultParams struct {
-	ChannelID      uuid.UUID `json:"channel_id"`
-	IdempotencyKey string    `json:"idempotency_key"`
-	PlatformPostID string    `json:"platform_post_id"`
-	RawResponse    []byte    `json:"raw_response"`
+	ChannelID      uuid.UUID  `json:"channel_id"`
+	PostID         *uuid.UUID `json:"post_id"`
+	IdempotencyKey string     `json:"idempotency_key"`
+	PlatformPostID string     `json:"platform_post_id"`
+	RawResponse    []byte     `json:"raw_response"`
 }
 
 func (q *Queries) InsertPublishResult(ctx context.Context, arg InsertPublishResultParams) (PublishResult, error) {
 	row := q.db.QueryRow(ctx, insertPublishResult,
 		arg.ChannelID,
+		arg.PostID,
 		arg.IdempotencyKey,
 		arg.PlatformPostID,
 		arg.RawResponse,

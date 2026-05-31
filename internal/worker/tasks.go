@@ -20,6 +20,8 @@ const (
 	TypePublish = "publish:variant"
 	// TypeRefreshTokens refreshes channel credentials nearing expiry (periodic).
 	TypeRefreshTokens = "channels:refresh_tokens"
+	// TypeFetchMetrics polls analytics for recently-published posts (periodic).
+	TypeFetchMetrics = "analytics:fetch_metrics"
 )
 
 // defaultQueue is the asynq queue publish/refresh tasks use.

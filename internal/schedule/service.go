@@ -169,7 +169,7 @@ func (s *Service) ExecutionContext(ctx context.Context, jobID uuid.UUID) (uuid.U
 	if err != nil {
 		return uuid.Nil, publish.PostVariant{}, err
 	}
-	pv := publish.PostVariant{Text: v.Body, Media: mediaRefs, IdempotencyKey: jobID.String()}
+	pv := publish.PostVariant{PostID: job.PostID, Text: v.Body, Media: mediaRefs, IdempotencyKey: jobID.String()}
 	return job.ChannelID, pv, nil
 }
 

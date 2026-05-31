@@ -56,7 +56,7 @@ func (r *memResults) Find(_ context.Context, key string) (*publish.Result, bool,
 	return res, ok, nil
 }
 
-func (r *memResults) Record(_ context.Context, _ uuid.UUID, key string, res *publish.Result) error {
+func (r *memResults) Record(_ context.Context, _, _ uuid.UUID, key string, res *publish.Result) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.m[key] = res
@@ -81,6 +81,58 @@ func noSleep(context.Context, time.Duration) error { return nil }
 
 func newPipeline(ch publish.Channels, res publish.Results, a *twitter.Adapter) *publish.Pipeline {
 	return publish.NewPipeline(ch, res, []publish.Adapter{a}, publish.WithSleeper(noSleep))
+}
+
+func TestPipeline_FetchMetrics(t *testing.T) {
+	a, sim, ch, res := harness(t)
+	p := newPipeline(ch, res, a)
+	ctx := context.Background()
+
+	// Publish a post so the simulator has a tweet to look up.
+	out, err := p.Publish(ctx, uuid.New(), publish.PostVariant{Text: "metric me", IdempotencyKey: "m1"})
+	if err != nil {
+		t.Fatalf("Publish: %v", err)
+	}
+	sim.SetTweetMetrics(out.PlatformPostID, map[string]int64{"like_count": 7})
+
+	metrics, err := p.FetchMetrics(ctx, uuid.New(), out.PlatformPostID)
+	if err != nil {
+		t.Fatalf("FetchMetrics: %v", err)
+	}
+	if metricValue(metrics, "likes") != 7 {
+		t.Fatalf("likes = %d, want 7", metricValue(metrics, "likes"))
+	}
+}
+
+func TestPipeline_FetchMetrics_RefreshesExpiredToken(t *testing.T) {
+	a, sim, ch, res := harness(t)
+	p := newPipeline(ch, res, a)
+	ctx := context.Background()
+
+	out, err := p.Publish(ctx, uuid.New(), publish.PostVariant{Text: "refresh me", IdempotencyKey: "m2"})
+	if err != nil {
+		t.Fatalf("Publish: %v", err)
+	}
+	// Expire all tokens: the first metrics call 401s, the pipeline refreshes once
+	// and retries successfully.
+	sim.ExpireAccessTokens()
+
+	if _, err := p.FetchMetrics(ctx, uuid.New(), out.PlatformPostID); err != nil {
+		t.Fatalf("FetchMetrics after expiry: %v", err)
+	}
+	if ch.refreshCount != 1 {
+		t.Errorf("refresh count = %d, want exactly 1", ch.refreshCount)
+	}
+}
+
+// metricValue returns the value of the named metric, or -1.
+func metricValue(metrics []publish.Metric, name string) int64 {
+	for _, m := range metrics {
+		if m.Name == name {
+			return m.Value
+		}
+	}
+	return -1
 }
 
 func TestPipeline_HappyPath(t *testing.T) {

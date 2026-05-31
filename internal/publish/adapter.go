@@ -10,6 +10,8 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/Akins20/postal/internal/channel"
 )
 
@@ -37,7 +39,10 @@ type MediaRef struct {
 
 // PostVariant is the per-channel content to publish. IdempotencyKey makes
 // publishing safe to retry: the pipeline never creates two posts for one key.
+// PostID links the result back to the composer post (for analytics); it may be
+// zero for ad-hoc publishes that aren't backed by a stored post.
 type PostVariant struct {
+	PostID         uuid.UUID
 	Text           string
 	Media          []MediaRef
 	InReplyToID    string

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/Akins20/postal/internal/analytics"
 	"github.com/Akins20/postal/internal/channel"
 	"github.com/Akins20/postal/internal/config"
 	"github.com/Akins20/postal/internal/platform/db"
@@ -61,7 +62,11 @@ func runWorker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	// so it needs no asynq client (nil Enqueuer).
 	scheduleSvc := schedule.NewService(pool, channelSvc, nil, mediaLoader, auditor, nil)
 
-	processor := worker.NewProcessor(scheduleSvc, pipeline, channelSvc, log, nil)
+	// The analytics poller fetches platform metrics via the publish pipeline
+	// (which owns token/refresh handling) and stores time-series snapshots.
+	analyticsSvc := analytics.NewService(pool, pipeline, auditor, nil)
+
+	processor := worker.NewProcessor(scheduleSvc, pipeline, channelSvc, analyticsSvc, log, nil)
 	log.Info("starting postal worker", slog.String("env", cfg.HTTP.Env))
 	return worker.Run(ctx, redisOpt(cfg), processor, log)
 }

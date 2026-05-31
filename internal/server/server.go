@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
+	"github.com/Akins20/postal/internal/analytics"
 	"github.com/Akins20/postal/internal/auth"
 	"github.com/Akins20/postal/internal/channel"
 	"github.com/Akins20/postal/internal/media"
@@ -44,6 +45,7 @@ type Deps struct {
 	PostHandler      *post.Handler
 	ScheduleHandler  *schedule.Handler
 	MediaHandler     *media.Handler
+	AnalyticsHandler *analytics.Handler
 	RequestTimeout   time.Duration
 }
 

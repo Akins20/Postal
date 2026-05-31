@@ -5,12 +5,20 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/Akins20/postal/internal/platform/db/sqlc"
 )
+
+// Timestamptz wraps a time.Time as a non-null pgtype.Timestamptz, the type sqlc
+// generates for TIMESTAMPTZ parameters. Shared so domains don't each re-roll it.
+func Timestamptz(t time.Time) pgtype.Timestamptz {
+	return pgtype.Timestamptz{Time: t, Valid: true}
+}
 
 // PostgreSQL SQLSTATEs we map to domain errors.
 const (

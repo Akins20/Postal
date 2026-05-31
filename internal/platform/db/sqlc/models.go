@@ -67,6 +67,24 @@ type MediaAsset struct {
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 }
 
+type MetricPollState struct {
+	ChannelID      uuid.UUID          `json:"channel_id"`
+	PlatformPostID string             `json:"platform_post_id"`
+	LastPolledAt   pgtype.Timestamptz `json:"last_polled_at"`
+	Done           bool               `json:"done"`
+}
+
+type MetricSnapshot struct {
+	ID             int64              `json:"id"`
+	WorkspaceID    uuid.UUID          `json:"workspace_id"`
+	ChannelID      uuid.UUID          `json:"channel_id"`
+	PostID         *uuid.UUID         `json:"post_id"`
+	PlatformPostID string             `json:"platform_post_id"`
+	Metric         string             `json:"metric"`
+	Value          int64              `json:"value"`
+	CapturedAt     pgtype.Timestamptz `json:"captured_at"`
+}
+
 type PasswordResetToken struct {
 	ID         uuid.UUID          `json:"id"`
 	UserID     uuid.UUID          `json:"user_id"`

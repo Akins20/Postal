@@ -42,21 +42,30 @@ type TokenRefresher interface {
 	RefreshChannel(ctx context.Context, channelID uuid.UUID) error
 }
 
-// Processor handles asynq tasks.
-type Processor struct {
-	sched    Scheduler
-	pipeline Publisher
-	channels TokenRefresher
-	log      *slog.Logger
-	clock    func() time.Time
+// AnalyticsPoller fetches and stores fresh metric snapshots for due posts,
+// returning how many were polled and how many failed. analytics.Service
+// satisfies it; nil disables the metrics sweep.
+type AnalyticsPoller interface {
+	PollMetrics(ctx context.Context) (polled, failed int, err error)
 }
 
-// NewProcessor builds a Processor. clock defaults to time.Now.
-func NewProcessor(sched Scheduler, pipeline Publisher, channels TokenRefresher, log *slog.Logger, clock func() time.Time) *Processor {
+// Processor handles asynq tasks.
+type Processor struct {
+	sched     Scheduler
+	pipeline  Publisher
+	channels  TokenRefresher
+	analytics AnalyticsPoller
+	log       *slog.Logger
+	clock     func() time.Time
+}
+
+// NewProcessor builds a Processor. analytics may be nil (metrics sweep disabled);
+// clock defaults to time.Now.
+func NewProcessor(sched Scheduler, pipeline Publisher, channels TokenRefresher, analytics AnalyticsPoller, log *slog.Logger, clock func() time.Time) *Processor {
 	if clock == nil {
 		clock = time.Now
 	}
-	return &Processor{sched: sched, pipeline: pipeline, channels: channels, log: log, clock: clock}
+	return &Processor{sched: sched, pipeline: pipeline, channels: channels, analytics: analytics, log: log, clock: clock}
 }
 
 // ProcessPublish executes one scheduled publish job. Terminal failures are not
@@ -119,6 +128,23 @@ func (p *Processor) ProcessRefreshTokens(ctx context.Context, _ *asynq.Task) err
 		if rErr := p.channels.RefreshChannel(ctx, id); rErr != nil && p.log != nil {
 			p.log.WarnContext(ctx, "channel token refresh failed", slog.String("channel_id", id.String()), slog.String("error", rErr.Error()))
 		}
+	}
+	return nil
+}
+
+// ProcessFetchMetrics polls analytics for recently-published posts. Per-post
+// failures are logged inside the poller; a batch-level error is logged here but
+// not retried (the next periodic run picks up where this left off).
+func (p *Processor) ProcessFetchMetrics(ctx context.Context, _ *asynq.Task) error {
+	if p.analytics == nil {
+		return nil
+	}
+	polled, failed, err := p.analytics.PollMetrics(ctx)
+	if err != nil {
+		return fmt.Errorf("polling metrics: %w", err) // batch-level failure -> asynq retries
+	}
+	if failed > 0 && p.log != nil {
+		p.log.WarnContext(ctx, "analytics poll skipped some posts", slog.Int("polled", polled), slog.Int("failed", failed))
 	}
 	return nil
 }

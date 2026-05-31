@@ -11,6 +11,9 @@ import (
 // refreshCron is the periodic schedule for the token-refresh sweep.
 const refreshCron = "@every 30m"
 
+// metricsCron is the periodic schedule for the analytics-poll sweep.
+const metricsCron = "@every 15m"
+
 // workerConcurrency bounds concurrent task processing.
 const workerConcurrency = 10
 
@@ -21,15 +24,25 @@ func Run(ctx context.Context, redis asynq.RedisClientOpt, proc *Processor, log *
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(TypePublish, proc.ProcessPublish)
 	mux.HandleFunc(TypeRefreshTokens, proc.ProcessRefreshTokens)
+	mux.HandleFunc(TypeFetchMetrics, proc.ProcessFetchMetrics)
 
 	if err := srv.Start(mux); err != nil {
 		return fmt.Errorf("starting asynq server: %w", err)
 	}
 
 	scheduler := asynq.NewScheduler(redis, nil)
-	if _, err := scheduler.Register(refreshCron, asynq.NewTask(TypeRefreshTokens, nil)); err != nil {
-		srv.Shutdown()
-		return fmt.Errorf("registering refresh schedule: %w", err)
+	periodic := []struct {
+		cron string
+		task string
+	}{
+		{refreshCron, TypeRefreshTokens},
+		{metricsCron, TypeFetchMetrics},
+	}
+	for _, p := range periodic {
+		if _, err := scheduler.Register(p.cron, asynq.NewTask(p.task, nil)); err != nil {
+			srv.Shutdown()
+			return fmt.Errorf("registering %s schedule: %w", p.task, err)
+		}
 	}
 	if err := scheduler.Start(); err != nil {
 		srv.Shutdown()

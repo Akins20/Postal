@@ -53,16 +53,30 @@ type Querier interface {
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	GetVariantByPostChannel(ctx context.Context, arg GetVariantByPostChannelParams) (PostVariant, error)
 	InsertAuditLog(ctx context.Context, arg InsertAuditLogParams) (InsertAuditLogRow, error)
+	// Batched insert of all metrics for one poll (atomic, single round-trip).
+	InsertMetricSnapshots(ctx context.Context, arg []InsertMetricSnapshotsParams) (int64, error)
 	InsertPublishResult(ctx context.Context, arg InsertPublishResultParams) (PublishResult, error)
 	// Trivial query proving the sqlc generation chain works. Replaced by real
 	// domain queries from Phase 2 onward.
 	InsertSmoke(ctx context.Context, note string) (SchemaSmoke, error)
+	// The most recent value of every metric for one post, per channel it was
+	// published to (workspace-scoped).
+	LatestMetricsForPost(ctx context.Context, arg LatestMetricsForPostParams) ([]LatestMetricsForPostRow, error)
+	// The most recent value of every metric for the N most-recently-active
+	// (post, channel) pairs in the workspace. The LIMIT is applied in SQL (by
+	// recency) so a large workspace never materializes its whole history.
+	LatestMetricsForWorkspace(ctx context.Context, arg LatestMetricsForWorkspaceParams) ([]LatestMetricsForWorkspaceRow, error)
 	ListAuditLogByWorkspace(ctx context.Context, arg ListAuditLogByWorkspaceParams) ([]AuditLog, error)
 	ListChannels(ctx context.Context, workspaceID uuid.UUID) ([]Channel, error)
 	ListChannelsDueForRefresh(ctx context.Context, arg ListChannelsDueForRefreshParams) ([]ListChannelsDueForRefreshRow, error)
 	ListMediaAssets(ctx context.Context, arg ListMediaAssetsParams) ([]MediaAsset, error)
 	ListMembers(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceMember, error)
 	ListPostsByWorkspace(ctx context.Context, arg ListPostsByWorkspaceParams) ([]Post, error)
+	// Published posts to poll: published within the lookback window and not polled
+	// since the cutoff (dedup is per (channel, platform post) via poll-state, so a
+	// collision on platform_post_id across channels can't suppress another's poll,
+	// and a post marked done is excluded permanently).
+	ListPostsDueForMetrics(ctx context.Context, arg ListPostsDueForMetricsParams) ([]ListPostsDueForMetricsRow, error)
 	ListScheduledJobsInRange(ctx context.Context, arg ListScheduledJobsInRangeParams) ([]ScheduledJob, error)
 	ListScheduledRunAtForChannel(ctx context.Context, arg ListScheduledRunAtForChannelParams) ([]pgtype.Timestamptz, error)
 	ListSlotsForChannel(ctx context.Context, channelID uuid.UUID) ([]ScheduleSlot, error)
@@ -71,6 +85,10 @@ type Querier interface {
 	// Row-locks the workspace so a quota check + media insert is serialized against
 	// concurrent uploads in the same workspace (prevents TOCTOU quota overshoot).
 	LockWorkspaceForUpdate(ctx context.Context, id uuid.UUID) error
+	// The time series of one metric for one post on one channel within a window.
+	MetricSeries(ctx context.Context, arg MetricSeriesParams) ([]MetricSeriesRow, error)
+	// Retention: drop snapshots older than the cutoff to bound table growth.
+	PruneSnapshotsBefore(ctx context.Context, capturedAt pgtype.Timestamptz) error
 	SetEmailVerified(ctx context.Context, id uuid.UUID) error
 	SetScheduledJobStatus(ctx context.Context, arg SetScheduledJobStatusParams) error
 	SetScheduledJobTaskID(ctx context.Context, arg SetScheduledJobTaskIDParams) error
@@ -83,6 +101,9 @@ type Querier interface {
 	UpdatePostStatus(ctx context.Context, arg UpdatePostStatusParams) error
 	UpdatePostVariant(ctx context.Context, arg UpdatePostVariantParams) (PostVariant, error)
 	UpsertChannelCredential(ctx context.Context, arg UpsertChannelCredentialParams) error
+	// Record a poll attempt for a (channel, platform post). done is sticky: once a
+	// post is gone at the platform it stays done so it's never polled again.
+	UpsertPollState(ctx context.Context, arg UpsertPollStateParams) error
 }
 
 var _ Querier = (*Queries)(nil)

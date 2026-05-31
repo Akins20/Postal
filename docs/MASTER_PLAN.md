@@ -320,12 +320,14 @@ come up; `scripts/curl/health.sh` passes; `make check` runs green (full enforcem
 **Tests/DoD:** ✅ upload valid/invalid/oversize/unsupported + cross-workspace isolation (Go integration vs MinIO); end-to-end media→schedule→worker→X simulator (asset bytes traverse INIT/APPEND/FINALIZE); `scripts/curl/media.sh` 14/14; media-load error classification + composer rejection unit tests; `/security-review` clean; `/code-review` (7 findings fixed); `make check` green.
 **Notes:** media-load failures are retry-classified so a transient storage blip never permanently fails a scheduled post; media without an uploaded `media_id` is rejected at compose (validation matches publish). Deferred follow-ups: libvips/FFmpeg transcode + probe, virus scan, streaming (vs full-buffer) media in the publish path.
 
-### Phase 8 — Analytics ingestion & reporting
+### Phase 8 — Analytics ingestion & reporting ✅ DONE (2026-05-31)
 **Goal:** post performance.
-- [ ] Analytics poller job: fetch metrics for published posts (adapter `FetchMetrics`)
-- [ ] Store time-series `analytics_metric`; aggregate endpoints (per post, per channel, ranges)
-- [ ] Export (CSV)
-**Tests/DoD:** simulator returns metrics; poller stores them; aggregation endpoints correct; respects rate limits.
+- [x] Analytics poller job: per-platform `FetchMetrics` via the publish pipeline (token/refresh reuse); periodic asynq cron (@every 15m), bounded batch + bounded fetch concurrency; per-(channel, platform post) poll-state so deleted/failed posts aren't re-polled
+- [x] Store time-series `metric_snapshots` (long format, platform-agnostic); workspace overview + per-post **per-channel** breakdown + per-channel metric series (compose-once posts fan out to many channels, reported separately); workspace-isolated, `CapRead`-gated
+- [x] Export (CSV) with formula-injection guard
+- [x] Retention prune (90d) bounds table growth; `publish_results.post_id` now populated to link snapshots to posts
+**Tests/DoD:** ✅ simulator metrics knob; end-to-end publish→poll→overview/series/CSV (worker integration); per-channel breakout integration test; `Pipeline.FetchMetrics` happy-path + token-refresh unit tests; `scripts/curl/analytics.sh` 12/12; `/security-review` clean; `/code-review` (10 findings fixed); `make check` green.
+**Notes:** reporting groups by (post, channel); poll dedup is channel-scoped via poll-state (fixes cross-channel suppression + dead-post re-poll); SQL-side LIMIT by recency; batched `:copyfrom` insert in a tx (atomic snapshots). Deferred: per-post metric rollups, alerting.
 
 ### Phase 9 — Security hardening & anti-abuse pass ⭐ GATE
 **Goal:** full audit before declaring backend done.

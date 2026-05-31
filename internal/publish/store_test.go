@@ -59,7 +59,7 @@ func TestStore_RecordFindIdempotency_Integration(t *testing.T) {
 	}
 
 	// Record then find.
-	if err := store.Record(ctx, channelID, key, &publish.Result{PlatformPostID: "pp-1", Raw: json.RawMessage(`{"id":"pp-1"}`)}); err != nil {
+	if err := store.Record(ctx, channelID, uuid.Nil, key, &publish.Result{PlatformPostID: "pp-1", Raw: json.RawMessage(`{"id":"pp-1"}`)}); err != nil {
 		t.Fatalf("Record: %v", err)
 	}
 	res, found, err := store.Find(ctx, key)
@@ -69,7 +69,7 @@ func TestStore_RecordFindIdempotency_Integration(t *testing.T) {
 
 	// Re-record under the same key is a no-op (unique violation swallowed), and
 	// the original result is preserved — the idempotency guarantee.
-	if err := store.Record(ctx, channelID, key, &publish.Result{PlatformPostID: "pp-2"}); err != nil {
+	if err := store.Record(ctx, channelID, uuid.Nil, key, &publish.Result{PlatformPostID: "pp-2"}); err != nil {
 		t.Fatalf("idempotent re-record should not error: %v", err)
 	}
 	res2, _, _ := store.Find(ctx, key)

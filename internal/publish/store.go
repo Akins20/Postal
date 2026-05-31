@@ -43,14 +43,20 @@ func (s *Store) Find(ctx context.Context, idempotencyKey string) (*Result, bool,
 }
 
 // Record persists a successful publish under its idempotency key. A unique
-// violation (concurrent record of the same key) is treated as success.
-func (s *Store) Record(ctx context.Context, channelID uuid.UUID, idempotencyKey string, res *Result) error {
+// violation (concurrent record of the same key) is treated as success. A zero
+// postID is stored as NULL (ad-hoc publish not backed by a stored post).
+func (s *Store) Record(ctx context.Context, channelID, postID uuid.UUID, idempotencyKey string, res *Result) error {
 	raw := res.Raw
 	if len(raw) == 0 {
 		raw = json.RawMessage("{}")
 	}
+	var postIDPtr *uuid.UUID
+	if postID != uuid.Nil {
+		postIDPtr = &postID
+	}
 	_, err := s.q.InsertPublishResult(ctx, sqlc.InsertPublishResultParams{
 		ChannelID:      channelID,
+		PostID:         postIDPtr,
 		IdempotencyKey: idempotencyKey,
 		PlatformPostID: res.PlatformPostID,
 		RawResponse:    raw,

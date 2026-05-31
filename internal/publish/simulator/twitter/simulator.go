@@ -25,10 +25,11 @@ type Server struct {
 	ts *httptest.Server
 
 	mu          sync.Mutex
-	validAccess map[string]bool   // access tokens currently accepted
-	tweets      map[string]string // tweet id -> text
-	seenText    map[string]string // text -> tweet id (duplicate detection)
-	media       map[string]bool   // media id -> exists
+	validAccess map[string]bool             // access tokens currently accepted
+	tweets      map[string]string           // tweet id -> text
+	seenText    map[string]string           // text -> tweet id (duplicate detection)
+	media       map[string]bool             // media id -> exists
+	tweetMetric map[string]map[string]int64 // tweet id -> public_metrics override
 	nextTok     int
 	nextTweet   int
 	nextMedia   int
@@ -53,6 +54,7 @@ func New() *Server {
 		tweets:      map[string]string{},
 		seenText:    map[string]string{},
 		media:       map[string]bool{},
+		tweetMetric: map[string]map[string]int64{},
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /2/oauth2/token", s.handleToken)
@@ -87,6 +89,16 @@ func (s *Server) ForceNextCreateStatus(code int) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.forceCreateStatus = code
+}
+
+// SetTweetMetrics overrides the public_metrics a lookup returns for a tweet, so
+// tests can assert the analytics poller ingests real values. Keys are the X
+// field names (like_count, retweet_count, reply_count, quote_count,
+// impression_count, bookmark_count).
+func (s *Server) SetTweetMetrics(id string, metrics map[string]int64) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.tweetMetric[id] = metrics
 }
 
 // TweetCount returns how many tweets have been created (for idempotency checks).
@@ -200,19 +212,21 @@ func (s *Server) handleTweetLookup(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	s.mu.Lock()
 	_, ok := s.tweets[id]
+	override := s.tweetMetric[id]
 	s.mu.Unlock()
 	if !ok {
 		writeError(w, http.StatusNotFound, "post not found")
 		return
 	}
+	metrics := map[string]int64{
+		"like_count": 5, "retweet_count": 2, "reply_count": 1,
+		"quote_count": 0, "impression_count": 100, "bookmark_count": 3,
+	}
+	for k, v := range override {
+		metrics[k] = v
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"data": map[string]any{
-			"id": id,
-			"public_metrics": map[string]int{
-				"like_count": 5, "retweet_count": 2, "reply_count": 1,
-				"quote_count": 0, "impression_count": 100, "bookmark_count": 3,
-			},
-		},
+		"data": map[string]any{"id": id, "public_metrics": metrics},
 	})
 }
 

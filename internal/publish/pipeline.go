@@ -29,7 +29,7 @@ type Channels interface {
 // publish_results.
 type Results interface {
 	Find(ctx context.Context, idempotencyKey string) (*Result, bool, error)
-	Record(ctx context.Context, channelID uuid.UUID, idempotencyKey string, res *Result) error
+	Record(ctx context.Context, channelID, postID uuid.UUID, idempotencyKey string, res *Result) error
 }
 
 // Pipeline validates and publishes a post variant to a channel, refreshing
@@ -114,51 +114,78 @@ func (p *Pipeline) Publish(ctx context.Context, channelID uuid.UUID, v PostVaria
 	return p.attemptPublish(ctx, channelID, adapter, token, v)
 }
 
-// attemptPublish runs the publish/retry loop, handling auth-expired (refresh
-// once, without consuming a retry slot) and retryable (backoff) errors per the
-// adapter's error classes.
+// attemptPublish publishes with the shared retry/refresh loop, recording the
+// result on success.
 func (p *Pipeline) attemptPublish(ctx context.Context, channelID uuid.UUID, adapter Adapter, token channel.Token, v PostVariant) (*Result, error) {
-	refreshed := false
+	res, err := withRetry(p, ctx, channelID, token, func(tok channel.Token) (*Result, error) {
+		return adapter.Publish(ctx, tok, v)
+	})
+	if err != nil {
+		return nil, err
+	}
+	if recErr := p.record(ctx, channelID, v, res); recErr != nil {
+		return nil, recErr
+	}
+	return res, nil
+}
 
+// withRetry runs fn against the channel's token, handling the adapter error
+// classes uniformly: auth-expired refreshes once (without consuming a retry
+// slot), retryable backs off up to maxAttempts, terminal/unclassified returns
+// immediately. An *Error of an unknown class is treated as terminal so the loop
+// can never spin forever.
+func withRetry[T any](p *Pipeline, ctx context.Context, channelID uuid.UUID, token channel.Token, fn func(channel.Token) (T, error)) (T, error) {
+	var zero T
+	refreshed := false
 	for attempt := 1; ; attempt++ {
-		res, err := adapter.Publish(ctx, token, v)
+		out, err := fn(token)
 		if err == nil {
-			if recErr := p.record(ctx, channelID, v, res); recErr != nil {
-				return nil, recErr
-			}
-			return res, nil
+			return out, nil
 		}
 
 		var ae *Error
 		if !errors.As(err, &ae) {
-			return nil, err // unclassified — do not retry blindly
+			return zero, err // unclassified — do not retry blindly
 		}
 		switch ae.Class {
-		case ClassTerminal:
-			return nil, err
 		case ClassAuthExpired:
-			// Refresh once and retry immediately; the refresh does not consume a
-			// retry attempt, so the full backoff budget remains for transient
-			// failures after re-auth.
 			if refreshed {
-				return nil, err
+				return zero, err
 			}
 			newToken, rErr := p.channels.Refresh(ctx, channelID)
 			if rErr != nil {
-				return nil, fmt.Errorf("refreshing token: %w", rErr)
+				return zero, fmt.Errorf("refreshing token: %w", rErr)
 			}
 			token = newToken
 			refreshed = true
 			attempt-- // do not count the refresh as an attempt
 		case ClassRetryable:
 			if attempt >= p.maxAttempts {
-				return nil, err
+				return zero, err
 			}
 			if sErr := p.sleep(ctx, backoff(attempt, ae.RetryAfter)); sErr != nil {
-				return nil, sErr
+				return zero, sErr
 			}
+		default: // ClassTerminal or any unknown class
+			return zero, err
 		}
 	}
+}
+
+// FetchMetrics returns the current platform metrics for a published post,
+// reusing the channel's token handling (refresh-once + retry backoff).
+func (p *Pipeline) FetchMetrics(ctx context.Context, channelID uuid.UUID, platformPostID string) ([]Metric, error) {
+	platform, token, err := p.channels.PublishContext(ctx, channelID)
+	if err != nil {
+		return nil, fmt.Errorf("loading channel context: %w", err)
+	}
+	adapter, ok := p.adapters[platform]
+	if !ok {
+		return nil, fmt.Errorf("no adapter for platform %q", platform)
+	}
+	return withRetry(p, ctx, channelID, token, func(tok channel.Token) ([]Metric, error) {
+		return adapter.FetchMetrics(ctx, tok, platformPostID)
+	})
 }
 
 // record stores a successful publish under its idempotency key (best-effort: a
@@ -167,7 +194,7 @@ func (p *Pipeline) record(ctx context.Context, channelID uuid.UUID, v PostVarian
 	if v.IdempotencyKey == "" {
 		return nil
 	}
-	return p.results.Record(ctx, channelID, v.IdempotencyKey, res)
+	return p.results.Record(ctx, channelID, v.PostID, v.IdempotencyKey, res)
 }
 
 // backoff returns the wait before the next attempt: the platform's RetryAfter

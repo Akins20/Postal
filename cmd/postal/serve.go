@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/Akins20/postal/internal/analytics"
 	"github.com/Akins20/postal/internal/auth"
 	"github.com/Akins20/postal/internal/channel"
 	"github.com/Akins20/postal/internal/config"
@@ -138,6 +139,10 @@ func (w *wiring) wireAuth(deps *server.Deps) error {
 		RefreshTTL: w.cfg.Auth.RefreshTokenTTL,
 	})
 	deps.WorkspaceHandler = workspace.NewHandler(w.wsSvc, w.log)
+
+	// Analytics reporting is read-only on the API server (the worker owns the
+	// poller), so it needs no metrics fetcher — only the pool + workspace service.
+	deps.AnalyticsHandler = analytics.NewHandler(analytics.NewService(w.pool, nil, w.auditor, nil), w.wsSvc, w.log)
 	return nil
 }
 

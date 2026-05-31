@@ -173,17 +173,5 @@ func (h *Handler) deleteSlot(w http.ResponseWriter, r *http.Request) error {
 // calendarRange parses ?from=&to= (RFC3339), defaulting to [now, now+30d).
 func calendarRange(r *http.Request) (from, to time.Time, err error) {
 	now := time.Now().UTC()
-	from = now
-	to = now.Add(defaultCalendarWindow)
-	if v := r.URL.Query().Get("from"); v != "" {
-		if from, err = time.Parse(time.RFC3339, v); err != nil {
-			return from, to, apperr.Validation("invalid_from", "from must be RFC3339")
-		}
-	}
-	if v := r.URL.Query().Get("to"); v != "" {
-		if to, err = time.Parse(time.RFC3339, v); err != nil {
-			return from, to, apperr.Validation("invalid_to", "to must be RFC3339")
-		}
-	}
-	return from, to, nil
+	return web.TimeRange(r, now, now.Add(defaultCalendarWindow))
 }

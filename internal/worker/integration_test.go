@@ -154,7 +154,7 @@ func TestWorker_ScheduleThenProcess_Publishes(t *testing.T) {
 	}
 	jobID := jobs[0].ID
 
-	proc := worker.NewProcessor(h.sched, h.pipeline, h.channels, slog.Default(), nil)
+	proc := worker.NewProcessor(h.sched, h.pipeline, h.channels, nil, slog.Default(), nil)
 	if err := proc.ProcessPublish(ctx, publishTask(t, jobID)); err != nil {
 		t.Fatalf("ProcessPublish: %v", err)
 	}
@@ -187,7 +187,7 @@ func TestWorker_ScheduleThenProcess_Publishes(t *testing.T) {
 func TestWorker_CanceledJobNotPublished(t *testing.T) {
 	h := setup(t)
 	ctx := context.Background()
-	proc := worker.NewProcessor(h.sched, h.pipeline, h.channels, slog.Default(), nil)
+	proc := worker.NewProcessor(h.sched, h.pipeline, h.channels, nil, slog.Default(), nil)
 
 	jobs, err := h.sched.SchedulePost(ctx, h.wsID, h.postID, time.Now())
 	if err != nil {
@@ -208,7 +208,7 @@ func TestWorker_CanceledJobNotPublished(t *testing.T) {
 func TestWorker_DuplicateContent_Terminal(t *testing.T) {
 	h := setup(t)
 	ctx := context.Background()
-	proc := worker.NewProcessor(h.sched, h.pipeline, h.channels, slog.Default(), nil)
+	proc := worker.NewProcessor(h.sched, h.pipeline, h.channels, nil, slog.Default(), nil)
 
 	// First publish succeeds.
 	jobs, _ := h.sched.SchedulePost(ctx, h.wsID, h.postID, time.Now())
@@ -276,7 +276,7 @@ func TestWorker_MediaPublish_AttachesMedia(t *testing.T) {
 
 	// A media-enabled schedule service so ExecutionContext loads the bytes.
 	sched := schedule.NewService(h.pool, h.channels, fakeEnqueuer{}, mediaSvc, nil, nil)
-	proc := worker.NewProcessor(sched, h.pipeline, h.channels, slog.Default(), nil)
+	proc := worker.NewProcessor(sched, h.pipeline, h.channels, nil, slog.Default(), nil)
 
 	jobs, err := sched.SchedulePost(ctx, h.wsID, p.ID, time.Now())
 	if err != nil {
