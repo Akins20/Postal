@@ -18,13 +18,15 @@ const (
 	statusDraft = "draft"
 )
 
-// MediaMeta is media metadata attached to a variant for compose-time validation.
-// Actual upload/storage is the Phase 7 media pipeline; here it's just the facts
-// needed to validate counts/sizes against a platform.
+// MediaMeta is media attached to a variant. MediaID must reference an uploaded
+// media asset (Phase 7); the composer resolves it and fills the authoritative
+// kind/mime/bytes from the asset, so client-supplied values are advisory only.
+// A media entry without a MediaID is rejected at compose time.
 type MediaMeta struct {
-	Kind  string `json:"kind"` // image | gif | video
-	MIME  string `json:"mime"`
-	Bytes int64  `json:"bytes"`
+	MediaID uuid.UUID `json:"media_id"`
+	Kind    string    `json:"kind"` // image | gif | video
+	MIME    string    `json:"mime"`
+	Bytes   int64     `json:"bytes"`
 }
 
 // VariantInput is the client-supplied content for one channel.
@@ -72,4 +74,11 @@ type ChannelResolver interface {
 // publish.Registry satisfies it.
 type Validator interface {
 	Validate(platform string, v publish.PostVariant) error
+}
+
+// MediaResolver verifies an attached media asset belongs to the workspace and
+// returns its authoritative kind/mime/bytes. media.Service satisfies it. Nil
+// when the media pipeline is disabled.
+type MediaResolver interface {
+	ResolveMedia(ctx context.Context, workspaceID, assetID uuid.UUID) (kind, mime string, bytes int64, err error)
 }

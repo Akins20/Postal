@@ -46,9 +46,20 @@ func runWorker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	channelSvc := channel.NewService(pool, channel.NewRegistry(toOAuthProviders(adapters)...), enc, cache, wsSvc, auditor, nil)
 
 	pipeline := publish.NewPipeline(channelSvc, publish.NewStore(pool.Queries()), adapters)
+
+	// The worker loads attached media bytes at publish time; absent storage,
+	// media-bearing jobs fail at execution. Keep the interface nil (not typed-nil).
+	mediaSvc, err := buildMedia(ctx, cfg, pool, auditor, log)
+	if err != nil {
+		return err
+	}
+	var mediaLoader schedule.MediaLoader
+	if mediaSvc != nil {
+		mediaLoader = mediaSvc
+	}
 	// The worker only processes jobs (claim/execute/mark) — it never enqueues —
 	// so it needs no asynq client (nil Enqueuer).
-	scheduleSvc := schedule.NewService(pool, channelSvc, nil, auditor, nil)
+	scheduleSvc := schedule.NewService(pool, channelSvc, nil, mediaLoader, auditor, nil)
 
 	processor := worker.NewProcessor(scheduleSvc, pipeline, channelSvc, log, nil)
 	log.Info("starting postal worker", slog.String("env", cfg.HTTP.Env))

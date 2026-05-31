@@ -27,6 +27,8 @@ const (
 )
 
 // Media size limits (bytes) and per-post counts, per the verified X spec.
+// NOTE: the per-kind byte caps are mirrored in internal/media/types.go for
+// upload-time validation; keep the two in sync.
 const (
 	maxImageBytes = 5 << 20   // 5 MiB
 	maxGIFBytes   = 15 << 20  // 15 MiB

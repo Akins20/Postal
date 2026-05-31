@@ -2,6 +2,7 @@ package schedule
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -21,22 +22,30 @@ type ChannelResolver interface {
 	PlatformFor(ctx context.Context, workspaceID, channelID uuid.UUID) (string, error)
 }
 
+// MediaLoader downloads an attached media asset's bytes for publishing.
+// media.Service satisfies it. Nil when the media pipeline is disabled.
+type MediaLoader interface {
+	OpenMedia(ctx context.Context, assetID uuid.UUID) (kind, mime string, data []byte, err error)
+}
+
 // Service implements scheduling over scheduled_jobs/schedule_slots, enqueuing
 // publish tasks via the Enqueuer and exposing execution context to the worker.
 type Service struct {
 	pool     *db.Pool
 	channels ChannelResolver
 	enqueuer Enqueuer
+	media    MediaLoader
 	audit    security.Recorder
 	clock    func() time.Time
 }
 
-// NewService builds a schedule Service. clock defaults to time.Now.
-func NewService(pool *db.Pool, channels ChannelResolver, enqueuer Enqueuer, audit security.Recorder, clock func() time.Time) *Service {
+// NewService builds a schedule Service. media may be nil (media disabled);
+// clock defaults to time.Now.
+func NewService(pool *db.Pool, channels ChannelResolver, enqueuer Enqueuer, media MediaLoader, audit security.Recorder, clock func() time.Time) *Service {
 	if clock == nil {
 		clock = time.Now
 	}
-	return &Service{pool: pool, channels: channels, enqueuer: enqueuer, audit: audit, clock: clock}
+	return &Service{pool: pool, channels: channels, enqueuer: enqueuer, media: media, audit: audit, clock: clock}
 }
 
 // SchedulePost schedules every variant of a post to publish at runAt (UTC),
@@ -156,9 +165,70 @@ func (s *Service) ExecutionContext(ctx context.Context, jobID uuid.UUID) (uuid.U
 	if err != nil {
 		return uuid.Nil, publish.PostVariant{}, err
 	}
-	// Media bytes are wired in Phase 7; Phase 6 publishes text content.
-	pv := publish.PostVariant{Text: v.Body, IdempotencyKey: jobID.String()}
+	mediaRefs, err := s.loadMedia(ctx, v.MediaRefs)
+	if err != nil {
+		return uuid.Nil, publish.PostVariant{}, err
+	}
+	pv := publish.PostVariant{Text: v.Body, Media: mediaRefs, IdempotencyKey: jobID.String()}
 	return job.ChannelID, pv, nil
+}
+
+// storedMediaRef is the subset of a variant's stored media_refs JSON the
+// scheduler needs to load bytes for publishing.
+type storedMediaRef struct {
+	MediaID uuid.UUID `json:"media_id"`
+}
+
+// loadMedia downloads the bytes for each referenced media asset so the adapter
+// can upload them. Errors are classified so the worker retries transient
+// failures (storage outage) but not terminal ones (deleted asset, malformed
+// refs): a brief storage blip must not permanently fail a scheduled post.
+func (s *Service) loadMedia(ctx context.Context, mediaRefs []byte) ([]publish.MediaRef, error) {
+	refs, err := parseMediaRefs(mediaRefs)
+	if err != nil {
+		return nil, publish.Terminal("invalid_media_refs", "stored media references are malformed", err)
+	}
+	if len(refs) == 0 {
+		return nil, nil
+	}
+	if s.media == nil {
+		// The variant references uploaded media but this process has no media
+		// loader (storage unconfigured) — fail loudly instead of silently
+		// publishing without the attachment. Retryable: configuring storage and
+		// reprocessing should succeed.
+		return nil, publish.Retryable("media_loader_unavailable", "media loader is not configured", nil)
+	}
+	out := make([]publish.MediaRef, 0, len(refs))
+	for _, ref := range refs {
+		kind, mime, data, err := s.media.OpenMedia(ctx, ref.MediaID)
+		if err != nil {
+			if apperr.KindOf(err) == apperr.KindNotFound {
+				return nil, publish.Terminal("media_not_found", "attached media no longer exists", err)
+			}
+			return nil, publish.Retryable("media_load_failed", "could not load attached media", err)
+		}
+		out = append(out, publish.MediaRef{Kind: publish.MediaKind(kind), MIME: mime, Bytes: int64(len(data)), Data: data})
+	}
+	return out, nil
+}
+
+// parseMediaRefs decodes the stored media_refs JSON, keeping only entries that
+// reference an uploaded asset (a non-nil media ID).
+func parseMediaRefs(mediaRefs []byte) ([]storedMediaRef, error) {
+	if len(mediaRefs) == 0 {
+		return nil, nil
+	}
+	var all []storedMediaRef
+	if err := json.Unmarshal(mediaRefs, &all); err != nil {
+		return nil, err
+	}
+	out := make([]storedMediaRef, 0, len(all))
+	for _, ref := range all {
+		if ref.MediaID != uuid.Nil {
+			out = append(out, ref)
+		}
+	}
+	return out, nil
 }
 
 // Claim atomically transitions a job from scheduled to publishing (counting the

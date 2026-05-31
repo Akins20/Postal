@@ -22,6 +22,7 @@ type Querier interface {
 	CountSmoke(ctx context.Context) (int64, error)
 	CreateChannel(ctx context.Context, arg CreateChannelParams) (Channel, error)
 	CreateEmailVerificationToken(ctx context.Context, arg CreateEmailVerificationTokenParams) (EmailVerificationToken, error)
+	CreateMediaAsset(ctx context.Context, arg CreateMediaAssetParams) (MediaAsset, error)
 	CreateMember(ctx context.Context, arg CreateMemberParams) (WorkspaceMember, error)
 	CreatePasswordResetToken(ctx context.Context, arg CreatePasswordResetTokenParams) (PasswordResetToken, error)
 	CreatePost(ctx context.Context, arg CreatePostParams) (Post, error)
@@ -32,6 +33,7 @@ type Querier interface {
 	CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams) (Workspace, error)
 	DeleteChannel(ctx context.Context, id uuid.UUID) error
 	DeleteChannelCredential(ctx context.Context, channelID uuid.UUID) error
+	DeleteMediaAsset(ctx context.Context, id uuid.UUID) error
 	DeletePost(ctx context.Context, id uuid.UUID) error
 	DeletePostVariant(ctx context.Context, id uuid.UUID) error
 	DeleteScheduleSlot(ctx context.Context, id uuid.UUID) error
@@ -40,6 +42,7 @@ type Querier interface {
 	GetChannelByAccount(ctx context.Context, arg GetChannelByAccountParams) (Channel, error)
 	GetChannelCredential(ctx context.Context, channelID uuid.UUID) (ChannelCredential, error)
 	GetEmailVerificationToken(ctx context.Context, tokenHash string) (EmailVerificationToken, error)
+	GetMediaAsset(ctx context.Context, id uuid.UUID) (MediaAsset, error)
 	GetMember(ctx context.Context, arg GetMemberParams) (WorkspaceMember, error)
 	GetPasswordResetToken(ctx context.Context, tokenHash string) (PasswordResetToken, error)
 	GetPost(ctx context.Context, id uuid.UUID) (Post, error)
@@ -57,6 +60,7 @@ type Querier interface {
 	ListAuditLogByWorkspace(ctx context.Context, arg ListAuditLogByWorkspaceParams) ([]AuditLog, error)
 	ListChannels(ctx context.Context, workspaceID uuid.UUID) ([]Channel, error)
 	ListChannelsDueForRefresh(ctx context.Context, arg ListChannelsDueForRefreshParams) ([]ListChannelsDueForRefreshRow, error)
+	ListMediaAssets(ctx context.Context, arg ListMediaAssetsParams) ([]MediaAsset, error)
 	ListMembers(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceMember, error)
 	ListPostsByWorkspace(ctx context.Context, arg ListPostsByWorkspaceParams) ([]Post, error)
 	ListScheduledJobsInRange(ctx context.Context, arg ListScheduledJobsInRangeParams) ([]ScheduledJob, error)
@@ -64,9 +68,13 @@ type Querier interface {
 	ListSlotsForChannel(ctx context.Context, channelID uuid.UUID) ([]ScheduleSlot, error)
 	ListVariantsByPost(ctx context.Context, postID uuid.UUID) ([]PostVariant, error)
 	ListWorkspacesForUser(ctx context.Context, userID uuid.UUID) ([]Workspace, error)
+	// Row-locks the workspace so a quota check + media insert is serialized against
+	// concurrent uploads in the same workspace (prevents TOCTOU quota overshoot).
+	LockWorkspaceForUpdate(ctx context.Context, id uuid.UUID) error
 	SetEmailVerified(ctx context.Context, id uuid.UUID) error
 	SetScheduledJobStatus(ctx context.Context, arg SetScheduledJobStatusParams) error
 	SetScheduledJobTaskID(ctx context.Context, arg SetScheduledJobTaskIDParams) error
+	SumMediaBytesForWorkspace(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	TouchPost(ctx context.Context, id uuid.UUID) error
 	UpdateChannelIdentity(ctx context.Context, arg UpdateChannelIdentityParams) error
 	UpdateChannelStatus(ctx context.Context, arg UpdateChannelStatusParams) error

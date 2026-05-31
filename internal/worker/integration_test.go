@@ -5,6 +5,9 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"image"
+	"image/color"
+	"image/png"
 	"log/slog"
 	"os"
 	"testing"
@@ -15,8 +18,10 @@ import (
 	goredis "github.com/redis/go-redis/v9"
 
 	"github.com/Akins20/postal/internal/channel"
+	"github.com/Akins20/postal/internal/media"
 	"github.com/Akins20/postal/internal/platform/db"
 	"github.com/Akins20/postal/internal/platform/db/sqlc"
+	"github.com/Akins20/postal/internal/platform/storage"
 	"github.com/Akins20/postal/internal/publish"
 	twittersim "github.com/Akins20/postal/internal/publish/simulator/twitter"
 	"github.com/Akins20/postal/internal/publish/twitter"
@@ -80,7 +85,7 @@ func setup(t *testing.T) *harness {
 	wsSvc := workspace.NewService(pool, nil, nil)
 	channels := channel.NewService(pool, channel.NewRegistry(adapter), enc, rdb, wsSvc, nil, nil)
 	pipeline := publish.NewPipeline(channels, publish.NewStore(pool.Queries()), []publish.Adapter{adapter})
-	sched := schedule.NewService(pool, channels, fakeEnqueuer{}, nil, nil)
+	sched := schedule.NewService(pool, channels, fakeEnqueuer{}, nil, nil, nil)
 	return &harness{sched: sched, pipeline: pipeline, channels: channels, pool: pool, sim: sim, wsID: wsID, postID: postID, channelID: channelID}
 }
 
@@ -222,6 +227,99 @@ func TestWorker_DuplicateContent_Terminal(t *testing.T) {
 	if job.Status != schedule.StatusFailed {
 		t.Errorf("duplicate job status = %q, want failed", job.Status)
 	}
+}
+
+// TestWorker_MediaPublish_AttachesMedia exercises the full media path end to end:
+// a PNG is uploaded to object storage, attached to a post variant, scheduled,
+// and processed by the worker — which loads the bytes via the media loader and
+// the adapter uploads them to the simulator before creating the tweet.
+func TestWorker_MediaPublish_AttachesMedia(t *testing.T) {
+	h := setup(t)
+	ctx := context.Background()
+
+	endpoint := os.Getenv("POSTAL_STORAGE_ENDPOINT")
+	if endpoint == "" {
+		t.Skip("POSTAL_STORAGE_ENDPOINT not set; skipping media-publish e2e")
+	}
+	store, err := storage.New(ctx, storage.Config{
+		Endpoint: endpoint, AccessKey: os.Getenv("POSTAL_STORAGE_ACCESS_KEY"),
+		SecretKey: os.Getenv("POSTAL_STORAGE_SECRET_KEY"), Bucket: envOr("POSTAL_STORAGE_BUCKET", "postal-media"),
+		Region: os.Getenv("POSTAL_STORAGE_REGION"), UseSSL: os.Getenv("POSTAL_STORAGE_USE_SSL") == "true",
+	})
+	if err != nil {
+		t.Skipf("minio unreachable: %v", err)
+	}
+	mediaSvc := media.NewService(h.pool, store, nil, 5<<20, 50<<20, nil)
+
+	// Upload a small PNG asset to the workspace.
+	raw := smallPNG(t)
+	asset, err := mediaSvc.Upload(ctx, h.wsID, "image/png", bytes.NewReader(raw), int64(len(raw)))
+	if err != nil {
+		t.Fatalf("upload media: %v", err)
+	}
+	t.Cleanup(func() { _ = mediaSvc.Delete(ctx, h.wsID, asset.ID) })
+
+	// A fresh post whose single variant references the uploaded asset. The body is
+	// randomized so the simulator's duplicate-content guard never trips.
+	q := h.pool.Queries()
+	p, err := q.CreatePost(ctx, sqlc.CreatePostParams{WorkspaceID: h.wsID, Status: "draft"})
+	if err != nil {
+		t.Fatalf("post: %v", err)
+	}
+	refs := []byte(fmt.Sprintf(`[{"media_id":%q,"kind":"image","mime":"image/png","bytes":%d}]`, asset.ID.String(), len(raw)))
+	if _, err := q.CreatePostVariant(ctx, sqlc.CreatePostVariantParams{
+		PostID: p.ID, ChannelID: h.channelID, Body: "with media " + uuid.NewString(),
+		MediaRefs: refs, PlatformOptions: []byte("{}"),
+	}); err != nil {
+		t.Fatalf("variant: %v", err)
+	}
+
+	// A media-enabled schedule service so ExecutionContext loads the bytes.
+	sched := schedule.NewService(h.pool, h.channels, fakeEnqueuer{}, mediaSvc, nil, nil)
+	proc := worker.NewProcessor(sched, h.pipeline, h.channels, slog.Default(), nil)
+
+	jobs, err := sched.SchedulePost(ctx, h.wsID, p.ID, time.Now())
+	if err != nil {
+		t.Fatalf("SchedulePost: %v", err)
+	}
+	if err := proc.ProcessPublish(ctx, publishTask(t, jobs[0].ID)); err != nil {
+		t.Fatalf("ProcessPublish: %v", err)
+	}
+
+	if h.sim.TweetCount() != 1 {
+		t.Errorf("tweet count = %d, want 1", h.sim.TweetCount())
+	}
+	if h.sim.MediaCount() != 1 {
+		t.Errorf("media uploads = %d, want 1 (media bytes did not reach the adapter)", h.sim.MediaCount())
+	}
+	job, _ := h.pool.Queries().GetScheduledJob(ctx, jobs[0].ID)
+	if job.Status != schedule.StatusPublished {
+		t.Errorf("job status = %q, want published", job.Status)
+	}
+}
+
+// smallPNG encodes a tiny solid-color PNG for media-attachment tests.
+func smallPNG(t *testing.T) []byte {
+	t.Helper()
+	img := image.NewRGBA(image.Rect(0, 0, 16, 16))
+	for y := 0; y < 16; y++ {
+		for x := 0; x < 16; x++ {
+			img.Set(x, y, color.RGBA{R: 200, G: 100, B: 50, A: 255})
+		}
+	}
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, img); err != nil {
+		t.Fatalf("encode png: %v", err)
+	}
+	return buf.Bytes()
+}
+
+// envOr returns the env var value or a default when unset.
+func envOr(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
 }
 
 func TestSchedule_CancelMarksCanceled(t *testing.T) {

@@ -15,6 +15,7 @@ import (
 
 	"github.com/Akins20/postal/internal/auth"
 	"github.com/Akins20/postal/internal/channel"
+	"github.com/Akins20/postal/internal/media"
 	"github.com/Akins20/postal/internal/platform/metrics"
 	"github.com/Akins20/postal/internal/post"
 	"github.com/Akins20/postal/internal/ratelimit"
@@ -42,6 +43,7 @@ type Deps struct {
 	ChannelHandler   *channel.Handler
 	PostHandler      *post.Handler
 	ScheduleHandler  *schedule.Handler
+	MediaHandler     *media.Handler
 	RequestTimeout   time.Duration
 }
 

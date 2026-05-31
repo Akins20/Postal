@@ -96,6 +96,14 @@ func (s *Server) TweetCount() int {
 	return len(s.tweets)
 }
 
+// MediaCount returns how many media uploads have been initialized, letting tests
+// assert that an attached asset traversed the full INIT/APPEND/FINALIZE flow.
+func (s *Server) MediaCount() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return len(s.media)
+}
+
 // --- handlers ---
 
 func (s *Server) handleToken(w http.ResponseWriter, r *http.Request) {

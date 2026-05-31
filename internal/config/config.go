@@ -29,6 +29,10 @@ const (
 	defaultRefreshTokenTTL    = 30 * 24 * time.Hour // sliding window per use
 	defaultRefreshTokenMaxTTL = 90 * 24 * time.Hour // absolute session cap
 	defaultCookieSecure       = true
+
+	defaultStorageBucket     = "postal-media"
+	defaultMaxUploadBytes    = 512 << 20 // 512 MiB per file
+	defaultMaxWorkspaceBytes = 2 << 30   // 2 GiB per workspace
 )
 
 // envPrefix namespaces every Postal environment variable.
@@ -42,6 +46,7 @@ type Config struct {
 	Crypto  Crypto
 	Auth    Auth
 	Twitter Twitter
+	Storage Storage
 }
 
 // Twitter holds the X/Twitter OAuth app credentials. When ClientID is empty the
@@ -50,6 +55,22 @@ type Twitter struct {
 	ClientID     string
 	ClientSecret string
 	RedirectURI  string
+}
+
+// Storage holds S3-compatible object-storage settings for the media pipeline.
+// Production = Cloudflare R2 (endpoint <account>.r2.cloudflarestorage.com,
+// Region "auto", UseSSL true); local dev = MinIO.
+type Storage struct {
+	Endpoint  string
+	AccessKey string
+	SecretKey string
+	Bucket    string
+	Region    string
+	UseSSL    bool
+	// MaxUploadBytes is the per-file upload cap.
+	MaxUploadBytes int64
+	// MaxWorkspaceBytes is the per-workspace storage quota.
+	MaxWorkspaceBytes int64
 }
 
 // Auth holds authentication and session settings. JWTSecret is validated by the
@@ -149,6 +170,16 @@ func Load() (Config, error) {
 			ClientSecret: getString("X_CLIENT_SECRET", ""),
 			RedirectURI:  getString("X_REDIRECT_URI", ""),
 		},
+		Storage: Storage{
+			Endpoint:          getString("STORAGE_ENDPOINT", ""),
+			AccessKey:         getString("STORAGE_ACCESS_KEY", ""),
+			SecretKey:         getString("STORAGE_SECRET_KEY", ""),
+			Bucket:            getString("STORAGE_BUCKET", defaultStorageBucket),
+			Region:            getString("STORAGE_REGION", ""),
+			UseSSL:            getBool("STORAGE_USE_SSL", false),
+			MaxUploadBytes:    getInt64("STORAGE_MAX_UPLOAD_BYTES", defaultMaxUploadBytes),
+			MaxWorkspaceBytes: getInt64("STORAGE_MAX_WORKSPACE_BYTES", defaultMaxWorkspaceBytes),
+		},
 	}
 
 	if err := cfg.validate(); err != nil {
@@ -195,6 +226,19 @@ func getBool(key string, def bool) bool {
 		return def
 	}
 	return b
+}
+
+// getInt64 returns the int64 value of POSTAL_<key>, or def if unset or unparsable.
+func getInt64(key string, def int64) int64 {
+	v, ok := os.LookupEnv(envPrefix + key)
+	if !ok || v == "" {
+		return def
+	}
+	n, err := strconv.ParseInt(v, 10, 64)
+	if err != nil {
+		return def
+	}
+	return n
 }
 
 // getInt returns the integer value of POSTAL_<key>, or def if unset or unparsable.

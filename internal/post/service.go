@@ -31,16 +31,18 @@ type Service struct {
 	pool      *db.Pool
 	channels  ChannelResolver
 	validator Validator
+	media     MediaResolver
 	audit     security.Recorder
 	clock     func() time.Time
 }
 
-// NewService builds a post Service. clock defaults to time.Now.
-func NewService(pool *db.Pool, channels ChannelResolver, validator Validator, audit security.Recorder, clock func() time.Time) *Service {
+// NewService builds a post Service. media may be nil (media pipeline disabled);
+// clock defaults to time.Now.
+func NewService(pool *db.Pool, channels ChannelResolver, validator Validator, media MediaResolver, audit security.Recorder, clock func() time.Time) *Service {
 	if clock == nil {
 		clock = time.Now
 	}
-	return &Service{pool: pool, channels: channels, validator: validator, audit: audit, clock: clock}
+	return &Service{pool: pool, channels: channels, validator: validator, media: media, audit: audit, clock: clock}
 }
 
 // Create creates a draft post with one variant per input channel. Each channel
@@ -231,10 +233,42 @@ func (s *Service) prepareVariants(ctx context.Context, workspaceID uuid.UUID, in
 		if _, err := s.channels.PlatformFor(ctx, workspaceID, in.ChannelID); err != nil {
 			return nil, err // not-found for a foreign/unknown channel
 		}
+		media, err := s.resolveMedia(ctx, workspaceID, in.Media)
+		if err != nil {
+			return nil, err
+		}
 		out = append(out, encodedVariant{
 			channelID: in.ChannelID, body: in.Body,
-			media: marshalJSON(in.Media, "[]"), opts: marshalJSON(in.PlatformOptions, "{}"),
+			media: marshalJSON(media, "[]"), opts: marshalJSON(in.PlatformOptions, "{}"),
 		})
+	}
+	return out, nil
+}
+
+// resolveMedia validates each media reference: a referenced asset (MediaID set)
+// must belong to the workspace, and its authoritative kind/mime/bytes replace
+// any client-supplied values.
+func (s *Service) resolveMedia(ctx context.Context, workspaceID uuid.UUID, media []MediaMeta) ([]MediaMeta, error) {
+	if len(media) == 0 {
+		return nil, nil
+	}
+	if s.media == nil {
+		return nil, apperr.Validation("media_unavailable", "media uploads are not configured")
+	}
+	out := make([]MediaMeta, len(media))
+	copy(out, media)
+	for i := range out {
+		// Every attached media must reference an uploaded asset. Otherwise it
+		// would pass compose-time validation (counting toward platform limits)
+		// but be dropped at publish — a green validation that fails when run.
+		if out[i].MediaID == uuid.Nil {
+			return nil, apperr.Validation("media_unresolved", "attached media must reference an uploaded asset")
+		}
+		kind, mime, bytes, err := s.media.ResolveMedia(ctx, workspaceID, out[i].MediaID)
+		if err != nil {
+			return nil, err // not-found for a foreign/unknown asset
+		}
+		out[i].Kind, out[i].MIME, out[i].Bytes = kind, mime, bytes
 	}
 	return out, nil
 }

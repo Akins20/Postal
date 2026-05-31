@@ -53,6 +53,20 @@ type EmailVerificationToken struct {
 	CreatedAt  pgtype.Timestamptz `json:"created_at"`
 }
 
+type MediaAsset struct {
+	ID          uuid.UUID          `json:"id"`
+	WorkspaceID uuid.UUID          `json:"workspace_id"`
+	Kind        string             `json:"kind"`
+	StorageKey  string             `json:"storage_key"`
+	Mime        string             `json:"mime"`
+	Width       int32              `json:"width"`
+	Height      int32              `json:"height"`
+	DurationMs  int32              `json:"duration_ms"`
+	Bytes       int64              `json:"bytes"`
+	Status      string             `json:"status"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
 type PasswordResetToken struct {
 	ID         uuid.UUID          `json:"id"`
 	UserID     uuid.UUID          `json:"user_id"`

@@ -62,7 +62,7 @@ func setup(t *testing.T) (*post.Service, uuid.UUID, uuid.UUID, uuid.UUID) {
 
 	resolver := fakeResolver{workspaceID: ws.ID, channelID: ch.ID}
 	validator := publish.NewRegistry(twitter.New(twitter.Config{}))
-	svc := post.NewService(pool, resolver, validator, nil, nil)
+	svc := post.NewService(pool, resolver, validator, nil, nil, nil)
 	return svc, ws.ID, user.ID, ch.ID
 }
 

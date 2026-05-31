@@ -310,14 +310,15 @@ come up; `scripts/curl/health.sh` passes; `make check` runs green (full enforcem
 - [ ] Bulk CSV import, evergreen re-queue, reschedule, user notifications — deferred (documented)
 **Tests/DoD:** ✅ Go integration test: schedule → worker `ProcessPublish` → **simulator receives the tweet** → `publish_results` recorded + job `published`; idempotency (re-delivery skipped), **canceled job not published**, duplicate→terminal→failed, cancel, `NextOpenSlot`. `scripts/curl/scheduling.sh` 10/10; worker subcommand boots + graceful shutdown. `make check` green. **`/code-review` (high) — fixed 5** (canceled-job-published via guarded Claim, MarkRetry resurrection, queue single-occurrence, misleading cancel success, server enqueuer leak).
 
-### Phase 7 — Media pipeline
+### Phase 7 — Media pipeline ✅ DONE (2026-05-31)
 **Goal:** images/video/GIF handling.
-- [ ] Upload endpoint → object storage (MinIO locally); virus/size/type validation
-- [ ] Image processing (libvips: resize/format), video (FFmpeg: transcode/validate specs)
-- [ ] Per-platform media validation (X: image/video/GIF specs, counts, durations)
-- [ ] Media attach to post_variant; chunked upload to X in adapter
-- [ ] Quota: storage per workspace
-**Tests/DoD:** upload valid/invalid media; oversize rejected; X media-upload simulated end to end; storage quota enforced.
+- [x] Upload endpoint → object storage (R2 in prod / MinIO locally via one S3-compatible client); size/type validation, capability-gated, workspace-isolated
+- [ ] Image processing (libvips: resize/format), video (FFmpeg: transcode/validate specs) — **deferred** (stdlib dimension detection only; transcode/probe/virus-scan pluggable later)
+- [x] Per-platform media validation (X image/GIF/video byte caps + counts) at compose time via the adapter
+- [x] Media attach to post_variant (resolved/owned at compose time); worker loads bytes and the X adapter chunk-uploads them at publish
+- [x] Quota: per-workspace storage cap, enforced atomically (workspace row-lock, no TOCTOU)
+**Tests/DoD:** ✅ upload valid/invalid/oversize/unsupported + cross-workspace isolation (Go integration vs MinIO); end-to-end media→schedule→worker→X simulator (asset bytes traverse INIT/APPEND/FINALIZE); `scripts/curl/media.sh` 14/14; media-load error classification + composer rejection unit tests; `/security-review` clean; `/code-review` (7 findings fixed); `make check` green.
+**Notes:** media-load failures are retry-classified so a transient storage blip never permanently fails a scheduled post; media without an uploaded `media_id` is rejected at compose (validation matches publish). Deferred follow-ups: libvips/FFmpeg transcode + probe, virus scan, streaming (vs full-buffer) media in the publish path.
 
 ### Phase 8 — Analytics ingestion & reporting
 **Goal:** post performance.

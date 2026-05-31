@@ -8,9 +8,11 @@ import (
 	"github.com/Akins20/postal/internal/auth"
 	"github.com/Akins20/postal/internal/channel"
 	"github.com/Akins20/postal/internal/config"
+	"github.com/Akins20/postal/internal/media"
 	"github.com/Akins20/postal/internal/platform/db"
 	"github.com/Akins20/postal/internal/platform/metrics"
 	"github.com/Akins20/postal/internal/platform/redis"
+	"github.com/Akins20/postal/internal/platform/storage"
 	"github.com/Akins20/postal/internal/post"
 	"github.com/Akins20/postal/internal/publish"
 	"github.com/Akins20/postal/internal/publish/twitter"
@@ -33,6 +35,7 @@ type wiring struct {
 	auditor  *security.Auditor
 	enc      *security.Encryptor
 	wsSvc    *workspace.Service
+	mediaSvc *media.Service // nil when storage is not configured
 	enqueuer *worker.Client // asynq client; closed by runServe
 	log      *slog.Logger
 }
@@ -80,6 +83,12 @@ func runServe(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		Limiter:        w.limiter,
 		RequestTimeout: cfg.HTTP.RequestTimeout,
 	}
+	mediaSvc, err := buildMedia(ctx, cfg, pool, w.auditor, log)
+	if err != nil {
+		return err
+	}
+	w.mediaSvc = mediaSvc
+
 	if err := w.wireAuth(&deps); err != nil {
 		return err
 	}
@@ -150,16 +159,42 @@ func (w *wiring) wireChannels(deps *server.Deps) {
 	channelSvc := channel.NewService(w.pool, channel.NewRegistry(toOAuthProviders(adapters)...), w.enc, w.cache, w.wsSvc, w.auditor, nil)
 	deps.ChannelHandler = channel.NewHandler(channelSvc, w.wsSvc, w.log)
 
-	// The composer resolves channels via channelSvc and validates variants
-	// against the platform adapters (publish.Registry).
-	postSvc := post.NewService(w.pool, channelSvc, publish.NewRegistry(adapters...), w.auditor, nil)
+	// Keep media interfaces nil (not a typed-nil) when storage is disabled, so the
+	// composer/scheduler correctly detect its absence.
+	var mediaResolver post.MediaResolver
+	var mediaLoader schedule.MediaLoader
+	if w.mediaSvc != nil {
+		mediaResolver, mediaLoader = w.mediaSvc, w.mediaSvc
+		deps.MediaHandler = media.NewHandler(w.mediaSvc, w.wsSvc, w.log, w.cfg.Storage.MaxUploadBytes)
+	}
+
+	// The composer resolves channels via channelSvc, validates variants against
+	// the platform adapters (publish.Registry), and resolves attached media.
+	postSvc := post.NewService(w.pool, channelSvc, publish.NewRegistry(adapters...), mediaResolver, w.auditor, nil)
 	deps.PostHandler = post.NewHandler(postSvc, w.wsSvc, w.log)
 
 	// Scheduling: enqueue publish tasks to asynq; the worker process executes
 	// them. The asynq client satisfies schedule.Enqueuer; closed by runServe.
 	w.enqueuer = worker.NewClient(redisOpt(w.cfg))
-	scheduleSvc := schedule.NewService(w.pool, channelSvc, w.enqueuer, w.auditor, nil)
+	scheduleSvc := schedule.NewService(w.pool, channelSvc, w.enqueuer, mediaLoader, w.auditor, nil)
 	deps.ScheduleHandler = schedule.NewHandler(scheduleSvc, w.wsSvc, w.log)
+}
+
+// buildMedia constructs the media service over object storage. When the storage
+// endpoint is unset, media uploads are disabled (returns nil).
+func buildMedia(ctx context.Context, cfg config.Config, pool *db.Pool, auditor *security.Auditor, log *slog.Logger) (*media.Service, error) {
+	if cfg.Storage.Endpoint == "" {
+		log.Warn("POSTAL_STORAGE_ENDPOINT not set; media uploads are disabled")
+		return nil, nil
+	}
+	store, err := storage.New(ctx, storage.Config{
+		Endpoint: cfg.Storage.Endpoint, AccessKey: cfg.Storage.AccessKey, SecretKey: cfg.Storage.SecretKey,
+		Bucket: cfg.Storage.Bucket, Region: cfg.Storage.Region, UseSSL: cfg.Storage.UseSSL,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("connecting to object storage: %w", err)
+	}
+	return media.NewService(pool, store, auditor, cfg.Storage.MaxUploadBytes, cfg.Storage.MaxWorkspaceBytes, nil), nil
 }
 
 // buildAdapters constructs the platform adapters from config. The X adapter is

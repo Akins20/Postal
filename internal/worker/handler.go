@@ -80,7 +80,14 @@ func (p *Processor) ProcessPublish(ctx context.Context, t *asynq.Task) error {
 
 	channelID, variant, err := p.sched.ExecutionContext(ctx, pl.JobID)
 	if err != nil {
-		// Variant gone (e.g. post deleted) after claim — fail the job, don't retry.
+		// A retryable load failure (e.g. a transient storage outage while
+		// fetching attached media) must not permanently fail the job.
+		var ae *publish.Error
+		if errors.As(err, &ae) && ae.Class == publish.ClassRetryable {
+			_ = p.sched.MarkRetry(ctx, pl.JobID, ae.Error())
+			return fmt.Errorf("loading job %s (retryable): %w", pl.JobID, err)
+		}
+		// Terminal (variant/post gone, media deleted, malformed refs) — fail, no retry.
 		_ = p.sched.MarkFailed(ctx, pl.JobID, err.Error())
 		return fmt.Errorf("loading job %s: %v: %w", pl.JobID, err, asynq.SkipRetry)
 	}
