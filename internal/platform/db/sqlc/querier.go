@@ -19,6 +19,9 @@ type Querier interface {
 	ClaimScheduledJob(ctx context.Context, id uuid.UUID) (uuid.UUID, error)
 	ConsumeEmailVerificationToken(ctx context.Context, id uuid.UUID) error
 	ConsumePasswordResetToken(ctx context.Context, id uuid.UUID) error
+	CountActiveChannelsForWorkspace(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	// Jobs not yet in a terminal state, for the per-workspace queue quota.
+	CountPendingJobsForWorkspace(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	CountSmoke(ctx context.Context) (int64, error)
 	CreateChannel(ctx context.Context, arg CreateChannelParams) (Channel, error)
 	CreateEmailVerificationToken(ctx context.Context, arg CreateEmailVerificationTokenParams) (EmailVerificationToken, error)

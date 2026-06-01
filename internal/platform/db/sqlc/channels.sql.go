@@ -12,6 +12,17 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countActiveChannelsForWorkspace = `-- name: CountActiveChannelsForWorkspace :one
+SELECT count(*) FROM channels WHERE workspace_id = $1 AND status = 'active'
+`
+
+func (q *Queries) CountActiveChannelsForWorkspace(ctx context.Context, workspaceID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countActiveChannelsForWorkspace, workspaceID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createChannel = `-- name: CreateChannel :one
 INSERT INTO channels (workspace_id, platform, platform_account_id, handle, display_name, connected_by)
 VALUES ($1, $2, $3, $4, $5, $6)

@@ -83,6 +83,8 @@ func runServe(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		Metrics:        metrics.New(),
 		Limiter:        w.limiter,
 		RequestTimeout: cfg.HTTP.RequestTimeout,
+		Production:     cfg.HTTP.IsProduction(),
+		AllowedOrigins: cfg.HTTP.AllowedOrigins,
 	}
 	mediaSvc, err := buildMedia(ctx, cfg, pool, w.auditor, log)
 	if err != nil {

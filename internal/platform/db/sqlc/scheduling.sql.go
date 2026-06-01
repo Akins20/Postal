@@ -42,6 +42,20 @@ func (q *Queries) ClaimScheduledJob(ctx context.Context, id uuid.UUID) (uuid.UUI
 	return id, err
 }
 
+const countPendingJobsForWorkspace = `-- name: CountPendingJobsForWorkspace :one
+SELECT count(*) FROM scheduled_jobs sj
+JOIN posts p ON p.id = sj.post_id
+WHERE p.workspace_id = $1 AND sj.status IN ('scheduled', 'publishing')
+`
+
+// Jobs not yet in a terminal state, for the per-workspace queue quota.
+func (q *Queries) CountPendingJobsForWorkspace(ctx context.Context, workspaceID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countPendingJobsForWorkspace, workspaceID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createScheduleSlot = `-- name: CreateScheduleSlot :one
 INSERT INTO schedule_slots (channel_id, day_of_week, time_of_day, timezone)
 VALUES ($1, $2, $3, $4)

@@ -47,6 +47,10 @@ type Deps struct {
 	MediaHandler     *media.Handler
 	AnalyticsHandler *analytics.Handler
 	RequestTimeout   time.Duration
+	// Production gates HSTS (only sent over the assumed-TLS production edge).
+	Production bool
+	// AllowedOrigins is the CORS allowlist; empty disables CORS.
+	AllowedOrigins []string
 }
 
 // Server owns the HTTP router and underlying http.Server.
@@ -65,6 +69,12 @@ func New(addr string, deps Deps) *Server {
 	// panic recovery can reference it.
 	mux.Use(middleware.RequestID)
 	mux.Use(middleware.RealIP)
+	// Security headers + CORS run early so they cover every response (health,
+	// metrics, recovered panics) and so preflight is answered before routing.
+	mux.Use(securityHeaders(deps.Production))
+	if len(deps.AllowedOrigins) > 0 {
+		mux.Use(cors(deps.AllowedOrigins))
+	}
 	if deps.Metrics != nil {
 		mux.Use(deps.Metrics.Middleware())
 	}

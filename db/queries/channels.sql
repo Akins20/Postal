@@ -63,3 +63,6 @@ WHERE c.status = 'active'
   AND cc.expires_at < $1
 ORDER BY cc.expires_at
 LIMIT $2;
+
+-- name: CountActiveChannelsForWorkspace :one
+SELECT count(*) FROM channels WHERE workspace_id = $1 AND status = 'active';

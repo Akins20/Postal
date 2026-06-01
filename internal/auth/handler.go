@@ -24,6 +24,12 @@ var (
 	loginIPRule  = ratelimit.Rule{Capacity: 10, RefillRate: 0.05}        // ~3/min per IP
 	loginEmail   = ratelimit.Rule{Capacity: 8, RefillRate: 8.0 / 3600}   // ~8/hour per email
 	resetIPRule  = ratelimit.Rule{Capacity: 3, RefillRate: 3.0 / 3600}   // ~3/hour per IP
+	// tokenIPRule throttles opaque-token submissions (email verify, reset
+	// confirm) to defeat token brute-forcing; legitimate users submit once.
+	tokenIPRule = ratelimit.Rule{Capacity: 10, RefillRate: 10.0 / 3600} // ~10/hour per IP
+	// refreshIPRule bounds refresh/logout churn (a valid session refreshes ~every
+	// access-token TTL); generous so real clients behind NAT aren't throttled.
+	refreshIPRule = ratelimit.Rule{Capacity: 60, RefillRate: 0.2} // ~12/min per IP
 )
 
 // Handler serves the /api/v1/auth endpoints.
@@ -71,11 +77,11 @@ func (h *Handler) Routes() chi.Router {
 
 	r.With(h.rateLimit("rl:auth:signup", signupIPRule)).Post("/signup", web.Handler(h.log, h.signup))
 	r.With(h.rateLimit("rl:auth:login", loginIPRule)).Post("/login", web.Handler(h.log, h.login))
-	r.With(csrf).Post("/refresh", web.Handler(h.log, h.refresh))
-	r.With(csrf).Post("/logout", web.Handler(h.log, h.logout))
-	r.Post("/verify-email", web.Handler(h.log, h.verifyEmail))
+	r.With(h.rateLimit("rl:auth:refresh", refreshIPRule), csrf).Post("/refresh", web.Handler(h.log, h.refresh))
+	r.With(h.rateLimit("rl:auth:logout", refreshIPRule), csrf).Post("/logout", web.Handler(h.log, h.logout))
+	r.With(h.rateLimit("rl:auth:verify", tokenIPRule)).Post("/verify-email", web.Handler(h.log, h.verifyEmail))
 	r.With(h.rateLimit("rl:auth:reset", resetIPRule)).Post("/password-reset/request", web.Handler(h.log, h.requestReset))
-	r.Post("/password-reset/confirm", web.Handler(h.log, h.confirmReset))
+	r.With(h.rateLimit("rl:auth:reset-confirm", tokenIPRule)).Post("/password-reset/confirm", web.Handler(h.log, h.confirmReset))
 
 	r.With(RequireUser(h.tokens, h.log)).Get("/me", web.Handler(h.log, h.me))
 	return r

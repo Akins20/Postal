@@ -15,6 +15,21 @@ import (
 // the rate-limit middleware is observable from a curl script.
 var pingRateRule = ratelimit.Rule{Capacity: 5, RefillRate: 1}
 
+// authedAPIRule is the per-user catch-all bucket on the authenticated API: a
+// generous burst with steady refill so no single account can flood the API,
+// while normal interactive use is never throttled. Endpoint-specific and
+// per-channel limits layer on top of this baseline.
+var authedAPIRule = ratelimit.Rule{Capacity: 120, RefillRate: 5}
+
+// userOrIPKey buckets the authenticated API by user ID (set by RequireUser),
+// falling back to client IP if somehow absent, so the cap is per-account.
+func userOrIPKey(r *http.Request) string {
+	if uid, ok := web.UserID(r.Context()); ok {
+		return "u:" + uid.String()
+	}
+	return "ip:" + ratelimit.ClientIPKey(r)
+}
+
 // mountAPI wires the versioned API surface under /api/v1: a demo ping, the
 // public auth routes, and an authenticated group (RequireUser + CSRF) hosting
 // workspace endpoints.
@@ -32,6 +47,13 @@ func (s *Server) mountAPI(deps Deps) {
 			r.Group(func(pr chi.Router) {
 				pr.Use(auth.RequireUser(deps.Tokens, deps.Logger))
 				pr.Use(auth.CSRFProtect(deps.Logger))
+				// Per-user catch-all rate limit (keyed after RequireUser sets the
+				// user ID) so one account can't flood the authenticated API.
+				if deps.Limiter != nil {
+					pr.Use(deps.Limiter.Middleware(ratelimit.Config{
+						Rule: authedAPIRule, Prefix: "rl:api:user", Key: userOrIPKey, Logger: deps.Logger,
+					}))
+				}
 				mountAuthenticated(pr, deps)
 			})
 		}

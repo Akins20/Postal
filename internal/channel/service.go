@@ -16,6 +16,16 @@ import (
 	"github.com/Akins20/postal/internal/workspace"
 )
 
+// maxChannelsPerWorkspace caps connected social accounts per workspace
+// (anti-abuse: each channel consumes shared upstream API quota and a refresh
+// slot). Generous for real teams; blocks scripted mass-connect. A var so tests
+// can lower it.
+var maxChannelsPerWorkspace int64 = 25
+
+// errChannelQuota is a sentinel returned from the connect transaction when the
+// per-workspace channel limit is reached; mapped to a validation error.
+var errChannelQuota = errors.New("channel quota exceeded")
+
 // Authorizer resolves a user's workspace membership for capability checks. The
 // workspace.Service satisfies it; defining the interface here avoids a hard
 // dependency and keeps the channel domain testable.
@@ -151,6 +161,15 @@ func (s *Service) persistChannel(ctx context.Context, st oauthState, connectedBy
 			ch.Handle = account.Handle
 			ch.DisplayName = account.DisplayName
 		case errors.Is(getErr, pgx.ErrNoRows):
+			// Anti-abuse: cap connected channels per workspace. Counted inside the
+			// tx so concurrent connects can't both slip past the limit.
+			count, cErr := q.CountActiveChannelsForWorkspace(ctx, st.WorkspaceID)
+			if cErr != nil {
+				return cErr
+			}
+			if count >= maxChannelsPerWorkspace {
+				return errChannelQuota
+			}
 			created, err := q.CreateChannel(ctx, sqlc.CreateChannelParams{
 				WorkspaceID:       st.WorkspaceID,
 				Platform:          st.Platform,
@@ -177,6 +196,10 @@ func (s *Service) persistChannel(ctx context.Context, st oauthState, connectedBy
 		})
 	})
 	if err != nil {
+		if errors.Is(err, errChannelQuota) {
+			return sqlc.Channel{}, apperr.Validation("channel_quota_exceeded",
+				"this workspace has reached its connected-channel limit")
+		}
 		return sqlc.Channel{}, apperr.Internal(err)
 	}
 	return ch, nil

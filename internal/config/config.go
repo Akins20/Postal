@@ -103,6 +103,10 @@ type HTTP struct {
 	ShutdownTimeout time.Duration
 	// RequestTimeout bounds the lifetime of a single request handler.
 	RequestTimeout time.Duration
+	// AllowedOrigins is the CORS allowlist (exact origins). Empty disables CORS
+	// (no cross-origin browser access), appropriate for same-origin or native
+	// clients. "*" is intentionally NOT supported with credentialed requests.
+	AllowedOrigins []string
 }
 
 // DB holds PostgreSQL connection settings.
@@ -145,6 +149,7 @@ func Load() (Config, error) {
 			LogLevel:        getString("LOG_LEVEL", defaultLogLevel),
 			ShutdownTimeout: getDuration("SHUTDOWN_TIMEOUT", defaultShutdownTimeout),
 			RequestTimeout:  getDuration("REQUEST_TIMEOUT", defaultRequestTimeout),
+			AllowedOrigins:  getStringSlice("CORS_ALLOWED_ORIGINS"),
 		},
 		DB: DB{
 			URL: getString("DATABASE_URL", ""),
@@ -213,6 +218,23 @@ func getString(key, def string) string {
 		return v
 	}
 	return def
+}
+
+// getStringSlice returns POSTAL_<key> split on commas (trimmed, blanks dropped),
+// or nil if unset/empty.
+func getStringSlice(key string) []string {
+	v, ok := os.LookupEnv(envPrefix + key)
+	if !ok || v == "" {
+		return nil
+	}
+	parts := strings.Split(v, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if s := strings.TrimSpace(p); s != "" {
+			out = append(out, s)
+		}
+	}
+	return out
 }
 
 // getBool returns the boolean value of POSTAL_<key>, or def if unset or unparsable.

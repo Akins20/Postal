@@ -59,3 +59,9 @@ SELECT run_at
 FROM scheduled_jobs
 WHERE channel_id = $1 AND status = 'scheduled' AND run_at >= $2
 ORDER BY run_at;
+
+-- name: CountPendingJobsForWorkspace :one
+-- Jobs not yet in a terminal state, for the per-workspace queue quota.
+SELECT count(*) FROM scheduled_jobs sj
+JOIN posts p ON p.id = sj.post_id
+WHERE p.workspace_id = $1 AND sj.status IN ('scheduled', 'publishing');

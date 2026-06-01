@@ -22,6 +22,12 @@ type ChannelResolver interface {
 	PlatformFor(ctx context.Context, workspaceID, channelID uuid.UUID) (string, error)
 }
 
+// maxPendingJobsPerWorkspace caps not-yet-completed scheduled jobs per workspace
+// (anti-abuse: bounds queue depth and shared upstream-API load). Generous for
+// real bulk scheduling; blocks runaway/scripted flooding. A var so tests can
+// lower it without seeding thousands of rows.
+var maxPendingJobsPerWorkspace int64 = 5000
+
 // MediaLoader downloads an attached media asset's bytes for publishing.
 // media.Service satisfies it. Nil when the media pipeline is disabled.
 type MediaLoader interface {
@@ -56,6 +62,9 @@ func (s *Service) SchedulePost(ctx context.Context, workspaceID, postID uuid.UUI
 	if err != nil {
 		return nil, err
 	}
+	if err := s.checkPendingQuota(ctx, workspaceID, len(variants)); err != nil {
+		return nil, err
+	}
 	jobs := make([]Job, 0, len(variants))
 	for _, v := range variants {
 		job, err := s.scheduleOne(ctx, postID, v.ChannelID, runAt.UTC())
@@ -75,6 +84,9 @@ func (s *Service) ScheduleToSlots(ctx context.Context, workspaceID, postID uuid.
 	if err != nil {
 		return nil, err
 	}
+	if err := s.checkPendingQuota(ctx, workspaceID, len(variants)); err != nil {
+		return nil, err
+	}
 	now := s.clock()
 	jobs := make([]Job, 0, len(variants))
 	for _, v := range variants {
@@ -90,6 +102,21 @@ func (s *Service) ScheduleToSlots(ctx context.Context, workspaceID, postID uuid.
 	}
 	s.recordAudit(ctx, workspaceID, "post.schedule_slots", postID.String())
 	return jobs, nil
+}
+
+// checkPendingQuota enforces the per-workspace cap on not-yet-completed jobs
+// (anti-abuse: bounds queued work and shared upstream-API load). adding is the
+// number of jobs about to be created.
+func (s *Service) checkPendingQuota(ctx context.Context, workspaceID uuid.UUID, adding int) error {
+	count, err := s.pool.Queries().CountPendingJobsForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return apperr.Internal(err)
+	}
+	if count+int64(adding) > maxPendingJobsPerWorkspace {
+		return apperr.Validation("schedule_quota_exceeded",
+			"this workspace has too many pending scheduled posts; wait for some to publish or cancel them")
+	}
+	return nil
 }
 
 // scheduleOne creates a job and enqueues its publish task, recording the task ID.

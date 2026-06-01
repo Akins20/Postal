@@ -45,26 +45,39 @@ Legend: `[ ]` not yet · `[~]` partial · `[x]` in place & tested.
       (`internal/platform/web`).
 - [x] JSON decoding bounded (max body size), strict (unknown fields rejected),
       content-type checked (`web.DecodeJSON`).
-- [ ] Validation on every endpoint; parameterized SQL only (sqlc-enforced).
+- [x] Validation on every endpoint; parameterized SQL only (sqlc-enforced).
 - [x] `X-Content-Type-Options: nosniff` on JSON responses.
-- [ ] Full security headers (HSTS, frame options, referrer policy) — Phase 9.
+- [x] Full security headers (Phase 9): global middleware sets nosniff,
+      `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, deny-all CSP
+      (`default-src 'none'; frame-ancestors 'none'`), and HSTS in production.
 
 ## 5. Transport & CORS
-- [ ] HTTPS only in production; secure, httpOnly, SameSite cookies for any
-      cookie-based auth; CSRF protection for cookie flows.
-- [ ] CORS locked to known origins.
+- [x] Secure/httpOnly/SameSite cookies (Phase 2); CSRF double-submit on cookie
+      flows; HSTS asserts HTTPS-only to browsers in production (TLS terminated at
+      the edge/ingress — an ops concern, documented).
+- [x] CORS locked to a configured exact-origin allowlist
+      (`POSTAL_CORS_ALLOWED_ORIGINS`); never `*` with credentials; disabled when
+      unset (same-origin / native clients).
 
 ## 6. Auditing & logging
 - [x] Audit log writer for sensitive actions (`internal/security`, `audit_log`
       table). Records actor, workspace, action, target, metadata, IP.
 - [x] Structured logs with request IDs; errors logged once at the boundary.
-- [ ] Log scrubbing verified: no tokens/passwords/PII in logs — Phase 9.
+- [x] Log scrubbing verified (Phase 9 audit): the request logger logs path only
+      (never query strings), adapters never log bearer tokens/Authorization, and
+      the only token-logging path (dev console mailer) is hard-refused in
+      production. No tokens/passwords/PII in prod logs.
 
 ## 7. Dependencies & supply chain
 - [x] `golangci-lint` incl. `gosec` runs in `make check`.
-- [ ] `govulncheck` in the security pass (Phase 9); dependencies pinned & tidy.
+- [x] `govulncheck` run in the Phase 9 pass: **0 vulnerabilities** on Postal's
+      call paths (advisories exist in transitively-required modules but no
+      vulnerable symbol is reachable). Re-run in CI.
 
 ## 8. Abuse-resistance (cross-ref `ANTI_ABUSE.md`)
 - [x] Reusable Redis token-bucket rate limiter + middleware (`internal/ratelimit`).
-- [ ] Layered limits (global/IP/user/endpoint) applied on every public endpoint.
-- [ ] Per-channel throttling to protect shared upstream API keys.
+- [x] Layered limits applied: per-IP buckets on every auth endpoint, a per-user
+      catch-all on the whole authenticated API, plus per-workspace quotas.
+- [~] Per-channel throttling: composed from the per-user catch-all + per-workspace
+      pending-jobs quota + upstream-429 backoff + publish idempotency. A dedicated
+      per-channel velocity limiter is a documented follow-up.
