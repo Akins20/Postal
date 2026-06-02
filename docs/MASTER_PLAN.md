@@ -350,9 +350,26 @@ come up; `scripts/curl/health.sh` passes; `make check` runs green (full enforcem
 - [x] Docs complete: README updated (status, feature list, API + testing sections); SECURITY/ANTI_ABUSE checklists current.
 - [x] **Backend declared complete.** Phase 10 (engagement/inbox) is optional/post-MVP; frontend planning (Phase 12) may begin.
 
-### Phase 12+ — Frontend (planned only after backend complete)
-- Web SPA (Next.js/React + TS) and mobile (to be decided) consuming the same `/api/v1`.
-- Frontend gets its own master plan document when we reach it.
+### Phase 12 — Frontend ⭐ PLANNING STARTED (2026-06-02)
+- **Its own master plan:** [`docs/FRONTEND_PLAN.md`](FRONTEND_PLAN.md).
+- Decisions: **Next.js (App Router) + TS**, **web-only** (mobile deferred), **full
+  breadth** (all screens), monorepo `web/`, types generated from `openapi.yaml`,
+  httpOnly cookie + CSRF auth.
+- **Not a SaaS** — a free tool/app; no marketing/pricing/landing surfaces, no
+  generic template design (macOS app craft, research-grounded in the plan §5.1).
+- **Design language:** macOS-inspired (materials/vibrancy/"Liquid Glass", spring
+  motion via Framer Motion); **bottom dock on the dashboard, macOS side-rail on
+  feature/sub-routes**; light/dark with an explicit toggle from day one.
+- **Mobile + tablet first-class** (responsive at all widths); **contextual
+  hints/tooltips** for guidance; **WCAG 2.2 AA** accessibility + **frontend
+  security** (CSP, no `dangerouslySetInnerHTML`, CSRF, safe links) are defined
+  standards, not afterthoughts.
+- Architecture: strict data-layer ⟂ UI-layer separation; structured frontend
+  logging with backend request-id correlation; enforced engineering standards;
+  **every hook/page/component tested before the next**.
+- Sub-phases 12.0–12.7 (scaffold/design system → auth → workspaces → channels →
+  composer/media → scheduling/calendar → analytics → polish/freeze).
+- Mobile (React Native/Expo, reusing the generated client) is a later, separate plan.
 
 ---
 
