@@ -7,7 +7,29 @@ Backend-first **modular monolith** in Go. See [`docs/MASTER_PLAN.md`](docs/MASTE
 
 ## Status
 
-**Phase 0 — scaffolding.** A runnable empty monolith with dev tooling. No domain features yet.
+**Backend complete & frozen** (Phases 0–9 + 11). The `/api/v1` surface is final
+and documented in [`docs/openapi.yaml`](docs/openapi.yaml) (OpenAPI 3.0). Frontend
+planning begins next (Phase 12). Phase 10 (engagement/inbox) is optional/post-MVP.
+
+### What's built
+
+- **Auth & tenancy** — Argon2id passwords, JWT access + rotating/sliding refresh
+  tokens, email verification, password reset; workspaces with a capability-based
+  authorization model (role presets + per-user capabilities) and strict isolation.
+- **Channels** — connect social accounts over OAuth 2.0 PKCE; tokens
+  envelope-encrypted at rest (AES-256-GCM) in the vault.
+- **Composer** — compose-once posts with per-channel variants, drafts,
+  compose-time per-platform validation, UTM tagging.
+- **Scheduling** — queue-based scheduling (specific time or posting slots) on an
+  `asynq` worker; idempotent publishing (no double-posts under retries).
+- **Publishing** — `PlatformAdapter` contract with the X/Twitter adapter and a
+  faithful local simulator; retry-class error model with token refresh + backoff.
+- **Media** — upload to S3-compatible storage (Cloudflare R2 / MinIO), per-workspace
+  quota, chunked upload to the platform at publish.
+- **Analytics** — a poller fetches post metrics into a time series; per-(post,
+  channel) reporting, series, and CSV export.
+- **Security & anti-abuse** — layered rate limits, per-workspace quotas, security
+  headers, CORS allowlist, audit log, `govulncheck`-clean dependencies.
 
 ## Prerequisites
 
@@ -46,6 +68,28 @@ postal worker    # asynq job worker (scheduling/refresh/analytics — Phase 6+)
 | `make test` | `go test -race ./...` |
 | `make lint` | golangci-lint |
 | `make check` | full Definition-of-Done gate (fmt, vet, lint, ≤800-line check, race tests) |
+
+## API
+
+The full HTTP contract is in [`docs/openapi.yaml`](docs/openapi.yaml) — every
+endpoint, request/response schema, auth scheme (Bearer JWT or cookie + CSRF),
+capability requirement, and error shape. Load it into Swagger UI / Redoc, or
+generate typed clients for web and mobile.
+
+Two response conventions: JSON endpoints wrap payloads in `{ "data": ... }` and
+errors in `{ "error": { code, message, fields? } }`; media download and the
+analytics CSV export stream raw bodies.
+
+## Testing
+
+```bash
+make check                    # full gate: fmt, vet, lint, ≤800-line, race tests (unit + integration)
+# end-to-end HTTP checks against a running server (deps + `make run`):
+for s in scripts/curl/*.sh; do bash "$s"; done
+```
+
+Integration tests run against the docker-compose Postgres/Redis/MinIO; social
+publishing is exercised against the in-repo simulator (never the paid real API).
 
 ## Layout
 

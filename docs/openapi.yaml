@@ -1,0 +1,1291 @@
+openapi: 3.0.3
+info:
+  title: Postal API
+  version: "1.0.0"
+  description: >
+    Postal is a free, no-paywall social-media scheduling & publishing platform.
+
+    This is the client-agnostic JSON API (`/api/v1`) consumed by both web and
+    mobile clients. The first supported social platform is X/Twitter.
+
+
+    ## Envelopes
+
+    Every JSON success response is wrapped in `{ "data": <payload> }` (a `meta`
+    object may accompany it). Every error response is `{ "error": { code,
+    message, fields?, request_id? } }`. Two endpoints stream raw bodies instead
+    of JSON: media download (binary) and analytics CSV export.
+
+
+    ## Authentication
+
+    Two interchangeable schemes:
+
+    - **Bearer JWT** — `Authorization: Bearer <access_token>` (mobile/API).
+    - **Cookie session** — `postal_access` (httpOnly) carries the JWT for web;
+      the `postal_csrf` cookie + `X-CSRF-Token` header form a double-submit CSRF
+      guard required on state-changing cookie-flow requests. Bearer-only clients
+      are CSRF-exempt.
+
+
+    ## Rate limits & quotas
+
+    Auth endpoints are per-IP throttled; the whole authenticated API has a
+    per-user catch-all bucket. Rejections return `429` with `Retry-After` and
+    `X-RateLimit-*` headers. Workspaces have durable quotas (channels, pending
+    scheduled jobs, media storage) returned as `400` validation errors.
+
+servers:
+  - url: http://localhost:8080
+    description: Local development
+  - url: https://api.postal.example
+    description: Production (TLS-terminated edge)
+
+tags:
+  - name: Ops
+    description: Health, readiness, metrics (server root, not under /api/v1)
+  - name: Auth
+    description: Signup, login, sessions, password reset
+  - name: Workspaces
+    description: Workspaces and membership/capabilities
+  - name: Channels
+    description: Connected social accounts (OAuth)
+  - name: Posts
+    description: Composer — posts and per-channel variants
+  - name: Schedule
+    description: Scheduling, calendar, posting slots
+  - name: Media
+    description: Media upload, listing, download
+  - name: Analytics
+    description: Post-performance metrics and export
+
+security:
+  - bearerAuth: []
+  - cookieAuth: []
+    csrfToken: []
+
+paths:
+  /healthz:
+    get:
+      tags: [Ops]
+      summary: Liveness probe
+      security: []
+      responses:
+        "200":
+          description: Process is alive
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+
+  /readyz:
+    get:
+      tags: [Ops]
+      summary: Readiness probe (checks Postgres + Redis)
+      security: []
+      responses:
+        "200":
+          description: All dependencies reachable
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Readiness" }
+        "503":
+          description: A dependency is unavailable
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Readiness" }
+
+  /metrics:
+    get:
+      tags: [Ops]
+      summary: Prometheus metrics exposition
+      security: []
+      responses:
+        "200":
+          description: Prometheus text format
+          content:
+            text/plain: { schema: { type: string } }
+
+  /api/v1/ping:
+    get:
+      tags: [Ops]
+      summary: Demo ping (rate-limited)
+      security: []
+      responses:
+        "200":
+          description: Pong
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageEnvelope"
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/v1/auth/signup:
+    post:
+      tags: [Auth]
+      summary: Create an account (auto-creates a personal workspace)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SignupRequest" }
+      responses:
+        "201":
+          description: Account created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserEnvelope" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Log in (returns tokens; sets session cookies)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoginRequest" }
+      responses:
+        "200":
+          description: Authenticated
+          headers:
+            Set-Cookie:
+              description: postal_access, postal_refresh, postal_csrf
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TokenEnvelope" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/v1/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Rotate the refresh token and issue a new access token
+      description: Refresh token from the `postal_refresh` cookie or request body. CSRF-protected for the cookie flow.
+      security:
+        - cookieAuth: []
+          csrfToken: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RefreshRequest" }
+      responses:
+        "200":
+          description: New tokens (rotated)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TokenEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/CSRFFailed" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/v1/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke the refresh token and clear cookies
+      security:
+        - cookieAuth: []
+          csrfToken: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RefreshRequest" }
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageEnvelope" }
+        "403": { $ref: "#/components/responses/CSRFFailed" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/v1/auth/verify-email:
+    post:
+      tags: [Auth]
+      summary: Verify an email address with a single-use token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string }
+      responses:
+        "200":
+          description: Email verified
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageEnvelope" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/v1/auth/password-reset/request:
+    post:
+      tags: [Auth]
+      summary: Request a password-reset token (no account enumeration)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        "200":
+          description: Always succeeds whether or not the email is registered
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageEnvelope" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/v1/auth/password-reset/confirm:
+    post:
+      tags: [Auth]
+      summary: Set a new password using a reset token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, new_password]
+              properties:
+                token: { type: string }
+                new_password: { type: string, format: password }
+      responses:
+        "200":
+          description: Password updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageEnvelope" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/v1/auth/me:
+    get:
+      tags: [Auth]
+      summary: Current authenticated user
+      responses:
+        "200":
+          description: The caller
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/v1/workspaces/:
+    get:
+      tags: [Workspaces]
+      summary: List workspaces the caller belongs to
+      responses:
+        "200":
+          description: Workspaces
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Workspace" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/v1/workspaces/{workspaceID}/members:
+    parameters:
+      - $ref: "#/components/parameters/workspaceID"
+    get:
+      tags: [Workspaces]
+      summary: List members (capability; read)
+      responses:
+        "200":
+          description: Members
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Member" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Workspaces]
+      summary: Add a member (capability; manage_members)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AddMemberRequest" }
+      responses:
+        "201":
+          description: Member added
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MemberEnvelope" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/v1/workspaces/{workspaceID}/members/{userID}/capabilities:
+    parameters:
+      - $ref: "#/components/parameters/workspaceID"
+      - name: userID
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      tags: [Workspaces]
+      summary: Update a member's role/capabilities (capability; manage_members)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateCapabilitiesRequest" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MemberEnvelope" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/v1/channels/oauth/callback:
+    get:
+      tags: [Channels]
+      summary: OAuth redirect callback (completes a channel connection)
+      description: The IdP redirects the user's browser here. Re-checks manage_channels from the bound, single-use state.
+      parameters:
+        - { name: state, in: query, required: true, schema: { type: string } }
+        - { name: code, in: query, required: true, schema: { type: string } }
+      responses:
+        "201":
+          description: Channel connected
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChannelEnvelope" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/workspaces/{workspaceID}/channels/:
+    parameters:
+      - $ref: "#/components/parameters/workspaceID"
+    get:
+      tags: [Channels]
+      summary: List connected channels (capability; read)
+      responses:
+        "200":
+          description: Channels
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Channel" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/workspaces/{workspaceID}/channels/connect:
+    parameters:
+      - $ref: "#/components/parameters/workspaceID"
+    post:
+      tags: [Channels]
+      summary: Begin connecting a social account (capability; manage_channels)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [platform]
+              properties:
+                platform: { type: string, example: twitter }
+      responses:
+        "200":
+          description: Authorization URL to redirect the user to
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      authorize_url: { type: string, format: uri }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/workspaces/{workspaceID}/channels/{channelID}:
+    parameters:
+      - $ref: "#/components/parameters/workspaceID"
+      - $ref: "#/components/parameters/channelID"
+    delete:
+      tags: [Channels]
+      summary: Disconnect a channel (capability; manage_channels)
+      responses:
+        "200":
+          description: Disconnected
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/workspaces/{workspaceID}/posts/:
+    parameters:
+      - $ref: "#/components/parameters/workspaceID"
+    get:
+      tags: [Posts]
+      summary: List posts (capability; read)
+      responses:
+        "200":
+          description: Posts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Post" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Posts]
+      summary: Create a draft post with per-channel variants (capability; create)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PostWriteRequest" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PostEnvelope" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/workspaces/{workspaceID}/posts/utm-preview:
+    parameters:
+      - $ref: "#/components/parameters/workspaceID"
+    post:
+      tags: [Posts]
+      summary: Preview UTM-tagged links in body text (capability; read)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text: { type: string }
+                utm:
+                  type: object
+                  additionalProperties: { type: string }
+      responses:
+        "200":
+          description: Tagged text
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      text: { type: string }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/workspaces/{workspaceID}/posts/{postID}:
+    parameters:
+      - $ref: "#/components/parameters/workspaceID"
+      - $ref: "#/components/parameters/postID"
+    get:
+      tags: [Posts]
+      summary: Get a post (capability; read)
+      responses:
+        "200":
+          description: Post
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PostEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      tags: [Posts]
+      summary: Replace a post's variants (capability; update)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PostWriteRequest" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PostEnvelope" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [Posts]
+      summary: Delete a post (capability; delete)
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/workspaces/{workspaceID}/posts/{postID}/validate:
+    parameters:
+      - $ref: "#/components/parameters/workspaceID"
+      - $ref: "#/components/parameters/postID"
+    post:
+      tags: [Posts]
+      summary: Validate each variant against its platform (capability; read)
+      responses:
+        "200":
+          description: Per-variant validation results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      variants:
+                        type: array
+                        items: { $ref: "#/components/schemas/VariantValidation" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/workspaces/{workspaceID}/schedule:
+    parameters:
+      - $ref: "#/components/parameters/workspaceID"
+    post:
+      tags: [Schedule]
+      summary: Schedule a post (capability; publish)
+      description: Provide run_at for a specific time, or to_slots=true to use the next open posting slots.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [post_id]
+              properties:
+                post_id: { type: string, format: uuid }
+                run_at: { type: string, format: date-time }
+                to_slots: { type: boolean, default: false }
+      responses:
+        "201":
+          description: Jobs created (one per variant/channel)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      jobs:
+                        type: array
+                        items: { $ref: "#/components/schemas/Job" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/workspaces/{workspaceID}/calendar:
+    parameters:
+      - $ref: "#/components/parameters/workspaceID"
+      - { name: from, in: query, required: false, schema: { type: string, format: date-time } }
+      - { name: to, in: query, required: false, schema: { type: string, format: date-time } }
+    get:
+      tags: [Schedule]
+      summary: List scheduled jobs in a time window (capability; read)
+      responses:
+        "200":
+          description: Jobs in range (default [now, now+30d))
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      jobs:
+                        type: array
+                        items: { $ref: "#/components/schemas/Job" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/workspaces/{workspaceID}/scheduled-jobs/{jobID}:
+    parameters:
+      - $ref: "#/components/parameters/workspaceID"
+      - { name: jobID, in: path, required: true, schema: { type: string, format: uuid } }
+    delete:
+      tags: [Schedule]
+      summary: Cancel a scheduled job (capability; publish)
+      responses:
+        "200":
+          description: Canceled
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/workspaces/{workspaceID}/slots/:
+    parameters:
+      - $ref: "#/components/parameters/workspaceID"
+    get:
+      tags: [Schedule]
+      summary: List a channel's posting slots (capability; read)
+      parameters:
+        - { name: channel_id, in: query, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Slots
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Slot" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Schedule]
+      summary: Create a posting slot (capability; publish)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SlotRequest" }
+      responses:
+        "201":
+          description: Slot created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SlotEnvelope" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/workspaces/{workspaceID}/slots/{slotID}:
+    parameters:
+      - $ref: "#/components/parameters/workspaceID"
+      - { name: slotID, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: channel_id, in: query, required: true, schema: { type: string, format: uuid } }
+    delete:
+      tags: [Schedule]
+      summary: Delete a posting slot (capability; publish)
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageEnvelope" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/workspaces/{workspaceID}/media/:
+    parameters:
+      - $ref: "#/components/parameters/workspaceID"
+    get:
+      tags: [Media]
+      summary: List media assets (capability; read)
+      responses:
+        "200":
+          description: Assets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Asset" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Media]
+      summary: Upload a media asset (capability; upload)
+      description: multipart/form-data with a `file` part declaring its Content-Type. Image 5 MiB / GIF 15 MiB / video 512 MiB caps plus the per-workspace storage quota.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        "201":
+          description: Uploaded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AssetEnvelope" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/workspaces/{workspaceID}/media/{mediaID}/download:
+    parameters:
+      - $ref: "#/components/parameters/workspaceID"
+      - { name: mediaID, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Media]
+      summary: Download asset bytes (capability; read)
+      responses:
+        "200":
+          description: Raw asset bytes
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/workspaces/{workspaceID}/media/{mediaID}:
+    parameters:
+      - $ref: "#/components/parameters/workspaceID"
+      - { name: mediaID, in: path, required: true, schema: { type: string, format: uuid } }
+    delete:
+      tags: [Media]
+      summary: Delete a media asset (capability; delete)
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/workspaces/{workspaceID}/analytics/:
+    parameters:
+      - $ref: "#/components/parameters/workspaceID"
+    get:
+      tags: [Analytics]
+      summary: Workspace metrics overview, per (post, channel) (capability; read)
+      responses:
+        "200":
+          description: Latest metrics per post/channel
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      posts:
+                        type: array
+                        items: { $ref: "#/components/schemas/PostMetrics" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/workspaces/{workspaceID}/analytics/export.csv:
+    parameters:
+      - $ref: "#/components/parameters/workspaceID"
+    get:
+      tags: [Analytics]
+      summary: Export latest metrics as CSV (capability; read)
+      responses:
+        "200":
+          description: CSV download
+          content:
+            text/csv:
+              schema: { type: string }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/workspaces/{workspaceID}/analytics/posts/{postID}:
+    parameters:
+      - $ref: "#/components/parameters/workspaceID"
+      - $ref: "#/components/parameters/postID"
+    get:
+      tags: [Analytics]
+      summary: Latest metrics for one post, broken out per channel (capability; read)
+      responses:
+        "200":
+          description: Per-channel metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      post_id: { type: string, format: uuid }
+                      channels:
+                        type: array
+                        items: { $ref: "#/components/schemas/ChannelMetrics" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/workspaces/{workspaceID}/analytics/posts/{postID}/series:
+    parameters:
+      - $ref: "#/components/parameters/workspaceID"
+      - $ref: "#/components/parameters/postID"
+      - { name: channel_id, in: query, required: true, schema: { type: string, format: uuid } }
+      - { name: metric, in: query, required: false, schema: { type: string, example: likes } }
+      - { name: from, in: query, required: false, schema: { type: string, format: date-time } }
+      - { name: to, in: query, required: false, schema: { type: string, format: date-time } }
+    get:
+      tags: [Analytics]
+      summary: Time series of one metric for a post on a channel (capability; read)
+      responses:
+        "200":
+          description: Series points (default window [now-30d, now])
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      post_id: { type: string, format: uuid }
+                      channel_id: { type: string, format: uuid }
+                      metric: { type: string }
+                      points:
+                        type: array
+                        items: { $ref: "#/components/schemas/SeriesPoint" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "Authorization: Bearer <access_token>"
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: postal_access
+      description: httpOnly session cookie carrying the access JWT (web flow)
+    csrfToken:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+      description: Double-submit CSRF token (must equal the postal_csrf cookie) on cookie-flow mutations
+
+  parameters:
+    workspaceID:
+      name: workspaceID
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    channelID:
+      name: channelID
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    postID:
+      name: postID
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid authentication
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Forbidden:
+      description: Authenticated but lacking the required capability or not a member
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: Resource not found (or hidden cross-workspace)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Conflict:
+      description: Conflicting state (e.g. duplicate)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    ValidationError:
+      description: Malformed or invalid input
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    CSRFFailed:
+      description: CSRF token missing or mismatched (cookie flow)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    RateLimited:
+      description: Rate limit exceeded
+      headers:
+        Retry-After:
+          schema: { type: integer }
+          description: Seconds until the next request is allowed
+        X-RateLimit-Limit:
+          schema: { type: integer }
+        X-RateLimit-Remaining:
+          schema: { type: integer }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string, example: invalid_token }
+            message: { type: string }
+            request_id: { type: string }
+            fields:
+              type: array
+              items:
+                type: object
+                properties:
+                  field: { type: string }
+                  message: { type: string }
+      required: [error]
+
+    Readiness:
+      type: object
+      properties:
+        status: { type: string, enum: [ready, "not ready"] }
+        checks:
+          type: object
+          additionalProperties: { type: string }
+
+    MessageEnvelope:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            message: { type: string }
+
+    SignupRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+
+    RefreshRequest:
+      type: object
+      properties:
+        refresh_token: { type: string }
+
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        email_verified: { type: boolean }
+        status: { type: string }
+        created_at: { type: string, format: date-time }
+
+    UserEnvelope:
+      type: object
+      properties:
+        data: { $ref: "#/components/schemas/User" }
+
+    Token:
+      type: object
+      properties:
+        access_token: { type: string }
+        token_type: { type: string, example: Bearer }
+        expires_in: { type: integer, description: access-token lifetime in seconds }
+        csrf_token: { type: string }
+        refresh_token: { type: string }
+        user: { $ref: "#/components/schemas/User" }
+
+    TokenEnvelope:
+      type: object
+      properties:
+        data: { $ref: "#/components/schemas/Token" }
+
+    Workspace:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        owner_user_id: { type: string, format: uuid }
+        plan: { type: string }
+        created_at: { type: string, format: date-time }
+
+    Member:
+      type: object
+      properties:
+        workspace_id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid }
+        role: { type: string, enum: [owner, admin, editor, viewer, custom] }
+        permissions:
+          type: array
+          items: { $ref: "#/components/schemas/Capability" }
+
+    MemberEnvelope:
+      type: object
+      properties:
+        data: { $ref: "#/components/schemas/Member" }
+
+    Capability:
+      type: string
+      enum: [read, create, update, delete, upload, publish, manage_channels, manage_members, manage_workspace]
+
+    AddMemberRequest:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email }
+        role: { type: string, enum: [owner, admin, editor, viewer] }
+        capabilities:
+          type: array
+          items: { $ref: "#/components/schemas/Capability" }
+
+    UpdateCapabilitiesRequest:
+      type: object
+      properties:
+        role: { type: string, enum: [owner, admin, editor, viewer] }
+        capabilities:
+          type: array
+          items: { $ref: "#/components/schemas/Capability" }
+
+    Channel:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        platform: { type: string }
+        platform_account_id: { type: string }
+        handle: { type: string }
+        display_name: { type: string }
+        status: { type: string, enum: [active, expired, revoked] }
+        connected_by: { type: string, format: uuid, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    ChannelEnvelope:
+      type: object
+      properties:
+        data: { $ref: "#/components/schemas/Channel" }
+
+    MediaMeta:
+      type: object
+      properties:
+        media_id: { type: string, format: uuid }
+        kind: { type: string, enum: [image, gif, video] }
+        mime: { type: string }
+        bytes: { type: integer, format: int64 }
+
+    VariantInput:
+      type: object
+      required: [channel_id]
+      properties:
+        channel_id: { type: string, format: uuid }
+        body: { type: string }
+        media:
+          type: array
+          items: { $ref: "#/components/schemas/MediaMeta" }
+        platform_options:
+          type: object
+          additionalProperties: true
+
+    Variant:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        channel_id: { type: string, format: uuid }
+        body: { type: string }
+        media:
+          type: array
+          items: { $ref: "#/components/schemas/MediaMeta" }
+        platform_options:
+          type: object
+          additionalProperties: true
+
+    Post:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        workspace_id: { type: string, format: uuid }
+        author_user_id: { type: string, format: uuid, nullable: true }
+        status: { type: string, example: draft }
+        created_at: { type: string, format: date-time }
+        variants:
+          type: array
+          items: { $ref: "#/components/schemas/Variant" }
+
+    PostEnvelope:
+      type: object
+      properties:
+        data: { $ref: "#/components/schemas/Post" }
+
+    PostWriteRequest:
+      type: object
+      required: [variants]
+      properties:
+        variants:
+          type: array
+          items: { $ref: "#/components/schemas/VariantInput" }
+
+    VariantValidation:
+      type: object
+      properties:
+        channel_id: { type: string, format: uuid }
+        valid: { type: boolean }
+        code: { type: string }
+        message: { type: string }
+
+    Job:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        post_id: { type: string, format: uuid }
+        channel_id: { type: string, format: uuid }
+        run_at: { type: string, format: date-time }
+        status: { type: string, enum: [scheduled, publishing, published, failed, canceled] }
+        attempts: { type: integer }
+        last_error: { type: string }
+        created_at: { type: string, format: date-time }
+
+    Slot:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        channel_id: { type: string, format: uuid }
+        day_of_week: { type: integer, minimum: 0, maximum: 6, description: 0=Sunday .. 6=Saturday }
+        time_of_day: { type: string, example: "09:00" }
+        timezone: { type: string, example: America/New_York }
+        created_at: { type: string, format: date-time }
+
+    SlotEnvelope:
+      type: object
+      properties:
+        data: { $ref: "#/components/schemas/Slot" }
+
+    SlotRequest:
+      type: object
+      required: [channel_id, day_of_week, time_of_day, timezone]
+      properties:
+        channel_id: { type: string, format: uuid }
+        day_of_week: { type: integer, minimum: 0, maximum: 6 }
+        time_of_day: { type: string, example: "09:00" }
+        timezone: { type: string, example: America/New_York }
+
+    Asset:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        workspace_id: { type: string, format: uuid }
+        kind: { type: string, enum: [image, gif, video] }
+        mime: { type: string }
+        width: { type: integer }
+        height: { type: integer }
+        duration_ms: { type: integer }
+        bytes: { type: integer, format: int64 }
+        status: { type: string }
+        created_at: { type: string, format: date-time }
+
+    AssetEnvelope:
+      type: object
+      properties:
+        data: { $ref: "#/components/schemas/Asset" }
+
+    PostMetrics:
+      type: object
+      properties:
+        post_id: { type: string, format: uuid }
+        channel_id: { type: string, format: uuid }
+        platform_post_id: { type: string }
+        metrics:
+          type: object
+          additionalProperties: { type: integer, format: int64 }
+        captured_at: { type: string, format: date-time }
+
+    ChannelMetrics:
+      type: object
+      properties:
+        channel_id: { type: string, format: uuid }
+        platform_post_id: { type: string }
+        metrics:
+          type: object
+          additionalProperties: { type: integer, format: int64 }
+        captured_at: { type: string, format: date-time }
+
+    SeriesPoint:
+      type: object
+      properties:
+        value: { type: integer, format: int64 }
+        captured_at: { type: string, format: date-time }

@@ -343,9 +343,12 @@ come up; `scripts/curl/health.sh` passes; `make check` runs green (full enforcem
 ### Phase 10 — Engagement (optional, post-MVP backend)
 - [ ] Webhook ingestion for comments/mentions; unified inbox API; reply via adapter.
 
-### Phase 11 — Backend completion & freeze
-- [ ] Full integration/e2e suite green; all curl scripts pass; docs complete; OpenAPI spec generated for clients.
-- [ ] **Backend declared complete.** Only now does frontend planning begin.
+### Phase 11 — Backend completion & freeze ✅ DONE (2026-06-02)
+- [x] Full integration/e2e suite green (`make check`: gofmt/goimports/vet/golangci-lint/≤800-line/`-race` across unit + PG/Redis/MinIO integration).
+- [x] All curl scripts pass against a live server: health 2, ratelimit 3, auth 13, capabilities 12, channels 9, posts 10, scheduling 10, media 14, analytics 12, hardening 8.
+- [x] OpenAPI 3.0 spec for clients — [`docs/openapi.yaml`](openapi.yaml): 41 operations, every request/response schema, both security schemes (Bearer JWT + cookie/CSRF), capability requirements, error envelope; parses + all `$ref`s resolve.
+- [x] Docs complete: README updated (status, feature list, API + testing sections); SECURITY/ANTI_ABUSE checklists current.
+- [x] **Backend declared complete.** Phase 10 (engagement/inbox) is optional/post-MVP; frontend planning (Phase 12) may begin.
 
 ### Phase 12+ — Frontend (planned only after backend complete)
 - Web SPA (Next.js/React + TS) and mobile (to be decided) consuming the same `/api/v1`.
