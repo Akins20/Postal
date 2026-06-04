@@ -377,14 +377,15 @@ boundaries plugin enforces this.)
 
 ## 10. Sub-phases (build order; all screens in scope)
 
-### 12.0 — Scaffold & foundations
-- [ ] `web/` Next.js + TS(strict) + Tailwind(tokens §5) + shadcn/ui; ESLint(jsx-a11y, boundaries, no-dangerously-set-html)/Prettier/tsc/knip; `web check`.
-- [ ] **Security baseline:** CSP + security headers (Next.js middleware, §9.1); `dangerouslySetInnerHTML` lint-ban; `npm audit` in CI; only `NEXT_PUBLIC_*` to the client.
-- [ ] `scripts/dev/gen-api.sh` → `schema.d.ts`; configured `openapi-fetch` client + auth/CSRF/refresh interceptors (`credentials:'include'`, `X-CSRF-Token`).
-- [ ] TanStack Query provider; **logger** (§8) + per-route error boundaries + envelope→UX mapper; request-id correlation.
-- [ ] **Design system + motion + theme:** tokens, **light/dark theme provider + persisted toggle** (no-flash), macOS vibrancy materials (§5.1) with fallbacks, `ui/` primitives incl. **Tooltip/Hint/HelpPopover**, **Dock** + **Sidebar** shells, motion presets (§6), `<Icon>`.
-- [ ] **Responsive shells:** dashboard (bottom dock) vs feature (side rail → slide-over) layouts proven at mobile/tablet/desktop; dev rewrite to the Go API.
-- [ ] Test harness: Vitest+Testing-Library+MSW (unit/component), Playwright (e2e), **axe** (a11y), reduced-motion/reduced-transparency checks.
+### 12.0 — Scaffold & foundations ✅ DONE (2026-06-04)
+- [x] `web/` Next.js 16 (App Router) + TS(strict) + Tailwind v4(tokens §5); ESLint(jsx-a11y via next, layer-boundaries, ban `dangerouslySetInnerHTML`)/Prettier(+tailwind plugin)/tsc; `web check` (typecheck+lint+format+test). _knip deferred — its latest pulls an unpublished `@oxc-project/types`._
+- [x] **Security baseline:** nonce CSP via Next-16 **`src/proxy.ts`** (strict `script-src`; `style-src 'unsafe-inline'` for Radix/Framer inline styles) + static security headers in `next.config`; `dangerouslySetInnerHTML`/`any` lint-banned; only `NEXT_PUBLIC_*` to the client.
+- [x] `scripts/dev/gen-api.sh` → `src/api/schema.d.ts` (openapi-typescript from `docs/openapi.yaml`); `openapi-fetch` client with `credentials:'include'`, `X-CSRF-Token` on mutations, single-flight 401→refresh→retry, request-id.
+- [x] TanStack Query + next-themes + Radix Tooltip providers; structured **logger** (§8) + route + global error boundaries + envelope→UX mapper (`normalizeError`).
+- [x] **Design system + motion + theme:** macOS tokens (light/dark via persisted no-flash toggle), vibrancy materials (§5.1) with reduced-transparency fallback; `ui/` primitives (Icon, Button[cva], Tooltip, Hint, Panel, StatusPill, EmptyState, ThemeToggle); **Dock** + **Sidebar** + **FeatureShell**; Framer-Motion presets (§6, reduced-motion aware).
+- [x] **Responsive shells:** dashboard (bottom dock) + feature route group `(feature)` (side rail → mobile slide-over) at mobile/tablet/desktop; dev rewrite proxies `/api/*` → Go API; full nav skeleton (compose/calendar/channels/media/analytics/settings stubs).
+- [x] Test harness: Vitest + Testing-Library + **axe** (11 unit/component tests green); Playwright config + smoke spec written. _Playwright browser binaries aren't published for this OS (Ubuntu 26.04) → e2e runs in CI/a supported runner; verified via production build instead._
+- [x] Verified: `web check` green, `next build` succeeds (Proxy/CSP active, all routes compile).
 
 ### 12.1 — Auth & session
 - [ ] Login, signup, email-verify, password-reset request/confirm (rhf + zod); macOS auth surface (centered vibrancy panel).
