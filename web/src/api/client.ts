@@ -12,7 +12,10 @@ import type { paths } from "./schema";
  * single refresh-and-retry. Tokens are never read in JS.
  */
 
-export const API_BASE = "/api/v1";
+// The OpenAPI paths already include `/api/v1`, so the client base is the ORIGIN.
+// Empty = same-origin (dev: Next proxy → Go API). Tests set an absolute origin
+// (node fetch can't resolve relative URLs) via NEXT_PUBLIC_API_BASE.
+export const API_ORIGIN = process.env.NEXT_PUBLIC_API_BASE ?? "";
 
 const MUTATING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
@@ -30,7 +33,7 @@ function refreshSession(): Promise<boolean> {
   refreshing ??= (async () => {
     try {
       const csrf = readCookie("postal_csrf");
-      const res = await fetch(`${API_BASE}/auth/refresh`, {
+      const res = await fetch(`${API_ORIGIN}/api/v1/auth/refresh`, {
         method: "POST",
         credentials: "include",
         headers: csrf ? { "X-CSRF-Token": csrf } : {},
@@ -56,7 +59,12 @@ async function apiFetch(request: Request): Promise<Response> {
   const retry = request.clone();
   let res = await fetch(request);
 
-  if (res.status === 401 && !request.url.includes("/auth/")) {
+  // Refresh-once on 401, except the auth endpoints that would loop.
+  const isAuthFlow =
+    request.url.includes("/auth/refresh") ||
+    request.url.includes("/auth/login") ||
+    request.url.includes("/auth/logout");
+  if (res.status === 401 && !isAuthFlow) {
     if (await refreshSession()) res = await fetch(retry);
   }
   if (res.status >= 500) {
@@ -70,7 +78,7 @@ async function apiFetch(request: Request): Promise<Response> {
 }
 
 export const api = createClient<paths>({
-  baseUrl: API_BASE,
+  baseUrl: API_ORIGIN,
   credentials: "include",
   fetch: apiFetch,
 });

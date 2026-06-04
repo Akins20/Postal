@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { UserMenu } from "@/features/auth/user-menu";
+
 import { dockItems } from "@/config/nav";
 import { Dock } from "@/ui/dock/dock";
 import { Button } from "@/ui/primitives/button";
@@ -25,7 +27,10 @@ export default function DashboardPage() {
             workspace
           </span>
         </div>
-        <ThemeToggle />
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          <UserMenu />
+        </div>
       </header>
 
       <main className="mx-auto flex max-w-5xl flex-col gap-6 px-6 pb-32">

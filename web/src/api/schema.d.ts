@@ -1847,24 +1847,24 @@ export interface components {
     };
     User: {
       /** Format: uuid */
-      id?: string;
+      id: string;
       /** Format: email */
-      email?: string;
-      email_verified?: boolean;
-      status?: string;
+      email: string;
+      email_verified: boolean;
+      status: string;
       /** Format: date-time */
-      created_at?: string;
+      created_at: string;
     };
     UserEnvelope: {
       data?: components["schemas"]["User"];
     };
     Token: {
-      access_token?: string;
+      access_token: string;
       /** @example Bearer */
-      token_type?: string;
+      token_type: string;
       /** @description access-token lifetime in seconds */
-      expires_in?: number;
-      csrf_token?: string;
+      expires_in: number;
+      csrf_token: string;
       refresh_token?: string;
       user?: components["schemas"]["User"];
     };

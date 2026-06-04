@@ -11,6 +11,8 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
+    // Absolute origin so the API client's requests are valid in node fetch + MSW.
+    env: { NEXT_PUBLIC_API_BASE: "http://localhost" },
     setupFiles: ["./src/test/setup.ts"],
     // Vitest owns *.test.* (unit/component); Playwright owns *.spec.* (e2e).
     include: ["src/**/*.test.{ts,tsx}"],

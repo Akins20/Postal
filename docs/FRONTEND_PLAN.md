@@ -387,9 +387,10 @@ boundaries plugin enforces this.)
 - [x] Test harness: Vitest + Testing-Library + **axe** (11 unit/component tests green); Playwright config + smoke spec written. _Playwright browser binaries aren't published for this OS (Ubuntu 26.04) → e2e runs in CI/a supported runner; verified via production build instead._
 - [x] Verified: `web check` green, `next build` succeeds (Proxy/CSP active, all routes compile).
 
-### 12.1 — Auth & session
-- [ ] Login, signup, email-verify, password-reset request/confirm (rhf + zod); macOS auth surface (centered vibrancy panel).
-- [ ] Session bootstrap (`GET /auth/me`); route guards; logout; refresh-on-401; 429/validation UX.
+### 12.1 — Auth & session ✅ DONE (2026-06-04)
+- [x] Login, signup, email-verify, password-reset request/confirm (rhf + zod); macOS centered vibrancy `AuthPanel`. Accessible `FormField` (label/aria-invalid/role=alert); server field-errors map to inputs, form-level fallback.
+- [x] Session bootstrap (`useMe` → `GET /auth/me`, 401 = signed-out not error); `AuthGuard` over the `(app)` route group redirects unauthenticated → /login; `AuthPanel` redirects authed away from `(auth)` pages; routes restructured into `(app)` [guarded] + `(auth)` [public]; logout (`UserMenu`); single-flight refresh-on-401.
+- [x] **MSW test infra** wired; 23 tests green (auth hooks incl. 401, FormField, LoginForm validation/submit→redirect/error, AuthGuard); `next build` green (13 routes). _Spec fix: `User`/`Token` fields marked `required` so generated types aren't all-optional._
 
 ### 12.2 — Workspaces & members
 - [ ] Workspace switcher; active-workspace store drives `[workspace]` routes.

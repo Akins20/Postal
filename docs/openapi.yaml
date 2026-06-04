@@ -1051,6 +1051,7 @@ components:
 
     User:
       type: object
+      required: [id, email, email_verified, status, created_at]
       properties:
         id: { type: string, format: uuid }
         email: { type: string, format: email }
@@ -1065,6 +1066,7 @@ components:
 
     Token:
       type: object
+      required: [access_token, token_type, expires_in, csrf_token]
       properties:
         access_token: { type: string }
         token_type: { type: string, example: Bearer }
