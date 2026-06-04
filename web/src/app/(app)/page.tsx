@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { UserMenu } from "@/features/auth/user-menu";
+import { WorkspaceSwitcher } from "@/features/workspace/workspace-switcher";
 
 import { dockItems } from "@/config/nav";
 import { Dock } from "@/ui/dock/dock";
@@ -23,9 +24,10 @@ export default function DashboardPage() {
       <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
         <div className="flex items-center gap-2">
           <span className="text-fg text-base font-semibold tracking-tight">Postal</span>
-          <span className="bg-fg/5 text-fg-muted rounded-full px-2 py-0.5 text-[11px] font-medium">
-            workspace
+          <span aria-hidden className="text-fg-subtle">
+            /
           </span>
+          <WorkspaceSwitcher />
         </div>
         <div className="flex items-center gap-1">
           <ThemeToggle />

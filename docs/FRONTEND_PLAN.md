@@ -392,9 +392,10 @@ boundaries plugin enforces this.)
 - [x] Session bootstrap (`useMe` → `GET /auth/me`, 401 = signed-out not error); `AuthGuard` over the `(app)` route group redirects unauthenticated → /login; `AuthPanel` redirects authed away from `(auth)` pages; routes restructured into `(app)` [guarded] + `(auth)` [public]; logout (`UserMenu`); single-flight refresh-on-401.
 - [x] **MSW test infra** wired; 23 tests green (auth hooks incl. 401, FormField, LoginForm validation/submit→redirect/error, AuthGuard); `next build` green (13 routes). _Spec fix: `User`/`Token` fields marked `required` so generated types aren't all-optional._
 
-### 12.2 — Workspaces & members
-- [ ] Workspace switcher; active-workspace store drives `[workspace]` routes.
-- [ ] Members list; add member (role/capabilities); capability editor (owner-immutable, no privilege escalation reflected); capability-aware nav.
+### 12.2 — Workspaces & members ✅ DONE (2026-06-04)
+- [x] `WorkspaceSwitcher` (Radix menu) backed by a persisted Zustand active-workspace store (`useActiveWorkspace` = `useWorkspaces` + store, defaults to first); wired into the dashboard header + feature side rail. _Implemented as a flat-route active-workspace store rather than `[workspace]` URL segments._
+- [x] Members management on `/settings`: `MembersPanel` (list with per-member role select → `useUpdateCapabilities`, owner shown immutable) + `AddMemberForm` (email + role preset, or a custom `CapabilityCheckboxes` group). Capabilities/roles config mirrors the backend.
+- [x] Data hooks in `src/data/workspaces.ts` (useWorkspaces/useMembers/useAddMember/useUpdateCapabilities). 32 tests green (workspace hooks, AddMemberForm validation/submit/custom-caps, WorkspaceSwitcher render + switch); `next build` green. _Spec: `Workspace`/`Member` fields marked `required`. Radix-in-jsdom polyfills added to test setup._
 
 ### 12.3 — Channels
 - [ ] List with status; connect flow (`/connect` → `authorize_url` → `/oauth/callback` → success); disconnect (confirm); empty state.

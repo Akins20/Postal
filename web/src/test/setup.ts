@@ -9,6 +9,17 @@ import { server } from "./msw/server";
 // Accessibility assertions (FRONTEND_PLAN §9.2): `expect(await axe(c)).toHaveNoViolations()`.
 expect.extend(axeMatchers);
 
+// jsdom lacks a few DOM APIs that Radix primitives rely on; stub them.
+const proto = window.HTMLElement.prototype;
+proto.hasPointerCapture ??= () => false;
+proto.releasePointerCapture ??= () => {};
+proto.scrollIntoView ??= () => {};
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
 // Mock API for component/data-hook tests; unhandled requests fail loudly.
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => {

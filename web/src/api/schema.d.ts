@@ -1873,22 +1873,22 @@ export interface components {
     };
     Workspace: {
       /** Format: uuid */
-      id?: string;
-      name?: string;
+      id: string;
+      name: string;
       /** Format: uuid */
-      owner_user_id?: string;
-      plan?: string;
+      owner_user_id: string;
+      plan: string;
       /** Format: date-time */
-      created_at?: string;
+      created_at: string;
     };
     Member: {
       /** Format: uuid */
-      workspace_id?: string;
+      workspace_id: string;
       /** Format: uuid */
-      user_id?: string;
+      user_id: string;
       /** @enum {string} */
-      role?: "owner" | "admin" | "editor" | "viewer" | "custom";
-      permissions?: components["schemas"]["Capability"][];
+      role: "owner" | "admin" | "editor" | "viewer" | "custom";
+      permissions: components["schemas"]["Capability"][];
     };
     MemberEnvelope: {
       data?: components["schemas"]["Member"];

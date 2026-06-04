@@ -1082,6 +1082,7 @@ components:
 
     Workspace:
       type: object
+      required: [id, name, owner_user_id, plan, created_at]
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
@@ -1091,6 +1092,7 @@ components:
 
     Member:
       type: object
+      required: [workspace_id, user_id, role, permissions]
       properties:
         workspace_id: { type: string, format: uuid }
         user_id: { type: string, format: uuid }
