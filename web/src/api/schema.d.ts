@@ -1918,17 +1918,17 @@ export interface components {
     };
     Channel: {
       /** Format: uuid */
-      id?: string;
-      platform?: string;
-      platform_account_id?: string;
-      handle?: string;
-      display_name?: string;
+      id: string;
+      platform: string;
+      platform_account_id: string;
+      handle: string;
+      display_name: string;
       /** @enum {string} */
-      status?: "active" | "expired" | "revoked";
+      status: "active" | "expired" | "revoked";
       /** Format: uuid */
       connected_by?: string | null;
       /** Format: date-time */
-      created_at?: string;
+      created_at: string;
     };
     ChannelEnvelope: {
       data?: components["schemas"]["Channel"];

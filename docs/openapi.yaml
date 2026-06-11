@@ -1130,6 +1130,7 @@ components:
 
     Channel:
       type: object
+      required: [id, platform, platform_account_id, handle, display_name, status, created_at]
       properties:
         id: { type: string, format: uuid }
         platform: { type: string }

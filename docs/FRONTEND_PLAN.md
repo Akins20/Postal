@@ -397,8 +397,11 @@ boundaries plugin enforces this.)
 - [x] Members management on `/settings`: `MembersPanel` (list with per-member role select → `useUpdateCapabilities`, owner shown immutable) + `AddMemberForm` (email + role preset, or a custom `CapabilityCheckboxes` group). Capabilities/roles config mirrors the backend.
 - [x] Data hooks in `src/data/workspaces.ts` (useWorkspaces/useMembers/useAddMember/useUpdateCapabilities). 32 tests green (workspace hooks, AddMemberForm validation/submit/custom-caps, WorkspaceSwitcher render + switch); `next build` green. _Spec: `Workspace`/`Member` fields marked `required`. Radix-in-jsdom polyfills added to test setup._
 
-### 12.3 — Channels
-- [ ] List with status; connect flow (`/connect` → `authorize_url` → `/oauth/callback` → success); disconnect (confirm); empty state.
+### 12.3 — Channels ✅ DONE (2026-06-11)
+- [x] `/channels` screen: `ChannelsPanel` lists connected accounts (platform glyph, display name/@handle, status pill Active/Expired/Revoked with tooltip hints) + "Connect a platform" list; empty state CTA. Platform registry in `src/config/platforms.tsx` (X glyph hand-rolled — lucide v1 dropped brand icons).
+- [x] Connect flow: `ConnectChannelButton` → `POST /channels/connect` → browser redirect to `authorize_url`; IdP returns to **`/oauth/callback`** (auth-guarded page outside the feature shell) → `useCompleteOAuth` exchanges single-use state+code (fires exactly once) → redirect `/channels`; error view with way back.
+- [x] Disconnect via reusable `ui/primitives/confirm-dialog.tsx` (Radix Dialog: focus trap, Esc, destructive variant, pending state); inline error if the delete fails.
+- [x] Data hooks `src/data/channels.ts` (useChannels/useConnectChannel/useCompleteOAuth/useDisconnectChannel). 50 tests green (18 new: hooks incl. 403/404/bad-state + panel empty/list/disconnect/error + connect-redirect + callback success/error/missing); `next build` green (15 routes). _Spec: `Channel` fields marked `required`._
 
 ### 12.4 — Composer & media
 - [ ] Compose-once editor, per-channel variant tabs, char counting from `validate`; UTM preview; drafts CRUD.
