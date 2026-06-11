@@ -1935,12 +1935,12 @@ export interface components {
     };
     MediaMeta: {
       /** Format: uuid */
-      media_id?: string;
+      media_id: string;
       /** @enum {string} */
-      kind?: "image" | "gif" | "video";
-      mime?: string;
+      kind: "image" | "gif" | "video";
+      mime: string;
       /** Format: int64 */
-      bytes?: number;
+      bytes: number;
     };
     VariantInput: {
       /** Format: uuid */
@@ -1953,10 +1953,10 @@ export interface components {
     };
     Variant: {
       /** Format: uuid */
-      id?: string;
+      id: string;
       /** Format: uuid */
-      channel_id?: string;
-      body?: string;
+      channel_id: string;
+      body: string;
       media?: components["schemas"]["MediaMeta"][];
       platform_options?: {
         [key: string]: unknown;
@@ -1964,15 +1964,15 @@ export interface components {
     };
     Post: {
       /** Format: uuid */
-      id?: string;
+      id: string;
       /** Format: uuid */
-      workspace_id?: string;
+      workspace_id: string;
       /** Format: uuid */
       author_user_id?: string | null;
       /** @example draft */
-      status?: string;
+      status: string;
       /** Format: date-time */
-      created_at?: string;
+      created_at: string;
       variants?: components["schemas"]["Variant"][];
     };
     PostEnvelope: {
@@ -1983,8 +1983,8 @@ export interface components {
     };
     VariantValidation: {
       /** Format: uuid */
-      channel_id?: string;
-      valid?: boolean;
+      channel_id: string;
+      valid: boolean;
       code?: string;
       message?: string;
     };
@@ -2032,20 +2032,20 @@ export interface components {
     };
     Asset: {
       /** Format: uuid */
-      id?: string;
+      id: string;
       /** Format: uuid */
-      workspace_id?: string;
+      workspace_id: string;
       /** @enum {string} */
-      kind?: "image" | "gif" | "video";
-      mime?: string;
-      width?: number;
-      height?: number;
-      duration_ms?: number;
+      kind: "image" | "gif" | "video";
+      mime: string;
+      width: number;
+      height: number;
+      duration_ms: number;
       /** Format: int64 */
-      bytes?: number;
-      status?: string;
+      bytes: number;
+      status: string;
       /** Format: date-time */
-      created_at?: string;
+      created_at: string;
     };
     AssetEnvelope: {
       data?: components["schemas"]["Asset"];

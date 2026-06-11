@@ -1,13 +1,17 @@
-import { ImageIcon } from "lucide-react";
+import { MediaPanel } from "@/features/media/media-panel";
 
-import { EmptyState } from "@/ui/primitives/empty-state";
+export const metadata = { title: "Media — Postal" };
 
 export default function MediaPage() {
   return (
-    <EmptyState
-      icon={ImageIcon}
-      title="Media"
-      description="Upload and manage images, GIFs, and video. Arrives in sub-phase 12.4."
-    />
+    <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
+      <header>
+        <h1 className="text-fg text-lg font-semibold">Media</h1>
+        <p className="text-fg-muted mt-1 text-sm">
+          Upload and manage the images, GIFs and videos you attach to posts.
+        </p>
+      </header>
+      <MediaPanel />
+    </div>
   );
 }

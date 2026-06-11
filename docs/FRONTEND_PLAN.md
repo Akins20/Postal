@@ -403,9 +403,11 @@ boundaries plugin enforces this.)
 - [x] Disconnect via reusable `ui/primitives/confirm-dialog.tsx` (Radix Dialog: focus trap, Esc, destructive variant, pending state); inline error if the delete fails.
 - [x] Data hooks `src/data/channels.ts` (useChannels/useConnectChannel/useCompleteOAuth/useDisconnectChannel). 50 tests green (18 new: hooks incl. 403/404/bad-state + panel empty/list/disconnect/error + connect-redirect + callback success/error/missing); `next build` green (15 routes). _Spec: `Channel` fields marked `required`._
 
-### 12.4 — Composer & media
-- [ ] Compose-once editor, per-channel variant tabs, char counting from `validate`; UTM preview; drafts CRUD.
-- [ ] Media library: upload (multipart, progress, type/size/quota errors), grid, delete, attach to variants.
+### 12.4 — Composer & media ✅ DONE (2026-06-11)
+- [x] Compose-once editor (`/compose`): master text → every selected channel (`ChannelPicker` chips; non-active channels disabled with reconnect tooltip); per-channel override tabs (override dot, "reset to master"); live char counter vs platform cap (`platforms.charLimit`, X=280; min across selection on the master tab) — server re-validates: save runs create/update **then `POST …/validate`**, per-channel Ready/Needs-changes verdicts shown.
+- [x] UTM preview (collapsible: utm_source/utm_campaign → `POST posts/utm-preview` tagged text); drafts CRUD ("Your posts" list: excerpt/status/edit/delete-confirm; Edit remounts the composer via `key`).
+- [x] Media library (`/media`): XHR multipart upload with live `<progress>` (fetch can't report upload progress; `csrfToken()` exported for non-openapi-fetch callers), responsive grid (img via cookie-auth'd `mediaDownloadURL`, video placeholder), delete-confirm; quota/oversize rejections inline. `MediaAttach` picker dialog in the composer attaches assets as `MediaMeta` to variants.
+- [x] Data hooks `src/data/posts.ts` (list/get/create/update/delete/validate/utm-preview) + `src/data/media.ts` (list/upload/delete/downloadURL). 32 new tests → 82 green; `next build` green. _Spec: `Post`/`Variant`/`MediaMeta`/`VariantValidation`/`Asset` marked `required`. jsdom XHR can't serialize FormData→multipart, so the upload test asserts plumbing/envelope; multipart correctness lands on e2e/curl (12.7)._
 
 ### 12.5 — Scheduling & calendar
 - [ ] Schedule (specific time or next slot); tz-correct pickers; slots manager (day/time/tz CRUD).

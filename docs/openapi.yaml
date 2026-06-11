@@ -1148,6 +1148,7 @@ components:
 
     MediaMeta:
       type: object
+      required: [media_id, kind, mime, bytes]
       properties:
         media_id: { type: string, format: uuid }
         kind: { type: string, enum: [image, gif, video] }
@@ -1169,6 +1170,7 @@ components:
 
     Variant:
       type: object
+      required: [id, channel_id, body]
       properties:
         id: { type: string, format: uuid }
         channel_id: { type: string, format: uuid }
@@ -1182,6 +1184,7 @@ components:
 
     Post:
       type: object
+      required: [id, workspace_id, status, created_at]
       properties:
         id: { type: string, format: uuid }
         workspace_id: { type: string, format: uuid }
@@ -1207,6 +1210,7 @@ components:
 
     VariantValidation:
       type: object
+      required: [channel_id, valid]
       properties:
         channel_id: { type: string, format: uuid }
         valid: { type: boolean }
@@ -1251,6 +1255,7 @@ components:
 
     Asset:
       type: object
+      required: [id, workspace_id, kind, mime, width, height, duration_ms, bytes, status, created_at]
       properties:
         id: { type: string, format: uuid }
         workspace_id: { type: string, format: uuid }

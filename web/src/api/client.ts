@@ -26,6 +26,11 @@ function readCookie(name: string): string | null {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
+/** CSRF double-submit token for callers outside openapi-fetch (e.g. XHR uploads). */
+export function csrfToken(): string | null {
+  return readCookie("postal_csrf");
+}
+
 // Single-flight refresh: concurrent 401s share one refresh attempt.
 let refreshing: Promise<boolean> | null = null;
 

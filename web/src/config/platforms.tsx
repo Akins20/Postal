@@ -20,6 +20,8 @@ export interface PlatformInfo {
   icon: ComponentType<SVGProps<SVGSVGElement>>;
   /** One-line hint shown next to the connect action. */
   hint: string;
+  /** Client-side character cap for the compose counter (server re-validates). */
+  charLimit?: number;
 }
 
 /** Platforms a workspace can connect, in display order. X/Twitter is first. */
@@ -29,6 +31,7 @@ export const PLATFORMS: PlatformInfo[] = [
     label: "X (Twitter)",
     icon: XGlyph,
     hint: "Publish posts and threads to an X account.",
+    charLimit: 280,
   },
 ];
 
