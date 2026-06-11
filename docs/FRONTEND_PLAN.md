@@ -415,8 +415,11 @@ boundaries plugin enforces this.)
 - [x] `SlotsManager` on `/calendar`: per-channel weekly slots list + create (day/time/`Intl.supportedValuesOf("timeZone")` picker, defaults to the user's tz) + delete. _Gotcha fixed: mount it only after channels load — its channel-select state initializes from the first channel._
 - [x] Data hooks `src/data/schedule.ts` (schedule/calendar/cancel/slots CRUD; `channel_id` rides as a query param on slot delete). 18 new tests → 100 green; `next build` green. _Spec: `Job`/`Slot` marked `required`._
 
-### 12.6 — Analytics
-- [ ] Overview (per post×channel); per-post per-channel breakdown; time-series charts (range picker, count-up); CSV export.
+### 12.6 — Analytics ✅ DONE (2026-06-11)
+- [x] `/analytics` overview: per (post×channel) rows — post excerpt (joined from posts), @handle, latest metrics inline, captured-at; row click drills down (aria-expanded). Empty state until first capture; cookie-auth'd **CSV export** link (`analytics/export.csv`).
+- [x] Post breakdown: per-channel metric cards (dl of latest numbers) + **time series** — channel/metric pickers (metric names derived from the data, default = first), 7d/30d/90d range tabs → `…/series?channel_id&metric&from&to`, recharts `AreaChart` themed via CSS token variables (light/dark correct).
+- [x] Data hooks `src/data/analytics.ts` (overview/post/series/csvURL). 11 new tests → 111 green; `next build` green. _Spec: `PostMetrics`/`ChannelMetrics`/`SeriesPoint` marked `required`._
+- [x] **Design-system regression fixed mid-phase:** `globals.css` had shipped as the create-next-app scaffold (macOS tokens/materials never committed; Tailwind v4 silently ignores unknown utilities so nothing failed). Rebuilt per §5/§5.1 — oklch tokens light+dark, `@custom-variant dark`, vibrancy materials + reduced-transparency fallback — and verified utilities exist in the built CSS (commit cfba29b).
 
 ### 12.7 — Settings, polish & freeze
 - [ ] Account/workspace settings; full a11y + responsive + reduced-motion pass; complete loading/empty/error/skeleton states.

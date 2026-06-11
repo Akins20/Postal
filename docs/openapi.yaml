@@ -1277,6 +1277,7 @@ components:
 
     PostMetrics:
       type: object
+      required: [post_id, channel_id, platform_post_id, metrics, captured_at]
       properties:
         post_id: { type: string, format: uuid }
         channel_id: { type: string, format: uuid }
@@ -1288,6 +1289,7 @@ components:
 
     ChannelMetrics:
       type: object
+      required: [channel_id, platform_post_id, metrics, captured_at]
       properties:
         channel_id: { type: string, format: uuid }
         platform_post_id: { type: string }
@@ -1298,6 +1300,7 @@ components:
 
     SeriesPoint:
       type: object
+      required: [value, captured_at]
       properties:
         value: { type: integer, format: int64 }
         captured_at: { type: string, format: date-time }

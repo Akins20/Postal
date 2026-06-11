@@ -1,13 +1,17 @@
-import { BarChart3 } from "lucide-react";
+import { AnalyticsScreen } from "@/features/analytics/analytics-screen";
 
-import { EmptyState } from "@/ui/primitives/empty-state";
+export const metadata = { title: "Analytics — Postal" };
 
 export default function AnalyticsPage() {
   return (
-    <EmptyState
-      icon={BarChart3}
-      title="Analytics"
-      description="Track post performance across channels. Arrives in sub-phase 12.6."
-    />
+    <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
+      <header>
+        <h1 className="text-fg text-lg font-semibold">Analytics</h1>
+        <p className="text-fg-muted mt-1 text-sm">
+          How your published posts are performing on each channel.
+        </p>
+      </header>
+      <AnalyticsScreen />
+    </div>
   );
 }

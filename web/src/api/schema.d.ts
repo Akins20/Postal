@@ -2052,31 +2052,31 @@ export interface components {
     };
     PostMetrics: {
       /** Format: uuid */
-      post_id?: string;
+      post_id: string;
       /** Format: uuid */
-      channel_id?: string;
-      platform_post_id?: string;
-      metrics?: {
+      channel_id: string;
+      platform_post_id: string;
+      metrics: {
         [key: string]: number;
       };
       /** Format: date-time */
-      captured_at?: string;
+      captured_at: string;
     };
     ChannelMetrics: {
       /** Format: uuid */
-      channel_id?: string;
-      platform_post_id?: string;
-      metrics?: {
+      channel_id: string;
+      platform_post_id: string;
+      metrics: {
         [key: string]: number;
       };
       /** Format: date-time */
-      captured_at?: string;
+      captured_at: string;
     };
     SeriesPoint: {
       /** Format: int64 */
-      value?: number;
+      value: number;
       /** Format: date-time */
-      captured_at?: string;
+      captured_at: string;
     };
   };
   responses: {
