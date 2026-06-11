@@ -1,10 +1,20 @@
 import { expect, test } from "@playwright/test";
 
-test("dashboard renders with the dock and a working theme toggle", async ({ page }) => {
-  await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Welcome to Postal" })).toBeVisible();
-  await expect(page.getByRole("navigation", { name: "Primary" })).toBeVisible();
+/**
+ * Public-surface smoke (no backend session). The authenticated core loop
+ * (login → connect → compose → schedule) runs against the Go backend +
+ * simulator with seeded credentials — see FRONTEND_PLAN §10/12.7.
+ */
 
+test("unauthenticated users land on sign-in", async ({ page }) => {
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
+  await expect(page.getByLabel("Email")).toBeVisible();
+});
+
+test("theme toggle flips the dark class and persists across reload", async ({ page }) => {
+  await page.goto("/login");
   const toggle = page.getByRole("button", { name: "Toggle color theme" });
   await expect(toggle).toBeVisible();
   const before = await page.evaluate(() => document.documentElement.classList.contains("dark"));
@@ -12,11 +22,17 @@ test("dashboard renders with the dock and a working theme toggle", async ({ page
   await expect
     .poll(() => page.evaluate(() => document.documentElement.classList.contains("dark")))
     .not.toBe(before);
+  await page.reload();
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.classList.contains("dark")))
+    .not.toBe(before);
 });
 
-test("navigating into a feature route shows the sidebar shell", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("link", { name: "Compose" }).first().click();
-  await expect(page).toHaveURL(/\/compose$/);
-  await expect(page.getByRole("heading", { name: "Compose" })).toBeVisible();
+test("auth pages cross-link (sign in ↔ sign up ↔ reset)", async ({ page }) => {
+  await page.goto("/login");
+  await page.getByRole("link", { name: "Create an account" }).click();
+  await expect(page).toHaveURL(/\/signup$/);
+  await page.goBack();
+  await page.getByRole("link", { name: "Forgot your password?" }).click();
+  await expect(page).toHaveURL(/\/reset$/);
 });

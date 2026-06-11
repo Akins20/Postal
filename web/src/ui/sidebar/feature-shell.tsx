@@ -68,7 +68,9 @@ export function FeatureShell({
         </Dialog.Portal>
       </Dialog.Root>
 
-      <main className="flex-1 overflow-auto">{children}</main>
+      <main id="main" className="flex-1 overflow-auto">
+        {children}
+      </main>
     </div>
   );
 }

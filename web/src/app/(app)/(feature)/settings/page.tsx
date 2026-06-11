@@ -1,6 +1,7 @@
 "use client";
 
 import { MembersPanel } from "@/features/members/members-panel";
+import { AccountPanel } from "@/features/settings/account-panel";
 import { useActiveWorkspace } from "@/features/workspace/use-active-workspace";
 import { WorkspaceSwitcher } from "@/features/workspace/workspace-switcher";
 import { Spinner } from "@/ui/primitives/spinner";
@@ -19,7 +20,12 @@ export default function SettingsPage() {
           <Spinner />
         </div>
       )}
-      {active && <MembersPanel workspaceId={active.id} />}
+      {active && (
+        <>
+          <AccountPanel workspace={active} />
+          <MembersPanel workspaceId={active.id} />
+        </>
+      )}
       {!isLoading && !active && <p className="text-fg-muted text-sm">No workspace selected.</p>}
     </div>
   );

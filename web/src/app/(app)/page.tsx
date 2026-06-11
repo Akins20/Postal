@@ -1,21 +1,17 @@
 import Link from "next/link";
 
 import { UserMenu } from "@/features/auth/user-menu";
+import { OverviewWidgets } from "@/features/dashboard/overview-widgets";
 import { WorkspaceSwitcher } from "@/features/workspace/workspace-switcher";
 
 import { dockItems } from "@/config/nav";
 import { Dock } from "@/ui/dock/dock";
-import { Button } from "@/ui/primitives/button";
 import { Hint } from "@/ui/primitives/hint";
 import { Icon } from "@/ui/primitives/icon";
 import { Panel } from "@/ui/primitives/panel";
-import { StatusPill } from "@/ui/primitives/status-pill";
 import { ThemeToggle } from "@/ui/theme-toggle";
 
-/**
- * Dashboard home — the macOS-style launchpad with the bottom dock. A foundation
- * showcase for sub-phase 12.0; real widgets land in later sub-phases.
- */
+/** Dashboard home — the macOS-style launchpad with the bottom dock. */
 export default function DashboardPage() {
   const destinations = dockItems.filter((d) => d.href !== "/");
 
@@ -35,7 +31,7 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-5xl flex-col gap-6 px-6 pb-32">
+      <main id="main" className="mx-auto flex max-w-5xl flex-col gap-6 px-6 pb-32">
         <Panel className="flex items-start justify-between gap-4 p-6">
           <div className="flex flex-col gap-1">
             <h1 className="text-fg text-xl font-semibold tracking-tight">Welcome to Postal</h1>
@@ -73,25 +69,7 @@ export default function DashboardPage() {
           ))}
         </section>
 
-        <Panel className="flex flex-col gap-4 p-6">
-          <div className="flex items-center gap-2">
-            <h2 className="text-fg text-sm font-semibold">Design system</h2>
-            <Hint>The macOS-style primitives the app is built from (sub-phase 12.0).</Hint>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <Button>Primary</Button>
-            <Button variant="secondary">Secondary</Button>
-            <Button variant="ghost">Ghost</Button>
-            <Button variant="danger">Danger</Button>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <StatusPill tone="success">Published</StatusPill>
-            <StatusPill tone="accent">Scheduled</StatusPill>
-            <StatusPill tone="warning">Publishing</StatusPill>
-            <StatusPill tone="danger">Failed</StatusPill>
-            <StatusPill>Draft</StatusPill>
-          </div>
-        </Panel>
+        <OverviewWidgets />
       </main>
 
       <Dock items={dockItems} />

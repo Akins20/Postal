@@ -24,6 +24,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en" suppressHydrationWarning className="h-full">
       <body className="min-h-full antialiased">
+        <a
+          href="#main"
+          className="focus:bg-elevated focus:text-fg focus:ring-ring sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-100 focus:rounded-md focus:px-3 focus:py-2 focus:text-sm focus:ring-2"
+        >
+          Skip to content
+        </a>
         <Providers nonce={nonce}>{children}</Providers>
       </body>
     </html>

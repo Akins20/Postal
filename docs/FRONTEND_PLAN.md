@@ -421,9 +421,12 @@ boundaries plugin enforces this.)
 - [x] Data hooks `src/data/analytics.ts` (overview/post/series/csvURL). 11 new tests → 111 green; `next build` green. _Spec: `PostMetrics`/`ChannelMetrics`/`SeriesPoint` marked `required`._
 - [x] **Design-system regression fixed mid-phase:** `globals.css` had shipped as the create-next-app scaffold (macOS tokens/materials never committed; Tailwind v4 silently ignores unknown utilities so nothing failed). Rebuilt per §5/§5.1 — oklch tokens light+dark, `@custom-variant dark`, vibrancy materials + reduced-transparency fallback — and verified utilities exist in the built CSS (commit cfba29b).
 
-### 12.7 — Settings, polish & freeze
-- [ ] Account/workspace settings; full a11y + responsive + reduced-motion pass; complete loading/empty/error/skeleton states.
-- [ ] Playwright e2e of the core loop + each domain vs running backend + simulator; Web Vitals budgets; docs.
+### 12.7 — Settings, polish & freeze (in progress — 2026-06-11)
+- [x] Settings: `AccountPanel` (email + verification pill, member-since), Appearance (theme toggle), Workspace facts (name/plan) above Members. _No workspace-create/rename endpoint exists in the frozen API — workspaces come from signup._
+- [x] Dashboard home: 12.0 design-system showcase replaced with real `OverviewWidgets` — next-7-days scheduled jobs, drafts, channel health (counts + needs-attention). _Gotcha fixed: pin `now` with `useState(() => new Date())` — a fresh Date per render churns the calendar query key and the query never settles._
+- [x] A11y polish: **skip-to-content** link in the root layout targeting `#main` (feature shell + dashboard); axe pass on the composite dashboard.
+- [x] e2e smoke spec rewritten for the AuthGuard reality (unauth → /login; theme toggle persists; auth cross-links) — still CI-only (no local browsers).
+- [ ] Authenticated-core-loop e2e vs running backend + simulator (login → connect → compose → schedule → calendar); Web Vitals budgets; final responsive sweep at sm/md/lg against the live app; docs refresh.
 - [ ] **Frontend declared complete.**
 
 ## 11. Cross-cutting concerns
