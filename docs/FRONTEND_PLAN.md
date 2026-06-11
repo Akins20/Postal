@@ -409,9 +409,11 @@ boundaries plugin enforces this.)
 - [x] Media library (`/media`): XHR multipart upload with live `<progress>` (fetch can't report upload progress; `csrfToken()` exported for non-openapi-fetch callers), responsive grid (img via cookie-auth'd `mediaDownloadURL`, video placeholder), delete-confirm; quota/oversize rejections inline. `MediaAttach` picker dialog in the composer attaches assets as `MediaMeta` to variants.
 - [x] Data hooks `src/data/posts.ts` (list/get/create/update/delete/validate/utm-preview) + `src/data/media.ts` (list/upload/delete/downloadURL). 32 new tests → 82 green; `next build` green. _Spec: `Post`/`Variant`/`MediaMeta`/`VariantValidation`/`Asset` marked `required`. jsdom XHR can't serialize FormData→multipart, so the upload test asserts plumbing/envelope; multipart correctness lands on e2e/curl (12.7)._
 
-### 12.5 — Scheduling & calendar
-- [ ] Schedule (specific time or next slot); tz-correct pickers; slots manager (day/time/tz CRUD).
-- [ ] Calendar (month/week) with status pills + animated transitions; cancel a job.
+### 12.5 — Scheduling & calendar ✅ DONE (2026-06-11)
+- [x] `ScheduleDialog` on each draft row (composer "Your posts"): **next open slots** (`to_slots`, with a what-are-slots hint) or **specific time** (`datetime-local` in the user's tz → ISO UTC `run_at`); per-channel job count confirmation; backend rejections inline.
+- [x] `/calendar`: month grid (job pills with time+handle, +n overflow, today ring, day-detail on click) / week list (grouped by day) toggle; range nav with Framer fade-slide transitions (reduced-motion aware); job status pills (scheduled/publishing/published/failed/canceled tones); **cancel** a scheduled job via confirm dialog (`JobItem`).
+- [x] `SlotsManager` on `/calendar`: per-channel weekly slots list + create (day/time/`Intl.supportedValuesOf("timeZone")` picker, defaults to the user's tz) + delete. _Gotcha fixed: mount it only after channels load — its channel-select state initializes from the first channel._
+- [x] Data hooks `src/data/schedule.ts` (schedule/calendar/cancel/slots CRUD; `channel_id` rides as a query param on slot delete). 18 new tests → 100 green; `next build` green. _Spec: `Job`/`Slot` marked `required`._
 
 ### 12.6 — Analytics
 - [ ] Overview (per post×channel); per-post per-channel breakdown; time-series charts (range picker, count-up); CSV export.

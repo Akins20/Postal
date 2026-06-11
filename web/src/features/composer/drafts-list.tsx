@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { usePosts, useDeletePost, type Post } from "@/data/posts";
+import { ScheduleDialog } from "@/features/schedule/schedule-dialog";
 import type { NormalizedError } from "@/lib/api-error";
 import { Button } from "@/ui/primitives/button";
 import { ConfirmDialog } from "@/ui/primitives/confirm-dialog";
@@ -44,6 +45,13 @@ function DraftRow({
         </p>
       </div>
       <StatusPill tone={post.status === "draft" ? "neutral" : "accent"}>{post.status}</StatusPill>
+      {post.status === "draft" && (
+        <ScheduleDialog
+          workspaceId={workspaceId}
+          postId={post.id}
+          trigger={<Button size="sm">Schedule</Button>}
+        />
+      )}
       <Button variant="secondary" size="sm" onClick={() => onEdit(post)}>
         Edit
       </Button>

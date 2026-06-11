@@ -1219,6 +1219,7 @@ components:
 
     Job:
       type: object
+      required: [id, post_id, channel_id, run_at, status, attempts, created_at]
       properties:
         id: { type: string, format: uuid }
         post_id: { type: string, format: uuid }
@@ -1231,6 +1232,7 @@ components:
 
     Slot:
       type: object
+      required: [id, channel_id, day_of_week, time_of_day, timezone, created_at]
       properties:
         id: { type: string, format: uuid }
         channel_id: { type: string, format: uuid }

@@ -1,13 +1,17 @@
-import { Calendar } from "lucide-react";
+import { CalendarScreen } from "@/features/schedule/calendar-screen";
 
-import { EmptyState } from "@/ui/primitives/empty-state";
+export const metadata = { title: "Calendar — Postal" };
 
 export default function CalendarPage() {
   return (
-    <EmptyState
-      icon={Calendar}
-      title="Calendar"
-      description="Schedule posts and manage posting slots. Arrives in sub-phase 12.5."
-    />
+    <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
+      <header>
+        <h1 className="text-fg text-lg font-semibold">Calendar</h1>
+        <p className="text-fg-muted mt-1 text-sm">
+          Everything scheduled to publish, plus each channel&apos;s weekly posting slots.
+        </p>
+      </header>
+      <CalendarScreen />
+    </div>
   );
 }

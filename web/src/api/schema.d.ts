@@ -1990,33 +1990,33 @@ export interface components {
     };
     Job: {
       /** Format: uuid */
-      id?: string;
+      id: string;
       /** Format: uuid */
-      post_id?: string;
+      post_id: string;
       /** Format: uuid */
-      channel_id?: string;
+      channel_id: string;
       /** Format: date-time */
-      run_at?: string;
+      run_at: string;
       /** @enum {string} */
-      status?: "scheduled" | "publishing" | "published" | "failed" | "canceled";
-      attempts?: number;
+      status: "scheduled" | "publishing" | "published" | "failed" | "canceled";
+      attempts: number;
       last_error?: string;
       /** Format: date-time */
-      created_at?: string;
+      created_at: string;
     };
     Slot: {
       /** Format: uuid */
-      id?: string;
+      id: string;
       /** Format: uuid */
-      channel_id?: string;
+      channel_id: string;
       /** @description 0=Sunday .. 6=Saturday */
-      day_of_week?: number;
+      day_of_week: number;
       /** @example 09:00 */
-      time_of_day?: string;
+      time_of_day: string;
       /** @example America/New_York */
-      timezone?: string;
+      timezone: string;
       /** Format: date-time */
-      created_at?: string;
+      created_at: string;
     };
     SlotEnvelope: {
       data?: components["schemas"]["Slot"];
