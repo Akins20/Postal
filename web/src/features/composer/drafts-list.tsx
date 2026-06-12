@@ -54,7 +54,7 @@ function DraftRow({
         <ScheduleDialog
           workspaceId={workspaceId}
           postId={post.id}
-          trigger={<Button size="sm">Schedule</Button>}
+          trigger={<Button size="sm">Publish</Button>}
         />
       )}
       <Button variant="secondary" size="sm" onClick={() => onEdit(post)}>

@@ -40,14 +40,21 @@ const envPrefix = "POSTAL_"
 
 // Config is the fully resolved, validated runtime configuration.
 type Config struct {
-	HTTP    HTTP
-	DB      DB
-	Redis   Redis
-	Crypto  Crypto
-	Auth    Auth
-	Twitter Twitter
-	Storage Storage
-	Billing Billing
+	HTTP         HTTP
+	DB           DB
+	Redis        Redis
+	Crypto       Crypto
+	Auth         Auth
+	Twitter      Twitter
+	Storage      Storage
+	Billing      Billing
+	Integrations Integrations
+}
+
+// Integrations holds third-party integration settings. OGShortenerAPIBase
+// overrides the live ogshortener.site host (tests/dev); blank = real service.
+type Integrations struct {
+	OGShortenerAPIBase string
 }
 
 // Billing holds the wallet economics and payment-provider credentials
@@ -199,6 +206,9 @@ func Load() (Config, error) {
 			RedirectURI:  getString("X_REDIRECT_URI", ""),
 			APIBaseURL:   getString("X_API_BASE_URL", ""),
 			AuthBaseURL:  getString("X_AUTH_BASE_URL", ""),
+		},
+		Integrations: Integrations{
+			OGShortenerAPIBase: getString("OGSHORTENER_API_BASE", ""),
 		},
 		Billing: Billing{
 			CreditsPerUSDCent:       getInt64("BILLING_CREDITS_PER_USD_CENT", 1),

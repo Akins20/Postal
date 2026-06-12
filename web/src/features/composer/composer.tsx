@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import { platformInfo } from "@/config/platforms";
 import { useWallet } from "@/data/billing";
+import { useShortenLinks } from "@/data/integrations";
 import type { Channel } from "@/data/channels";
 import {
   firstURL,
@@ -74,6 +76,8 @@ export function Composer({
   const update = useUpdatePost(workspaceId);
   const validate = useValidatePost(workspaceId);
   const { data: wallet } = useWallet(workspaceId);
+  const shorten = useShortenLinks(workspaceId);
+  const [shortenError, setShortenError] = useState<NormalizedError | null>(null);
 
   const byId = new Map(channels.map((c) => [c.id, c]));
   const selectedChannels = state.selected
@@ -203,6 +207,50 @@ export function Composer({
           attached={state.media}
           onChange={(media) => setState((s) => ({ ...s, media }))}
         />
+
+        {/* OGShortener: rewrite the current editor's links as short links. */}
+        {(() => {
+          const editingBody = tab === "all" ? state.masterBody : bodyFor(tab);
+          if (!firstURL(editingBody)) return null;
+          const apply = async () => {
+            setShortenError(null);
+            try {
+              const text = await shorten.mutateAsync({ text: editingBody });
+              setState((s) =>
+                tab === "all"
+                  ? { ...s, masterBody: text }
+                  : { ...s, overrides: { ...s.overrides, [tab]: text } },
+              );
+            } catch (e) {
+              setShortenError(e as NormalizedError);
+            }
+          };
+          return (
+            <div className="flex flex-col gap-1.5">
+              <div>
+                <Button variant="secondary" size="sm" onClick={apply} disabled={shorten.isPending}>
+                  {shorten.isPending ? "Shortening" : "Shorten links"}
+                </Button>
+              </div>
+              {shortenError && (
+                <p role="alert" className="text-danger text-xs">
+                  {shortenError.message}
+                  {shortenError.code === "integration_not_configured" && (
+                    <>
+                      {" "}
+                      <Link
+                        href="/integrations"
+                        className="text-accent font-medium hover:underline"
+                      >
+                        Open Integrations
+                      </Link>
+                    </>
+                  )}
+                </p>
+              )}
+            </div>
+          );
+        })()}
 
         {/* X is pay-per-use and link/media posts cost more; say so before save. */}
         {(() => {

@@ -844,6 +844,90 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
 
+  /api/v1/workspaces/{workspaceID}/integrations/:
+    parameters:
+      - $ref: "#/components/parameters/workspaceID"
+    get:
+      tags: [Integrations]
+      summary: List integrations, secrets omitted (capability; read)
+      responses:
+        "200":
+          description: Integrations (offered providers always listed)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Integration" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/workspaces/{workspaceID}/integrations/{provider}:
+    parameters:
+      - $ref: "#/components/parameters/workspaceID"
+      - { name: provider, in: path, required: true, schema: { type: string, enum: [ogshortener] } }
+    put:
+      tags: [Integrations]
+      summary: Configure an integration (capability; manage_workspace)
+      description: A submitted api_key is verified against the provider before being encrypted at rest; omitting it keeps the stored key.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enabled]
+              properties:
+                enabled: { type: boolean }
+                auto_apply: { type: boolean }
+                api_key: { type: string, nullable: true }
+      responses:
+        "200":
+          description: Updated integration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/Integration" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/workspaces/{workspaceID}/integrations/ogshortener/shorten:
+    parameters:
+      - $ref: "#/components/parameters/workspaceID"
+    post:
+      tags: [Integrations]
+      summary: Replace every link in text with an OGShortener short link (capability; create)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string }
+      responses:
+        "200":
+          description: Rewritten text
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    required: [text]
+                    properties:
+                      text: { type: string }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
   /api/v1/workspaces/{workspaceID}/billing/wallet:
     parameters:
       - $ref: "#/components/parameters/workspaceID"
@@ -1418,6 +1502,16 @@ components:
       properties:
         value: { type: integer, format: int64 }
         captured_at: { type: string, format: date-time }
+
+    Integration:
+      type: object
+      required: [provider, enabled, auto_apply, configured, updated_at]
+      properties:
+        provider: { type: string, example: ogshortener }
+        enabled: { type: boolean }
+        auto_apply: { type: boolean }
+        configured: { type: boolean, description: an API key is stored }
+        updated_at: { type: string, format: date-time }
 
     LinkPreview:
       type: object

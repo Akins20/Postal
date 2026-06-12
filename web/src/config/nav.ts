@@ -3,6 +3,7 @@ import {
   Calendar,
   Home,
   ImageIcon,
+  Puzzle,
   Radio,
   Settings,
   SquarePen,
@@ -38,6 +39,7 @@ export const featureSidebar: SidebarSection[] = [
     title: "Manage",
     items: [
       { href: "/wallet", label: "Wallet", icon: Wallet },
+      { href: "/integrations", label: "Integrations", icon: Puzzle },
       { href: "/settings", label: "Settings", icon: Settings },
     ],
   },

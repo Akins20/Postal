@@ -1650,6 +1650,161 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/workspaces/{workspaceID}/integrations/": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceID: components["parameters"]["workspaceID"];
+      };
+      cookie?: never;
+    };
+    /** List integrations, secrets omitted (capability; read) */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          workspaceID: components["parameters"]["workspaceID"];
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Integrations (offered providers always listed) */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": {
+              data?: components["schemas"]["Integration"][];
+            };
+          };
+        };
+        401: components["responses"]["Unauthorized"];
+        403: components["responses"]["Forbidden"];
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/workspaces/{workspaceID}/integrations/{provider}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceID: components["parameters"]["workspaceID"];
+        provider: "ogshortener";
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Configure an integration (capability; manage_workspace)
+     * @description A submitted api_key is verified against the provider before being encrypted at rest; omitting it keeps the stored key.
+     */
+    put: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          workspaceID: components["parameters"]["workspaceID"];
+          provider: "ogshortener";
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": {
+            enabled: boolean;
+            auto_apply?: boolean;
+            api_key?: string | null;
+          };
+        };
+      };
+      responses: {
+        /** @description Updated integration */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": {
+              data?: components["schemas"]["Integration"];
+            };
+          };
+        };
+        400: components["responses"]["ValidationError"];
+        401: components["responses"]["Unauthorized"];
+        403: components["responses"]["Forbidden"];
+      };
+    };
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/workspaces/{workspaceID}/integrations/ogshortener/shorten": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceID: components["parameters"]["workspaceID"];
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Replace every link in text with an OGShortener short link (capability; create) */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          workspaceID: components["parameters"]["workspaceID"];
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": {
+            text: string;
+          };
+        };
+      };
+      responses: {
+        /** @description Rewritten text */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": {
+              data?: {
+                text: string;
+              };
+            };
+          };
+        };
+        400: components["responses"]["ValidationError"];
+        401: components["responses"]["Unauthorized"];
+        403: components["responses"]["Forbidden"];
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/workspaces/{workspaceID}/billing/wallet": {
     parameters: {
       query?: never;
@@ -2360,6 +2515,16 @@ export interface components {
       value: number;
       /** Format: date-time */
       captured_at: string;
+    };
+    Integration: {
+      /** @example ogshortener */
+      provider: string;
+      enabled: boolean;
+      auto_apply: boolean;
+      /** @description an API key is stored */
+      configured: boolean;
+      /** Format: date-time */
+      updated_at: string;
     };
     LinkPreview: {
       /** Format: uri */

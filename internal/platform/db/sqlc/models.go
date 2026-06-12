@@ -186,6 +186,16 @@ type Workspace struct {
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 }
 
+type WorkspaceIntegration struct {
+	WorkspaceID uuid.UUID          `json:"workspace_id"`
+	Provider    string             `json:"provider"`
+	Enabled     bool               `json:"enabled"`
+	AutoApply   bool               `json:"auto_apply"`
+	Credentials []byte             `json:"credentials"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+}
+
 type WorkspaceMember struct {
 	WorkspaceID uuid.UUID          `json:"workspace_id"`
 	UserID      uuid.UUID          `json:"user_id"`

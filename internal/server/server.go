@@ -17,6 +17,7 @@ import (
 	"github.com/Akins20/postal/internal/auth"
 	"github.com/Akins20/postal/internal/billing"
 	"github.com/Akins20/postal/internal/channel"
+	"github.com/Akins20/postal/internal/integration"
 	"github.com/Akins20/postal/internal/media"
 	"github.com/Akins20/postal/internal/platform/metrics"
 	"github.com/Akins20/postal/internal/post"
@@ -34,21 +35,22 @@ type Pinger interface {
 
 // Deps are the dependencies the server needs to wire its routes and readiness checks.
 type Deps struct {
-	Logger           *slog.Logger
-	DB               Pinger
-	Redis            Pinger
-	Metrics          *metrics.Metrics
-	Limiter          *ratelimit.Limiter
-	Tokens           *auth.TokenIssuer
-	AuthHandler      *auth.Handler
-	WorkspaceHandler *workspace.Handler
-	ChannelHandler   *channel.Handler
-	PostHandler      *post.Handler
-	ScheduleHandler  *schedule.Handler
-	MediaHandler     *media.Handler
-	AnalyticsHandler *analytics.Handler
-	BillingHandler   *billing.Handler
-	RequestTimeout   time.Duration
+	Logger             *slog.Logger
+	DB                 Pinger
+	Redis              Pinger
+	Metrics            *metrics.Metrics
+	Limiter            *ratelimit.Limiter
+	Tokens             *auth.TokenIssuer
+	AuthHandler        *auth.Handler
+	WorkspaceHandler   *workspace.Handler
+	ChannelHandler     *channel.Handler
+	PostHandler        *post.Handler
+	ScheduleHandler    *schedule.Handler
+	MediaHandler       *media.Handler
+	AnalyticsHandler   *analytics.Handler
+	BillingHandler     *billing.Handler
+	IntegrationHandler *integration.Handler
+	RequestTimeout     time.Duration
 	// Production gates HSTS (only sent over the assumed-TLS production edge).
 	Production bool
 	// AllowedOrigins is the CORS allowlist; empty disables CORS.

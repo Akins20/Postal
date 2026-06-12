@@ -52,10 +52,10 @@ test("core loop: login → dashboard → connect X → compose → schedule → 
   await expect(page.getByText(/draft saved/i)).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText("Ready")).toBeVisible();
 
-  // X is pay-per-use: an empty wallet must block scheduling with a way out.
-  await page.getByRole("button", { name: "Schedule" }).first().click();
-  const gateDialog = page.getByRole("dialog", { name: "Schedule post" });
-  await gateDialog.getByRole("button", { name: "Schedule", exact: true }).click();
+  // X is pay-per-use: an empty wallet must block publishing with a way out.
+  await page.getByRole("button", { name: "Publish", exact: true }).first().click();
+  const gateDialog = page.getByRole("dialog", { name: "Publish post" });
+  await gateDialog.getByRole("button", { name: "Publish now" }).click();
   await expect(gateDialog.getByText(/not enough wallet credits/i)).toBeVisible({
     timeout: 15_000,
   });
@@ -69,8 +69,8 @@ test("core loop: login → dashboard → connect X → compose → schedule → 
 
   // Schedule it for a specific future time via the dialog.
   await page.goto("/compose");
-  await page.getByRole("button", { name: "Schedule" }).first().click();
-  const dialog = page.getByRole("dialog", { name: "Schedule post" });
+  await page.getByRole("button", { name: "Publish", exact: true }).first().click();
+  const dialog = page.getByRole("dialog", { name: "Publish post" });
   await expect(dialog).toBeVisible();
   await dialog.getByRole("radio", { name: /specific time/i }).check();
   const runAt = new Date(Date.now() + 24 * 60 * 60 * 1000);

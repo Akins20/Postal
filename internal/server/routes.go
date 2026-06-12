@@ -95,6 +95,9 @@ func mountAuthenticated(pr chi.Router, deps Deps) {
 			if deps.BillingHandler != nil {
 				deps.BillingHandler.RegisterWorkspaceScoped(sr)
 			}
+			if deps.IntegrationHandler != nil {
+				deps.IntegrationHandler.RegisterWorkspaceScoped(sr)
+			}
 		})
 	})
 	if deps.ChannelHandler != nil {

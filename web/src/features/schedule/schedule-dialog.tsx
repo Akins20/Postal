@@ -11,11 +11,13 @@ import { Button } from "@/ui/primitives/button";
 import { Hint } from "@/ui/primitives/hint";
 import { Icon } from "@/ui/primitives/icon";
 
-type Mode = "slots" | "time";
+type Mode = "now" | "slots" | "time";
 
 /**
- * Schedule a saved draft: either into each channel's next open posting slot,
- * or at one specific time (picked in the user's local timezone and sent UTC).
+ * Publish a saved draft: immediately, into each channel's next open posting
+ * slot, or at one specific time (picked in the user's local timezone, sent
+ * UTC). "Now" rides the same scheduling pipeline with run_at = now, so
+ * retries, idempotency, and the wallet gate all still apply.
  */
 export function ScheduleDialog({
   workspaceId,
@@ -28,13 +30,13 @@ export function ScheduleDialog({
 }) {
   const schedule = useSchedulePost(workspaceId);
   const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<Mode>("slots");
+  const [mode, setMode] = useState<Mode>("now");
   const [when, setWhen] = useState("");
   const [error, setError] = useState<NormalizedError | null>(null);
   const [scheduled, setScheduled] = useState<number | null>(null);
 
   const reset = () => {
-    setMode("slots");
+    setMode("now");
     setWhen("");
     setError(null);
     setScheduled(null);
@@ -46,7 +48,15 @@ export function ScheduleDialog({
       const jobs = await schedule.mutateAsync(
         mode === "slots"
           ? { postId, toSlots: true }
-          : { postId, runAt: new Date(when).toISOString() },
+          : {
+              postId,
+              // "Now" still goes through the queue: a couple of seconds out so
+              // the backend's future-run_at validation always passes.
+              runAt:
+                mode === "now"
+                  ? new Date(Date.now() + 3000).toISOString()
+                  : new Date(when).toISOString(),
+            },
       );
       setScheduled(jobs.length);
     } catch (e) {
@@ -66,16 +76,15 @@ export function ScheduleDialog({
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px]" />
         <Dialog.Content className="material-dialog shadow-popover fixed top-1/2 left-1/2 z-50 w-[calc(100vw-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl p-6 outline-none">
-          <Dialog.Title className="text-fg text-base font-semibold">Schedule post</Dialog.Title>
+          <Dialog.Title className="text-fg text-base font-semibold">Publish post</Dialog.Title>
           <Dialog.Description className="text-fg-muted mt-1 mb-4 text-sm">
-            One job is created per selected channel.
+            Publish right away or pick a time. One job is created per channel.
           </Dialog.Description>
 
           {scheduled !== null ? (
             <div role="status" className="flex flex-col gap-4">
               <p className="text-fg text-sm">
-                Scheduled - {scheduled} job{scheduled === 1 ? "" : "s"} created. Track them on the
-                calendar.
+                {scheduled} job{scheduled === 1 ? "" : "s"} created. Track them on the calendar.
               </p>
               <Dialog.Close asChild>
                 <Button>Done</Button>
@@ -84,6 +93,19 @@ export function ScheduleDialog({
           ) : (
             <fieldset className="flex flex-col gap-3">
               <legend className="sr-only">When to publish</legend>
+              <label className="flex items-start gap-2.5 text-sm">
+                <input
+                  type="radio"
+                  name="schedule-mode"
+                  checked={mode === "now"}
+                  onChange={() => setMode("now")}
+                  className="mt-0.5"
+                />
+                <span>
+                  <span className="text-fg block font-medium">Publish now</span>
+                  <span className="text-fg-muted block text-xs">Goes out within seconds.</span>
+                </span>
+              </label>
               <label className="flex items-start gap-2.5 text-sm">
                 <input
                   type="radio"
@@ -155,7 +177,7 @@ export function ScheduleDialog({
                   onClick={submit}
                   disabled={schedule.isPending || (mode === "time" && !when)}
                 >
-                  {schedule.isPending ? "Scheduling…" : "Schedule"}
+                  {schedule.isPending ? "Working…" : mode === "now" ? "Publish now" : "Schedule"}
                 </Button>
               </div>
             </fieldset>

@@ -61,6 +61,7 @@ type Querier interface {
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	GetVariantByPostChannel(ctx context.Context, arg GetVariantByPostChannelParams) (PostVariant, error)
 	GetWalletBalance(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	GetWorkspaceIntegration(ctx context.Context, arg GetWorkspaceIntegrationParams) (WorkspaceIntegration, error)
 	InsertAuditLog(ctx context.Context, arg InsertAuditLogParams) (InsertAuditLogRow, error)
 	// Append a ledger entry. ON CONFLICT DO NOTHING + no row returned signals a
 	// duplicate (webhook retry / double claim) so the caller can skip the credit.
@@ -94,6 +95,7 @@ type Querier interface {
 	ListScheduledRunAtForChannel(ctx context.Context, arg ListScheduledRunAtForChannelParams) ([]pgtype.Timestamptz, error)
 	ListSlotsForChannel(ctx context.Context, channelID uuid.UUID) ([]ScheduleSlot, error)
 	ListVariantsByPost(ctx context.Context, postID uuid.UUID) ([]PostVariant, error)
+	ListWorkspaceIntegrations(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceIntegration, error)
 	ListWorkspacesForUser(ctx context.Context, userID uuid.UUID) ([]Workspace, error)
 	// Row-locks the workspace so a quota check + media insert is serialized against
 	// concurrent uploads in the same workspace (prevents TOCTOU quota overshoot).
@@ -119,6 +121,7 @@ type Querier interface {
 	UpsertPollState(ctx context.Context, arg UpsertPollStateParams) error
 	// Ensure the workspace has a wallet row and return it.
 	UpsertWallet(ctx context.Context, workspaceID uuid.UUID) (Wallet, error)
+	UpsertWorkspaceIntegration(ctx context.Context, arg UpsertWorkspaceIntegrationParams) (WorkspaceIntegration, error)
 }
 
 var _ Querier = (*Queries)(nil)

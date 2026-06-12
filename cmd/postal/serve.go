@@ -10,6 +10,7 @@ import (
 	"github.com/Akins20/postal/internal/billing"
 	"github.com/Akins20/postal/internal/channel"
 	"github.com/Akins20/postal/internal/config"
+	"github.com/Akins20/postal/internal/integration"
 	"github.com/Akins20/postal/internal/media"
 	"github.com/Akins20/postal/internal/platform/db"
 	"github.com/Akins20/postal/internal/platform/metrics"
@@ -180,6 +181,12 @@ func (w *wiring) wireChannels(deps *server.Deps) {
 	// the platform adapters (publish.Registry), and resolves attached media.
 	postSvc := post.NewService(w.pool, channelSvc, publish.NewRegistry(adapters...), mediaResolver, w.auditor, nil)
 	deps.PostHandler = post.NewHandler(postSvc, w.wsSvc, w.log)
+
+	// Third-party integrations (OGShortener link shortening). API keys are
+	// sealed with the same master key as the channel token vault.
+	integrationSvc := integration.NewService(w.pool, w.enc,
+		integration.NewOGShortenerClient(w.cfg.Integrations.OGShortenerAPIBase, nil))
+	deps.IntegrationHandler = integration.NewHandler(integrationSvc, w.wsSvc, w.log)
 
 	// Wallet billing (Phase 13): X is pay-per-use; scheduling gets the
 	// affordability soft gate, the worker the hard charge.
