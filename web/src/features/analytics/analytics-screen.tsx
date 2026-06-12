@@ -72,14 +72,22 @@ export function AnalyticsScreen() {
             Couldn&apos;t load analytics. Please try again.
           </p>
         )}
-        {rows?.length === 0 && (
-          <EmptyState
-            icon={BarChart3}
-            title="No metrics yet"
-            description="Numbers show up here once scheduled posts publish and their first metrics are captured."
-            className="py-10"
-          />
-        )}
+        {rows?.length === 0 &&
+          ((posts ?? []).some((p) => p.status === "published") ? (
+            <EmptyState
+              icon={BarChart3}
+              title="Metrics are on the way"
+              description="You have published posts. The first numbers are captured within about 15 minutes of publishing, then refresh periodically."
+              className="py-10"
+            />
+          ) : (
+            <EmptyState
+              icon={BarChart3}
+              title="No published posts yet"
+              description="Publish a post from the composer first. Metrics appear here within about 15 minutes of publishing."
+              className="py-10"
+            />
+          ))}
         {rows && rows.length > 0 && (
           <ul className="flex list-none flex-col">
             {rows.map((row) => {

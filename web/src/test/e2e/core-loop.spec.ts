@@ -10,7 +10,14 @@ import { expect, test, type APIRequestContext, type Page } from "@playwright/tes
 const PW = "e2e-browser-password";
 
 async function signupAndLogin(page: Page, request: APIRequestContext, email: string) {
-  const res = await request.post("/api/v1/auth/signup", { data: { email, password: PW } });
+  // Signup is per-IP rate limited (anti-abuse). Heavy local test runs can
+  // drain the bucket, so honor Retry-After a few times before giving up.
+  let res = await request.post("/api/v1/auth/signup", { data: { email, password: PW } });
+  for (let attempt = 0; res.status() === 429 && attempt < 3; attempt++) {
+    const wait = Math.min(Number(res.headers()["retry-after"] ?? "10"), 30);
+    await new Promise((r) => setTimeout(r, (wait + 1) * 1000));
+    res = await request.post("/api/v1/auth/signup", { data: { email, password: PW } });
+  }
   expect(res.status()).toBe(201);
   await page.goto("/login");
   await page.getByLabel("Email").fill(email);

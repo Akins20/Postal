@@ -61,10 +61,10 @@ function mockBase(rows: unknown[]) {
 beforeEach(() => useWorkspaceStore.setState({ activeId: null }));
 
 describe("AnalyticsScreen", () => {
-  it("shows the empty state before any metrics exist", async () => {
+  it("explains the wait when posts are published but unpolled", async () => {
     mockBase([]);
     renderWithProviders(<AnalyticsScreen />);
-    expect(await screen.findByText("No metrics yet")).toBeInTheDocument();
+    expect(await screen.findByText("Metrics are on the way")).toBeInTheDocument();
   });
 
   it("lists overview rows with post excerpt, channel and metrics", async () => {

@@ -130,6 +130,11 @@ func (w *wiring) wireAuth(deps *server.Deps) error {
 	if w.cfg.HTTP.IsProduction() {
 		return fmt.Errorf("no production mailer configured: refusing to start auth with the dev console mailer in production")
 	}
+	// Local e2e runs sign up many throwaway accounts; keep production strict.
+	if !w.cfg.HTTP.IsProduction() {
+		auth.RelaxAuthLimitsForDevelopment()
+		w.log.Warn("auth rate limits relaxed (development only)")
+	}
 	authSvc := auth.NewService(w.pool, tokens, sessions, auth.NewConsoleMailer(w.log), w.auditor, nil)
 
 	deps.Tokens = tokens

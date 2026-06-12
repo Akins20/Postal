@@ -11,9 +11,8 @@ import {
 } from "lucide-react";
 
 import type { DockItem } from "@/ui/dock/dock";
-import type { SidebarSection } from "@/ui/sidebar/sidebar";
 
-/** Top-level destinations shown in the dashboard dock (FRONTEND_PLAN §5). */
+/** Primary destinations: the dock's first group (FRONTEND_PLAN §5). */
 export const dockItems: DockItem[] = [
   { href: "/", label: "Home", icon: Home },
   { href: "/compose", label: "Compose", icon: SquarePen },
@@ -23,24 +22,9 @@ export const dockItems: DockItem[] = [
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
 ];
 
-/** The feature-route side rail (macOS source list). */
-export const featureSidebar: SidebarSection[] = [
-  {
-    title: "Workspace",
-    items: [
-      { href: "/compose", label: "Compose", icon: SquarePen },
-      { href: "/calendar", label: "Calendar", icon: Calendar },
-      { href: "/channels", label: "Channels", icon: Radio },
-      { href: "/media", label: "Media", icon: ImageIcon },
-      { href: "/analytics", label: "Analytics", icon: BarChart3 },
-    ],
-  },
-  {
-    title: "Manage",
-    items: [
-      { href: "/wallet", label: "Wallet", icon: Wallet },
-      { href: "/integrations", label: "Integrations", icon: Puzzle },
-      { href: "/settings", label: "Settings", icon: Settings },
-    ],
-  },
+/** Management destinations: the dock's second group, after the divider. */
+export const dockManage: DockItem[] = [
+  { href: "/wallet", label: "Wallet", icon: Wallet },
+  { href: "/integrations", label: "Integrations", icon: Puzzle },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];

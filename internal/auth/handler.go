@@ -32,6 +32,19 @@ var (
 	refreshIPRule = ratelimit.Rule{Capacity: 60, RefillRate: 0.2} // ~12/min per IP
 )
 
+// RelaxAuthLimitsForDevelopment multiplies the auth buckets so local e2e
+// suites (each run signs up several throwaway accounts) don't starve the
+// per-IP signup bucket. Wiring calls it ONLY when the environment is not
+// production; the production rules above are the contract.
+func RelaxAuthLimitsForDevelopment() {
+	for _, r := range []*ratelimit.Rule{
+		&signupIPRule, &loginIPRule, &loginEmail, &resetIPRule, &tokenIPRule, &refreshIPRule,
+	} {
+		r.Capacity *= 100
+		r.RefillRate *= 100
+	}
+}
+
 // Handler serves the /api/v1/auth endpoints.
 type Handler struct {
 	svc        *Service
