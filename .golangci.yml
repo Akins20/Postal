@@ -40,6 +40,10 @@ issues:
   # Show all issues; do not cap per-linter.
   max-issues-per-linter: 0
   max-same-issues: 0
+  # The web app's node_modules ships vendored Go files (e.g. the `flatted`
+  # npm package) — not our code.
+  exclude-dirs:
+    - web
   exclude-rules:
     # Test files may use weaker error handling and higher complexity for table tests.
     - path: _test\.go

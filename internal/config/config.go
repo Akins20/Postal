@@ -50,11 +50,15 @@ type Config struct {
 }
 
 // Twitter holds the X/Twitter OAuth app credentials. When ClientID is empty the
-// X adapter is not registered (channels for X are disabled).
+// X adapter is not registered (channels for X are disabled). APIBaseURL and
+// AuthBaseURL override the real X hosts so local dev/e2e can point the adapter
+// at the simulator (`postal sim`); empty means the real API.
 type Twitter struct {
 	ClientID     string
 	ClientSecret string
 	RedirectURI  string
+	APIBaseURL   string
+	AuthBaseURL  string
 }
 
 // Storage holds S3-compatible object-storage settings for the media pipeline.
@@ -174,6 +178,8 @@ func Load() (Config, error) {
 			ClientID:     getString("X_CLIENT_ID", ""),
 			ClientSecret: getString("X_CLIENT_SECRET", ""),
 			RedirectURI:  getString("X_REDIRECT_URI", ""),
+			APIBaseURL:   getString("X_API_BASE_URL", ""),
+			AuthBaseURL:  getString("X_AUTH_BASE_URL", ""),
 		},
 		Storage: Storage{
 			Endpoint:          getString("STORAGE_ENDPOINT", ""),

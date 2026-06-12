@@ -8,8 +8,10 @@ package twittersim
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -47,8 +49,31 @@ func (s *Server) EnableMediaProcessing() {
 	s.mediaProcessing = true
 }
 
-// New starts a simulator and returns it. Call Close when done.
+// New starts a simulator on a random port and returns it. Call Close when done.
 func New() *Server {
+	s, mux := build()
+	s.ts = httptest.NewServer(mux)
+	return s
+}
+
+// NewAt starts a simulator on a fixed address (e.g. "127.0.0.1:10090") for
+// live dev/e2e use (`postal sim`); tests should prefer New.
+func NewAt(addr string) (*Server, error) {
+	s, mux := build()
+	l, err := net.Listen("tcp", addr)
+	if err != nil {
+		return nil, fmt.Errorf("listening on %s: %w", addr, err)
+	}
+	ts := httptest.NewUnstartedServer(mux)
+	_ = ts.Listener.Close()
+	ts.Listener = l
+	ts.Start()
+	s.ts = ts
+	return s, nil
+}
+
+// build constructs the simulator state and routes (server attached by caller).
+func build() (*Server, *http.ServeMux) {
 	s := &Server{
 		validAccess: map[string]bool{},
 		tweets:      map[string]string{},
@@ -57,14 +82,41 @@ func New() *Server {
 		tweetMetric: map[string]map[string]int64{},
 	}
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /i/oauth2/authorize", s.handleAuthorize)
 	mux.HandleFunc("POST /2/oauth2/token", s.handleToken)
 	mux.HandleFunc("POST /2/oauth2/revoke", s.handleRevoke)
 	mux.HandleFunc("GET /2/users/me", s.handleUsersMe)
 	mux.HandleFunc("POST /2/tweets", s.handleCreateTweet)
 	mux.HandleFunc("GET /2/tweets/{id}", s.handleTweetLookup)
 	mux.HandleFunc("/2/media/upload", s.handleMedia)
-	s.ts = httptest.NewServer(mux)
-	return s
+	return s, mux
+}
+
+// handleAuthorize plays the X consent page: it immediately "approves" and
+// redirects the browser back to redirect_uri with the state and a code, the
+// same shape the real authorize endpoint produces after the user clicks Allow.
+func (s *Server) handleAuthorize(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	redirect := q.Get("redirect_uri")
+	state := q.Get("state")
+	if redirect == "" || state == "" || q.Get("code_challenge") == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid_request"})
+		return
+	}
+	u, err := url.Parse(redirect)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid_redirect_uri"})
+		return
+	}
+	s.mu.Lock()
+	s.nextTok++
+	code := fmt.Sprintf("authcode-%d", s.nextTok)
+	s.mu.Unlock()
+	v := u.Query()
+	v.Set("state", state)
+	v.Set("code", code)
+	u.RawQuery = v.Encode()
+	http.Redirect(w, r, u.String(), http.StatusFound)
 }
 
 // URL returns the simulator base URL (use as the adapter APIBaseURL).

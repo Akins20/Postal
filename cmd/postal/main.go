@@ -50,6 +50,8 @@ func run() error {
 		return runServe(ctx, cfg, log)
 	case "worker":
 		return runWorker(ctx, cfg, log)
+	case "sim":
+		return runSim(ctx, log)
 	case "-h", "--help", "help":
 		usage()
 		return nil
@@ -66,6 +68,7 @@ func usage() {
 usage:
   postal serve     run the HTTP API server
   postal worker    run the asynq job worker
+  postal sim       run the X/Twitter API simulator (local dev/e2e)
   postal help      show this message
 `)
 }

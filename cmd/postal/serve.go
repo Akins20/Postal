@@ -212,10 +212,15 @@ func buildAdapters(cfg config.Config, log *slog.Logger) []publish.Adapter {
 		log.Warn("POSTAL_X_CLIENT_ID not set; X/Twitter is disabled")
 		return nil
 	}
+	if cfg.Twitter.APIBaseURL != "" {
+		log.Warn("X adapter base URLs overridden (simulator?)", "api", cfg.Twitter.APIBaseURL)
+	}
 	return []publish.Adapter{twitter.New(twitter.Config{
 		ClientID:     cfg.Twitter.ClientID,
 		ClientSecret: cfg.Twitter.ClientSecret,
 		RedirectURI:  cfg.Twitter.RedirectURI,
+		APIBaseURL:   cfg.Twitter.APIBaseURL,
+		AuthBaseURL:  cfg.Twitter.AuthBaseURL,
 	})}
 }
 
