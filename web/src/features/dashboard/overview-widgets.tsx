@@ -1,5 +1,6 @@
 "use client";
 
+import { atHandle } from "@/lib/format";
 import { addDays, format, isSameDay } from "date-fns";
 import { CalendarClock, Radio, SquarePen } from "lucide-react";
 import Link from "next/link";
@@ -92,7 +93,10 @@ export function OverviewWidgets() {
                   : format(new Date(j.run_at), "EEE d · HH:mm")}
               </span>
               <span className="text-fg min-w-0 flex-1 truncate">
-                @{channelByID.get(j.channel_id)?.handle ?? j.channel_id.slice(0, 8)}
+                {(() => {
+                  const c = channelByID.get(j.channel_id);
+                  return c ? atHandle(c.handle) : j.channel_id.slice(0, 8);
+                })()}
               </span>
               <StatusPill tone={JOB_TONE[j.status]}>{j.status}</StatusPill>
             </li>
@@ -132,7 +136,7 @@ export function OverviewWidgets() {
             <ul className="flex list-none flex-col gap-1.5">
               {channels.slice(0, 4).map((c) => (
                 <li key={c.id} className="flex items-center justify-between gap-2">
-                  <span className="text-fg-muted truncate text-xs">@{c.handle}</span>
+                  <span className="text-fg-muted truncate text-xs">{atHandle(c.handle)}</span>
                   <StatusPill tone={c.status === "active" ? "success" : "warning"}>
                     {c.status}
                   </StatusPill>

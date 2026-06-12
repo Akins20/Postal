@@ -9,6 +9,7 @@ import { useChannels } from "@/data/channels";
 import { usePosts } from "@/data/posts";
 import { useActiveWorkspace } from "@/features/workspace/use-active-workspace";
 import { cn } from "@/lib/cn";
+import { atHandle } from "@/lib/format";
 import { Button } from "@/ui/primitives/button";
 import { EmptyState } from "@/ui/primitives/empty-state";
 import { Hint } from "@/ui/primitives/hint";
@@ -99,7 +100,7 @@ export function AnalyticsScreen() {
                       {excerptByPost.get(row.post_id) ?? row.post_id.slice(0, 8)}
                     </span>
                     <span className="text-fg-muted text-xs">
-                      {channel ? `@${channel.handle}` : row.channel_id.slice(0, 8)}
+                      {channel ? atHandle(channel.handle) : row.channel_id.slice(0, 8)}
                     </span>
                     <span className="text-fg-muted text-xs tabular-nums">
                       {Object.entries(row.metrics)

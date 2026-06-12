@@ -3,6 +3,7 @@
 import { platformInfo } from "@/config/platforms";
 import type { Channel } from "@/data/channels";
 import { cn } from "@/lib/cn";
+import { atHandle } from "@/lib/format";
 import { Tooltip } from "@/ui/primitives/tooltip";
 
 /**
@@ -43,7 +44,7 @@ export function ChannelPicker({
               onChange={() => onToggle(c.id)}
             />
             <PlatformIcon width={14} height={14} aria-hidden />
-            <span>@{c.handle}</span>
+            <span>{atHandle(c.handle)}</span>
           </label>
         );
         return disabled ? (

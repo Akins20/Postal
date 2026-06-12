@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { formatBytes } from "./format";
+import { atHandle, formatBytes } from "./format";
+
+describe("atHandle", () => {
+  it("keeps a single leading @ (the backend stores X handles with one)", () => {
+    expect(atHandle("@simuser")).toBe("@simuser");
+    expect(atHandle("ada")).toBe("@ada");
+  });
+});
 
 describe("formatBytes", () => {
   it("formats across unit boundaries", () => {

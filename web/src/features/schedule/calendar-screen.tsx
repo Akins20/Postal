@@ -22,6 +22,7 @@ import { useChannels } from "@/data/channels";
 import { useCalendar, type Job } from "@/data/schedule";
 import { useActiveWorkspace } from "@/features/workspace/use-active-workspace";
 import { cn } from "@/lib/cn";
+import { atHandle } from "@/lib/format";
 import { Button } from "@/ui/primitives/button";
 import { Panel } from "@/ui/primitives/panel";
 import { Spinner } from "@/ui/primitives/spinner";
@@ -173,7 +174,10 @@ export function CalendarScreen() {
                         )}
                       >
                         {format(new Date(j.run_at), "HH:mm")}{" "}
-                        {channelById.get(j.channel_id)?.handle ?? ""}
+                        {(() => {
+                          const c = channelById.get(j.channel_id);
+                          return c ? atHandle(c.handle) : "";
+                        })()}
                       </span>
                     ))}
                     {dayJobs.length > 2 && (

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { platformInfo } from "@/config/platforms";
 import { useDisconnectChannel, type Channel, type ChannelStatus } from "@/data/channels";
 import type { NormalizedError } from "@/lib/api-error";
+import { atHandle } from "@/lib/format";
 import { Button } from "@/ui/primitives/button";
 import { ConfirmDialog } from "@/ui/primitives/confirm-dialog";
 import { StatusPill } from "@/ui/primitives/status-pill";
@@ -49,7 +50,7 @@ export function ChannelCard({ workspaceId, channel }: { workspaceId: string; cha
       <div className="min-w-0 flex-1">
         <p className="text-fg truncate text-sm font-medium">{channel.display_name}</p>
         <p className="text-fg-muted truncate text-xs">
-          @{channel.handle} · {info.label}
+          {atHandle(channel.handle)} · {info.label}
         </p>
       </div>
       <Tooltip content={STATUS_HINT[channel.status]}>
@@ -68,7 +69,7 @@ export function ChannelCard({ workspaceId, channel }: { workspaceId: string; cha
             Disconnect
           </Button>
         }
-        title={`Disconnect @${channel.handle}?`}
+        title={`Disconnect ${atHandle(channel.handle)}?`}
         description={
           <>
             Scheduled posts targeting this account will fail to publish until it is reconnected.

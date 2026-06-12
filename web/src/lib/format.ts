@@ -1,3 +1,11 @@
+/**
+ * A handle with exactly one leading "@". The backend already stores X handles
+ * as "@name"; other platforms may not — never blindly prepend.
+ */
+export function atHandle(handle: string): string {
+  return handle.startsWith("@") ? handle : `@${handle}`;
+}
+
 /** Human-readable byte size (binary units, one decimal above KiB). */
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;

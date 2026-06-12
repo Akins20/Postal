@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { Channel } from "@/data/channels";
 import { useCreateSlot, useDeleteSlot, useSlots } from "@/data/schedule";
 import type { NormalizedError } from "@/lib/api-error";
+import { atHandle } from "@/lib/format";
 import { Button } from "@/ui/primitives/button";
 import { Hint } from "@/ui/primitives/hint";
 import { Icon } from "@/ui/primitives/icon";
@@ -70,7 +71,7 @@ export function SlotsManager({
         >
           {channels.map((c) => (
             <option key={c.id} value={c.id}>
-              @{c.handle} ({c.platform})
+              {atHandle(c.handle)} ({c.platform})
             </option>
           ))}
         </select>

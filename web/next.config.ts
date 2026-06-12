@@ -24,6 +24,10 @@ const apiTarget = process.env.API_PROXY_TARGET ?? "http://localhost:8080";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // The API's collection routes end in "/" (e.g. /api/v1/workspaces/). Without
+  // this, Next 308-normalizes them away before the rewrite — an extra round
+  // trip on every collection request.
+  skipTrailingSlashRedirect: true,
   // Pin the workspace root to web/ (a stray lockfile sits above the repo).
   turbopack: { root: import.meta.dirname },
   async headers() {

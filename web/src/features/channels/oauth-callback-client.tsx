@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { useCompleteOAuth } from "@/data/channels";
 import type { NormalizedError } from "@/lib/api-error";
+import { atHandle } from "@/lib/format";
 import { Button } from "@/ui/primitives/button";
 import { Panel } from "@/ui/primitives/panel";
 import { Spinner } from "@/ui/primitives/spinner";
@@ -29,7 +30,7 @@ export function OAuthCallbackClient({ state, code }: { state?: string; code?: st
     complete
       .mutateAsync({ state, code })
       .then((channel) => {
-        setResult({ status: "success", message: `@${channel.handle} is connected.` });
+        setResult({ status: "success", message: `${atHandle(channel.handle)} is connected.` });
         router.replace("/channels");
       })
       .catch((e: NormalizedError) => {

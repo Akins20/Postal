@@ -1,5 +1,6 @@
 "use client";
 
+import { atHandle } from "@/lib/format";
 import { subDays } from "date-fns";
 import { useMemo, useState } from "react";
 
@@ -74,7 +75,7 @@ export function PostDetail({
           return (
             <div key={row.channel_id} className="border-separator rounded-lg border p-4">
               <p className="text-fg text-sm font-medium">
-                {channel ? `@${channel.handle}` : row.channel_id.slice(0, 8)}
+                {channel ? atHandle(channel.handle) : row.channel_id.slice(0, 8)}
               </p>
               <dl className="mt-2 flex flex-wrap gap-x-5 gap-y-1.5">
                 {Object.entries(row.metrics)
@@ -102,11 +103,14 @@ export function PostDetail({
             }}
             className="border-separator bg-elevated text-fg focus-visible:ring-ring h-9 rounded-md border px-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
           >
-            {perChannel.map((row) => (
-              <option key={row.channel_id} value={row.channel_id}>
-                {channelById.get(row.channel_id)?.handle ?? row.channel_id.slice(0, 8)}
-              </option>
-            ))}
+            {perChannel.map((row) => {
+              const channel = channelById.get(row.channel_id);
+              return (
+                <option key={row.channel_id} value={row.channel_id}>
+                  {channel ? atHandle(channel.handle) : row.channel_id.slice(0, 8)}
+                </option>
+              );
+            })}
           </select>
         </label>
         <label className="flex flex-col gap-1 text-xs">

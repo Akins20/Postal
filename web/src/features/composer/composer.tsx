@@ -13,6 +13,7 @@ import {
   type VariantValidation,
 } from "@/data/posts";
 import type { NormalizedError } from "@/lib/api-error";
+import { atHandle } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { Button } from "@/ui/primitives/button";
 import { StatusPill } from "@/ui/primitives/status-pill";
@@ -113,7 +114,7 @@ export function Composer({
         <div role="tablist" aria-label="Channel text" className="flex flex-wrap gap-1">
           {(["all", ...state.selected] as const).map((t) => {
             const channel = t === "all" ? null : byId.get(t);
-            const label = channel ? `@${channel.handle}` : "All channels";
+            const label = channel ? atHandle(channel.handle) : "All channels";
             const overridden = channel ? t in state.overrides : false;
             return (
               <button
@@ -161,7 +162,7 @@ export function Composer({
           return (
             <div className="flex flex-col gap-2">
               <VariantEditor
-                label={`Text for @${channel.handle}`}
+                label={`Text for ${atHandle(channel.handle)}`}
                 value={bodyFor(tab)}
                 charLimit={platformInfo(channel.platform).charLimit}
                 onChange={(body) =>
@@ -218,7 +219,7 @@ export function Composer({
                     {v.valid ? "Ready" : "Needs changes"}
                   </StatusPill>
                   <span className="text-fg-muted">
-                    {channel ? `@${channel.handle}` : v.channel_id}
+                    {channel ? atHandle(channel.handle) : v.channel_id}
                     {!v.valid && v.message ? ` — ${v.message}` : ""}
                   </span>
                 </li>
