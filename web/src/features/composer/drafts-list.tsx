@@ -22,8 +22,10 @@ function DraftRow({
   const remove = useDeletePost(workspaceId);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The LIST endpoint omits variants (only the detail GET includes them), so
+  // an absent array means "unknown", not "empty".
   const excerpt = post.variants?.[0]?.body ?? "";
-  const channelCount = post.variants?.length ?? 0;
+  const channelCount = post.variants?.length;
 
   const onDelete = async () => {
     setError(null);
@@ -38,9 +40,12 @@ function DraftRow({
   return (
     <li className="border-separator flex flex-wrap items-center gap-3 border-b py-3 last:border-0">
       <div className="min-w-0 flex-1">
-        <p className="text-fg truncate text-sm">{excerpt || <em>(no text)</em>}</p>
+        <p className="text-fg truncate text-sm">
+          {excerpt || <em className="text-fg-muted">Saved post</em>}
+        </p>
         <p className="text-fg-subtle text-xs">
-          {channelCount} channel{channelCount === 1 ? "" : "s"} ·{" "}
+          {channelCount !== undefined &&
+            `${channelCount} channel${channelCount === 1 ? "" : "s"} · `}
           {new Date(post.created_at).toLocaleDateString()}
         </p>
       </div>

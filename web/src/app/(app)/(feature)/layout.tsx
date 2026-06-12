@@ -1,3 +1,7 @@
+"use client";
+
+// Client component: the sidebar nav config carries icon COMPONENTS, which a
+// Server Component can't pass across the RSC boundary (not serializable).
 import { WorkspaceSwitcher } from "@/features/workspace/workspace-switcher";
 
 import { featureSidebar } from "@/config/nav";

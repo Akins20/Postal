@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { useChannels } from "@/data/channels";
-import type { Post } from "@/data/posts";
+import { usePost } from "@/data/posts";
 import { useActiveWorkspace } from "@/features/workspace/use-active-workspace";
 import { Button } from "@/ui/primitives/button";
 import { EmptyState } from "@/ui/primitives/empty-state";
@@ -19,7 +19,10 @@ import { DraftsList } from "./drafts-list";
 export function ComposeScreen() {
   const { active } = useActiveWorkspace();
   const { data: channels, isPending } = useChannels(active?.id);
-  const [editing, setEditing] = useState<Post | undefined>(undefined);
+  // Editing loads the post DETAIL — the list endpoint omits variants, so the
+  // list row alone can't seed the editor.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const detail = usePost(active?.id, editingId ?? undefined);
 
   if (!active || isPending) {
     return (
@@ -49,26 +52,31 @@ export function ComposeScreen() {
   return (
     <div className="flex flex-col gap-6">
       <Panel className="p-6">
-        {editing && (
+        {editingId && (
           <div className="border-separator mb-4 flex items-center justify-between gap-3 border-b pb-3">
             <p className="text-fg-muted text-sm">Editing a saved draft.</p>
-            <Button variant="ghost" size="sm" onClick={() => setEditing(undefined)}>
+            <Button variant="ghost" size="sm" onClick={() => setEditingId(null)}>
               New post
             </Button>
           </div>
         )}
-        <Composer
-          key={editing?.id ?? "new"}
-          workspaceId={active.id}
-          channels={channels}
-          initial={editing}
-          onSaved={setEditing}
-        />
+        {editingId && detail.isPending ? (
+          <div className="py-10 text-center">
+            <Spinner label="Loading draft" />
+          </div>
+        ) : (
+          <Composer
+            key={editingId ?? "new"}
+            workspaceId={active.id}
+            channels={channels}
+            initial={editingId ? detail.data : undefined}
+          />
+        )}
       </Panel>
 
       <Panel className="p-6">
         <h2 className="text-fg mb-2 text-sm font-semibold">Your posts</h2>
-        <DraftsList workspaceId={active.id} onEdit={setEditing} />
+        <DraftsList workspaceId={active.id} onEdit={(post) => setEditingId(post.id)} />
       </Panel>
     </div>
   );

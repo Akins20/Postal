@@ -26,11 +26,16 @@ const CHANNEL = {
   connected_by: null,
   created_at: "2026-01-01T00:00:00Z",
 };
-const POST = {
+// The LIST endpoint omits variants (backend `omitempty`); only the detail
+// GET includes them — the mocks mirror that contract.
+const LIST_POST = {
   id: "44444444-4444-4444-4444-444444444444",
   workspace_id: WS.id,
   status: "draft",
   created_at: "2026-01-02T00:00:00Z",
+};
+const DETAIL_POST = {
+  ...LIST_POST,
   variants: [
     { id: "55555555-5555-5555-5555-555555555555", channel_id: CHANNEL.id, body: "Saved draft" },
   ],
@@ -44,6 +49,9 @@ function mockBase({ channels, posts }: { channels: unknown[]; posts: unknown[] }
     ),
     http.get(`http://localhost/api/v1/workspaces/${WS.id}/posts/`, () =>
       HttpResponse.json({ data: posts }),
+    ),
+    http.get(`http://localhost/api/v1/workspaces/${WS.id}/posts/${LIST_POST.id}`, () =>
+      HttpResponse.json({ data: DETAIL_POST }),
     ),
   );
 }
@@ -61,34 +69,34 @@ describe("ComposeScreen", () => {
     );
   });
 
-  it("renders the composer and saved posts", async () => {
-    mockBase({ channels: [CHANNEL], posts: [POST] });
+  it("renders the composer and saved posts (list rows have no variants)", async () => {
+    mockBase({ channels: [CHANNEL], posts: [LIST_POST] });
     renderWithProviders(<ComposeScreen />);
     expect(await screen.findByLabelText("Post text")).toBeInTheDocument();
-    expect(await screen.findByText("Saved draft")).toBeInTheDocument();
+    expect(await screen.findByText("Saved post")).toBeInTheDocument();
   });
 
-  it("loads a draft into the composer via Edit", async () => {
-    mockBase({ channels: [CHANNEL], posts: [POST] });
+  it("loads a draft into the composer via Edit (fetches the detail)", async () => {
+    mockBase({ channels: [CHANNEL], posts: [LIST_POST] });
     renderWithProviders(<ComposeScreen />);
-    await screen.findByText("Saved draft");
+    await screen.findByText("Saved post");
     await userEvent.click(screen.getByRole("button", { name: "Edit" }));
     expect(await screen.findByText("Editing a saved draft.")).toBeInTheDocument();
-    expect(screen.getByLabelText("Post text")).toHaveValue("Saved draft");
+    await waitFor(() => expect(screen.getByLabelText("Post text")).toHaveValue("Saved draft"));
     expect(screen.getByRole("button", { name: "Update draft" })).toBeInTheDocument();
   });
 
   it("deletes a draft after confirmation", async () => {
-    mockBase({ channels: [CHANNEL], posts: [POST] });
+    mockBase({ channels: [CHANNEL], posts: [LIST_POST] });
     let deleted = false;
     server.use(
-      http.delete(`http://localhost/api/v1/workspaces/${WS.id}/posts/${POST.id}`, () => {
+      http.delete(`http://localhost/api/v1/workspaces/${WS.id}/posts/${LIST_POST.id}`, () => {
         deleted = true;
         return HttpResponse.json({ data: { message: "deleted" } });
       }),
     );
     renderWithProviders(<ComposeScreen />);
-    await screen.findByText("Saved draft");
+    await screen.findByText("Saved post");
     await userEvent.click(screen.getByRole("button", { name: "Delete" }));
     const dialog = await screen.findByRole("dialog", { name: "Delete this draft?" });
     await userEvent.click(within(dialog).getByRole("button", { name: "Delete" }));

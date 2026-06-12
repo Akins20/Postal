@@ -1,3 +1,7 @@
+"use client";
+
+// Client component: dock/sidebar nav config carries icon COMPONENTS, which a
+// Server Component can't pass across the RSC boundary (not serializable).
 import Link from "next/link";
 
 import { UserMenu } from "@/features/auth/user-menu";

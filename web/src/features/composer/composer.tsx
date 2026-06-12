@@ -53,15 +53,16 @@ export function Composer({
   workspaceId,
   channels,
   initial,
-  onSaved,
 }: {
   workspaceId: string;
   channels: Channel[];
-  /** Draft being edited; remount (key) the composer to load a different one. */
+  /** Draft being edited (full detail incl. variants); remount (key) to load a different one. */
   initial?: Post;
-  onSaved?: (post: Post) => void;
 }) {
   const [state, setState] = useState<ComposerState>(() => fromPost(initial));
+  // The saved post this editor targets. Tracked here (not via parent remount)
+  // so the first save keeps the editor mounted and the verdicts visible.
+  const [postId, setPostId] = useState(initial?.id);
   const [tab, setTab] = useState<"all" | string>("all");
   const [error, setError] = useState<string | null>(null);
   const [verdicts, setVerdicts] = useState<VariantValidation[] | null>(null);
@@ -96,11 +97,11 @@ export function Composer({
       media: state.media.length > 0 ? state.media : undefined,
     }));
     try {
-      const post = initial?.id
-        ? await update.mutateAsync({ postId: initial.id, variants })
+      const post = postId
+        ? await update.mutateAsync({ postId, variants })
         : await create.mutateAsync({ variants });
+      setPostId(post.id);
       setVerdicts(await validate.mutateAsync({ postId: post.id }));
-      onSaved?.(post);
     } catch (e) {
       setError((e as NormalizedError).message);
     }
@@ -234,7 +235,7 @@ export function Composer({
           onClick={save}
           disabled={saving || state.selected.length === 0 || !state.masterBody.trim()}
         >
-          {saving ? "Saving…" : initial?.id ? "Update draft" : "Save draft"}
+          {saving ? "Saving…" : postId ? "Update draft" : "Save draft"}
         </Button>
         {state.selected.length === 0 && (
           <p className="text-fg-subtle text-xs">Pick at least one channel to save.</p>
