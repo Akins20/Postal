@@ -426,7 +426,9 @@ boundaries plugin enforces this.)
 - [x] Dashboard home: 12.0 design-system showcase replaced with real `OverviewWidgets` — next-7-days scheduled jobs, drafts, channel health (counts + needs-attention). _Gotcha fixed: pin `now` with `useState(() => new Date())` — a fresh Date per render churns the calendar query key and the query never settles._
 - [x] A11y polish: **skip-to-content** link in the root layout targeting `#main` (feature shell + dashboard); axe pass on the composite dashboard.
 - [x] e2e smoke spec rewritten for the AuthGuard reality (unauth → /login; theme toggle persists; auth cross-links) — still CI-only (no local browsers).
-- [ ] Authenticated-core-loop e2e vs running backend + simulator (login → connect → compose → schedule → calendar); Web Vitals budgets; final responsive sweep at sm/md/lg against the live app; docs refresh.
+- [x] **Live core-loop e2e vs running backend + simulator** (2026-06-12, `scripts/curl/web-e2e.sh`, **27/27**): full stack up (Postgres/Redis/MinIO + `postal sim`/`serve`/`worker` + Next dev) — cookie+CSRF auth → OAuth connect via the simulator's real authorize redirect → compose → server validate → UTM → **real multipart upload** (closing the jsdom gap) → attach → schedule (exact + slots) → **worker published the job** → cancel → analytics + CSV → CSRF/401/bad-state failure paths → logout. Dev enablers: `postal sim` subcommand + `POSTAL_X_API_BASE_URL`/`AUTH_BASE_URL` env (commit c25db01).
+- [x] Live-stack fixes (c9fffdc): `skipTrailingSlashRedirect` (Next was 308-ing the API's `/collection/` routes before the rewrite); `atHandle()` — backend stores X handles WITH `@`, UI was rendering `@@handle`.
+- [ ] Browser-dependent polish: Playwright e2e in CI (no local browsers on this OS); visual responsive sweep at sm/md/lg; Web Vitals budgets (Lighthouse CI).
 - [ ] **Frontend declared complete.**
 
 ## 11. Cross-cutting concerns
