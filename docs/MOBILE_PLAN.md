@@ -97,10 +97,21 @@ Layer rules enforced with the same eslint `no-restricted-imports` boundaries.
 
 ## 5. Sub-phases (one at a time, verified before the next)
 
-- **15.0 Scaffold**: Expo + TS strict + NativeWind + tokens + Expo Router
-  shell (tab bar, theme toggle, Inter), eslint boundaries, Jest+RNTL+MSW
-  harness, `gen:api` wired to the same OpenAPI spec. DoD: renders themed
-  shell on emulator; unit harness green; lint/typecheck green.
+- [x] **15.0 Scaffold** DONE 2026-06-12: Expo SDK 56 (RN 0.85, React 19.2,
+  TS 6, react-compiler on) in `mobile/`; oklch palette ported to
+  `src/lib/tokens.ts` (hex; names match web 1:1) with a system+override
+  theme store; Panel/Button/StatusPill primitives; five-tab Expo Router
+  shell (Home/Compose/Calendar/Channels/More) with lucide icons; typed
+  `openapi-fetch` client (Bearer flow, 10.0.2.2 dev origin, request-id) +
+  `gen-api-mobile.sh`; eslint flat config with the web's layer boundaries;
+  Jest (jest-expo) + RNTL harness - 6 tests green; typecheck/lint green;
+  `expo export --platform android` bundles clean (5.7MB hbc).
+  _Decision deltas from this plan, both recorded for review: JS `Tabs`
+  instead of unstable_ NativeTabs (lucide + blur styling need custom
+  icons); tokens.ts + StyleSheet instead of NativeWind for now (RN 0.85 +
+  React 19.2 is too new to bet on NativeWind; same token names, swappable).
+  Gotcha: RNTL v14 render() is async - always `await render(...)`.
+  Emulator render check deferred to 15.1 (no AVD on this machine yet).
 - **15.1 Auth & session**: login/signup/reset screens (same zod schemas),
   Keystore-backed session store, refresh interceptor, AuthGuard routing.
   DoD: full auth loop against the local stack from the emulator.
