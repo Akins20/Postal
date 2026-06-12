@@ -18,6 +18,8 @@ import (
 	"github.com/Akins20/postal/internal/platform/storage"
 	"github.com/Akins20/postal/internal/post"
 	"github.com/Akins20/postal/internal/publish"
+	"github.com/Akins20/postal/internal/publish/instagram"
+	"github.com/Akins20/postal/internal/publish/tiktok"
 	"github.com/Akins20/postal/internal/publish/twitter"
 	"github.com/Akins20/postal/internal/ratelimit"
 	"github.com/Akins20/postal/internal/schedule"
@@ -272,20 +274,44 @@ func buildMedia(ctx context.Context, cfg config.Config, pool *db.Pool, auditor *
 // included only when its app credentials are configured. Shared by server and
 // worker wiring.
 func buildAdapters(cfg config.Config, log *slog.Logger) []publish.Adapter {
-	if cfg.Twitter.ClientID == "" {
+	var adapters []publish.Adapter
+	if cfg.Twitter.ClientID != "" {
+		if cfg.Twitter.APIBaseURL != "" {
+			log.Warn("X adapter base URLs overridden (simulator?)", "api", cfg.Twitter.APIBaseURL)
+		}
+		adapters = append(adapters, twitter.New(twitter.Config{
+			ClientID:     cfg.Twitter.ClientID,
+			ClientSecret: cfg.Twitter.ClientSecret,
+			RedirectURI:  cfg.Twitter.RedirectURI,
+			APIBaseURL:   cfg.Twitter.APIBaseURL,
+			AuthBaseURL:  cfg.Twitter.AuthBaseURL,
+		}))
+	} else {
 		log.Warn("POSTAL_X_CLIENT_ID not set; X/Twitter is disabled")
-		return nil
 	}
-	if cfg.Twitter.APIBaseURL != "" {
-		log.Warn("X adapter base URLs overridden (simulator?)", "api", cfg.Twitter.APIBaseURL)
+	if cfg.Instagram.ClientID != "" {
+		adapters = append(adapters, instagram.New(instagram.Config{
+			ClientID:     cfg.Instagram.ClientID,
+			ClientSecret: cfg.Instagram.ClientSecret,
+			RedirectURI:  cfg.Instagram.RedirectURI,
+			APIBaseURL:   cfg.Instagram.APIBaseURL,
+			AuthBaseURL:  cfg.Instagram.AuthBaseURL,
+		}))
+	} else {
+		log.Warn("POSTAL_IG_CLIENT_ID not set; Instagram is disabled")
 	}
-	return []publish.Adapter{twitter.New(twitter.Config{
-		ClientID:     cfg.Twitter.ClientID,
-		ClientSecret: cfg.Twitter.ClientSecret,
-		RedirectURI:  cfg.Twitter.RedirectURI,
-		APIBaseURL:   cfg.Twitter.APIBaseURL,
-		AuthBaseURL:  cfg.Twitter.AuthBaseURL,
-	})}
+	if cfg.TikTok.ClientKey != "" {
+		adapters = append(adapters, tiktok.New(tiktok.Config{
+			ClientKey:    cfg.TikTok.ClientKey,
+			ClientSecret: cfg.TikTok.ClientSecret,
+			RedirectURI:  cfg.TikTok.RedirectURI,
+			APIBaseURL:   cfg.TikTok.APIBaseURL,
+			AuthBaseURL:  cfg.TikTok.AuthBaseURL,
+		}))
+	} else {
+		log.Warn("POSTAL_TIKTOK_CLIENT_KEY not set; TikTok is disabled")
+	}
+	return adapters
 }
 
 // redisOpt builds the asynq Redis options from config.

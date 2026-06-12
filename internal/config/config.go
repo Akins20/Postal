@@ -46,6 +46,8 @@ type Config struct {
 	Crypto       Crypto
 	Auth         Auth
 	Twitter      Twitter
+	Instagram    Instagram
+	TikTok       TikTok
 	Storage      Storage
 	Billing      Billing
 	Integrations Integrations
@@ -81,6 +83,27 @@ type Billing struct {
 // at the simulator (`postal sim`); empty means the real API.
 type Twitter struct {
 	ClientID     string
+	ClientSecret string
+	RedirectURI  string
+	APIBaseURL   string
+	AuthBaseURL  string
+}
+
+// Instagram holds the Meta app credentials for the Instagram adapter. When
+// ClientID is empty the adapter is not registered. Base URLs override the
+// real Meta hosts (dev/tests point at the simulator).
+type Instagram struct {
+	ClientID     string
+	ClientSecret string
+	RedirectURI  string
+	APIBaseURL   string
+	AuthBaseURL  string
+}
+
+// TikTok holds the TikTok app credentials for the TikTok adapter. When
+// ClientKey is empty the adapter is not registered.
+type TikTok struct {
+	ClientKey    string
 	ClientSecret string
 	RedirectURI  string
 	APIBaseURL   string
@@ -206,6 +229,20 @@ func Load() (Config, error) {
 			RedirectURI:  getString("X_REDIRECT_URI", ""),
 			APIBaseURL:   getString("X_API_BASE_URL", ""),
 			AuthBaseURL:  getString("X_AUTH_BASE_URL", ""),
+		},
+		Instagram: Instagram{
+			ClientID:     getString("IG_CLIENT_ID", ""),
+			ClientSecret: getString("IG_CLIENT_SECRET", ""),
+			RedirectURI:  getString("IG_REDIRECT_URI", ""),
+			APIBaseURL:   getString("IG_API_BASE_URL", ""),
+			AuthBaseURL:  getString("IG_AUTH_BASE_URL", ""),
+		},
+		TikTok: TikTok{
+			ClientKey:    getString("TIKTOK_CLIENT_KEY", ""),
+			ClientSecret: getString("TIKTOK_CLIENT_SECRET", ""),
+			RedirectURI:  getString("TIKTOK_REDIRECT_URI", ""),
+			APIBaseURL:   getString("TIKTOK_API_BASE_URL", ""),
+			AuthBaseURL:  getString("TIKTOK_AUTH_BASE_URL", ""),
 		},
 		Integrations: Integrations{
 			OGShortenerAPIBase: getString("OGSHORTENER_API_BASE", ""),

@@ -192,6 +192,23 @@ func (s *Service) ResolveMedia(ctx context.Context, workspaceID, assetID uuid.UU
 // a not-found (terminal for the publish); storage failures are internal (the
 // scheduler treats them as retryable). The read is bounded to the asset's
 // recorded size so a single job can't allocate without limit.
+// MediaURL returns a short-lived presigned GET URL for an asset, for
+// platforms that fetch media themselves (Instagram containers).
+func (s *Service) MediaURL(ctx context.Context, assetID uuid.UUID, ttl time.Duration) (string, error) {
+	row, err := s.pool.Queries().GetMediaAsset(ctx, assetID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", apperr.NotFound("media_not_found", "media not found")
+		}
+		return "", apperr.Internal(err)
+	}
+	url, err := s.storage.PresignGet(ctx, row.StorageKey, ttl)
+	if err != nil {
+		return "", apperr.Internal(err)
+	}
+	return url, nil
+}
+
 func (s *Service) OpenMedia(ctx context.Context, assetID uuid.UUID) (kind, mime string, data []byte, err error) {
 	row, err := s.pool.Queries().GetMediaAsset(ctx, assetID)
 	if err != nil {

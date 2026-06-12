@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -20,6 +21,9 @@ type Storage interface {
 	Put(ctx context.Context, key string, r io.Reader, size int64, contentType string) error
 	// Get opens the object at key for reading; the caller closes it.
 	Get(ctx context.Context, key string) (io.ReadCloser, error)
+	// PresignGet returns a time-limited public URL for the object at key
+	// (platforms like Instagram fetch media themselves and require one).
+	PresignGet(ctx context.Context, key string, ttl time.Duration) (string, error)
 	// Delete removes the object at key (no error if absent).
 	Delete(ctx context.Context, key string) error
 }
@@ -77,6 +81,16 @@ func (c *Client) Get(ctx context.Context, key string) (io.ReadCloser, error) {
 		return nil, fmt.Errorf("storage get %q: %w", key, err)
 	}
 	return obj, nil
+}
+
+// PresignGet returns a time-limited GET URL for an object (used when a
+// platform must fetch media itself, e.g. Instagram containers).
+func (c *Client) PresignGet(ctx context.Context, key string, ttl time.Duration) (string, error) {
+	u, err := c.client.PresignedGetObject(ctx, c.bucket, key, ttl, nil)
+	if err != nil {
+		return "", fmt.Errorf("storage presign %q: %w", key, err)
+	}
+	return u.String(), nil
 }
 
 // Delete removes an object.

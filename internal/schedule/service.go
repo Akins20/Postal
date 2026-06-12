@@ -37,11 +37,17 @@ type AffordabilityChecker interface {
 // lower it without seeding thousands of rows.
 var maxPendingJobsPerWorkspace int64 = 5000
 
-// MediaLoader downloads an attached media asset's bytes for publishing.
+// MediaLoader downloads an attached media asset's bytes for publishing, and
+// presigns a public URL for platforms that fetch media themselves.
 // media.Service satisfies it. Nil when the media pipeline is disabled.
 type MediaLoader interface {
 	OpenMedia(ctx context.Context, assetID uuid.UUID) (kind, mime string, data []byte, err error)
+	MediaURL(ctx context.Context, assetID uuid.UUID, ttl time.Duration) (string, error)
 }
+
+// mediaURLTTL is how long presigned media links stay valid - generous enough
+// for a platform's asynchronous container processing (IG allows up to 24h).
+const mediaURLTTL = 2 * time.Hour
 
 // Service implements scheduling over scheduled_jobs/schedule_slots, enqueuing
 // publish tasks via the Enqueuer and exposing execution context to the worker.
@@ -279,7 +285,12 @@ func (s *Service) loadMedia(ctx context.Context, mediaRefs []byte) ([]publish.Me
 			}
 			return nil, publish.Retryable("media_load_failed", "could not load attached media", err)
 		}
-		out = append(out, publish.MediaRef{Kind: publish.MediaKind(kind), MIME: mime, Bytes: int64(len(data)), Data: data})
+		// A presign failure only matters for URL-fetching platforms; the
+		// adapter validates what it actually needs.
+		url, _ := s.media.MediaURL(ctx, ref.MediaID, mediaURLTTL)
+		out = append(out, publish.MediaRef{
+			Kind: publish.MediaKind(kind), MIME: mime, Bytes: int64(len(data)), Data: data, URL: url,
+		})
 	}
 	return out, nil
 }

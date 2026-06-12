@@ -30,10 +30,13 @@ const (
 // MediaRef describes one media item attached to a post. PlatformMediaID is set
 // by the adapter after upload and referenced when creating the post.
 type MediaRef struct {
-	Kind            MediaKind
-	MIME            string
-	Bytes           int64
-	Data            []byte // raw bytes for upload (omitted once uploaded)
+	Kind  MediaKind
+	MIME  string
+	Bytes int64
+	Data  []byte // raw bytes for upload (omitted once uploaded)
+	// URL is a short-lived presigned link to the same bytes, for platforms
+	// that fetch media themselves (Instagram). Empty when unavailable.
+	URL             string
 	PlatformMediaID string
 }
 
@@ -53,13 +56,15 @@ type PostVariant struct {
 // table-driven rather than hard-coded per platform.
 type Constraints struct {
 	MaxWeightedTextLen int
-	URLWeight          int // weighted length charged per URL
-	MaxImages          int
-	MaxGifs            int
-	MaxVideos          int
-	MaxImageBytes      int64
-	MaxGIFBytes        int64
-	MaxVideoBytes      int64
+	// RequiresMedia marks platforms that reject text-only posts (IG, TikTok).
+	RequiresMedia bool
+	URLWeight     int // weighted length charged per URL
+	MaxImages     int
+	MaxGifs       int
+	MaxVideos     int
+	MaxImageBytes int64
+	MaxGIFBytes   int64
+	MaxVideoBytes int64
 }
 
 // Result is the outcome of a successful publish.

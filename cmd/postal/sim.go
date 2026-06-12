@@ -5,32 +5,54 @@ import (
 	"log/slog"
 	"os"
 
+	instagramsim "github.com/Akins20/postal/internal/publish/simulator/instagram"
+	tiktoksim "github.com/Akins20/postal/internal/publish/simulator/tiktok"
 	twittersim "github.com/Akins20/postal/internal/publish/simulator/twitter"
 )
 
-// defaultSimAddr is where `postal sim` listens unless POSTAL_X_SIM_ADDR is set.
-const defaultSimAddr = "127.0.0.1:10090"
+// Default simulator addresses; override with POSTAL_<X|IG|TIKTOK>_SIM_ADDR.
+const (
+	defaultXSimAddr      = "127.0.0.1:10090"
+	defaultIGSimAddr     = "127.0.0.1:10091"
+	defaultTikTokSimAddr = "127.0.0.1:10092"
+)
 
-// runSim runs the X/Twitter API simulator as a standalone process for local
-// dev and e2e runs. Point the server at it with:
-//
-//	POSTAL_X_API_BASE_URL=http://127.0.0.1:10090
-//	POSTAL_X_AUTH_BASE_URL=http://127.0.0.1:10090
-//
-// It serves the OAuth authorize/token endpoints plus tweets/users/media, and
-// blocks until the context is canceled (Ctrl-C).
+// runSim runs the platform API simulators as one process for local dev and
+// e2e: X, Instagram (Meta Graph), and TikTok. Point the server at them with
+// the matching POSTAL_*_API_BASE_URL / POSTAL_*_AUTH_BASE_URL overrides.
+// Blocks until the context is canceled (Ctrl-C).
 func runSim(ctx context.Context, log *slog.Logger) error {
-	addr := os.Getenv("POSTAL_X_SIM_ADDR")
-	if addr == "" {
-		addr = defaultSimAddr
-	}
-	sim, err := twittersim.NewAt(addr)
+	x, err := twittersim.NewAt(envOrDefault("POSTAL_X_SIM_ADDR", defaultXSimAddr))
 	if err != nil {
 		return err
 	}
-	defer sim.Close()
-	log.Info("x simulator listening", "url", sim.URL())
+	defer x.Close()
+	log.Info("x simulator listening", "url", x.URL())
+
+	ig, err := instagramsim.NewAt(envOrDefault("POSTAL_IG_SIM_ADDR", defaultIGSimAddr))
+	if err != nil {
+		return err
+	}
+	defer ig.Close()
+	log.Info("instagram simulator listening", "url", ig.URL())
+
+	tt, err := tiktoksim.NewAt(envOrDefault("POSTAL_TIKTOK_SIM_ADDR", defaultTikTokSimAddr))
+	if err != nil {
+		return err
+	}
+	defer tt.Close()
+	log.Info("tiktok simulator listening", "url", tt.URL())
+
 	<-ctx.Done()
-	log.Info("x simulator shutting down")
+	log.Info("simulators shutting down")
 	return nil
+}
+
+// envOrDefault returns the env value or def. Local to the sim command (the
+// main config loader owns all server configuration).
+func envOrDefault(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -19,6 +20,10 @@ type fakeLoader struct {
 
 func (f fakeLoader) OpenMedia(context.Context, uuid.UUID) (string, string, []byte, error) {
 	return "image", "image/png", f.data, f.err
+}
+
+func (f fakeLoader) MediaURL(context.Context, uuid.UUID, time.Duration) (string, error) {
+	return "https://media.test/presigned", nil
 }
 
 // refsJSON builds a stored media_refs blob referencing the given asset IDs.

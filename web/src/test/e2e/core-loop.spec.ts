@@ -43,8 +43,8 @@ test("core loop: login → dashboard → connect X → compose → schedule → 
   await dock.getByRole("link", { name: "Channels" }).click();
   await expect(page.getByRole("heading", { name: "Channels" })).toBeVisible();
 
-  // Connect X: real redirect to the simulator's consent page and back.
-  await page.getByRole("button", { name: "Connect", exact: true }).click();
+  // Connect X (first platform row): real redirect through the simulator.
+  await page.getByRole("button", { name: "Connect", exact: true }).first().click();
   await expect(page).toHaveURL(/\/channels$/, { timeout: 20_000 });
   await expect(page.getByText("@simuser").first()).toBeVisible();
   await expect(page.getByText("Active")).toBeVisible();

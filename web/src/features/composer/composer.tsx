@@ -84,6 +84,11 @@ export function Composer({
     .map((id) => byId.get(id))
     .filter((c): c is Channel => Boolean(c));
   const saving = create.isPending || update.isPending || validate.isPending;
+  // Platforms that reject text-only posts block saving until media is attached.
+  const mediaRequiredBy = selectedChannels
+    .filter((c) => platformInfo(c.platform).requiresMedia)
+    .map((c) => platformInfo(c.platform).label);
+  const missingMedia = mediaRequiredBy.length > 0 && state.media.length === 0;
   const bodyFor = (channelId: string) => state.overrides[channelId] ?? state.masterBody;
 
   const toggleChannel = (channelId: string) => {

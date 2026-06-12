@@ -93,6 +93,7 @@ export function ChannelsPanel() {
                   )}
                 </p>
                 <p className="text-fg-muted text-xs">{p.hint}</p>
+                {p.caveat && <p className="text-warning mt-0.5 text-xs">{p.caveat}</p>}
               </div>
               <ConnectChannelButton workspaceId={active.id} platform={p.key} />
             </div>

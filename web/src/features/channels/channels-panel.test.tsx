@@ -51,7 +51,9 @@ describe("ChannelsPanel", () => {
     renderWithProviders(<ChannelsPanel />);
     expect(await screen.findByText("No accounts connected yet")).toBeInTheDocument();
     expect(screen.getByText("X (Twitter)")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Connect" })).toBeInTheDocument();
+    expect(screen.getByText("Instagram")).toBeInTheDocument();
+    expect(screen.getByText("TikTok")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Connect" })).toHaveLength(3);
   });
 
   it("lists connected channels with their health status", async () => {
