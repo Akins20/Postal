@@ -3,7 +3,7 @@ import type { HTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
 
 /**
- * A vibrancy "window" panel — the macOS frosted-glass surface for cards/sheets
+ * A vibrancy "window" panel - the macOS frosted-glass surface for cards/sheets
  * (FRONTEND_PLAN §5/§5.1). Falls back to an opaque surface where backdrop-filter
  * or transparency is unavailable (handled in globals.css).
  */

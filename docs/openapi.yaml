@@ -536,6 +536,28 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
 
+  /api/v1/workspaces/{workspaceID}/posts/link-preview:
+    parameters:
+      - $ref: "#/components/parameters/workspaceID"
+    get:
+      tags: [Posts]
+      summary: OpenGraph preview of a URL for the composer's link card (capability; read)
+      description: SSRF-guarded fetch (public http(s) only, bounded size/time/redirects).
+      parameters:
+        - { name: url, in: query, required: true, schema: { type: string, format: uri } }
+      responses:
+        "200":
+          description: Link metadata (fields empty when absent on the page)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/LinkPreview" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
   /api/v1/workspaces/{workspaceID}/posts/{postID}:
     parameters:
       - $ref: "#/components/parameters/workspaceID"
@@ -1396,6 +1418,16 @@ components:
       properties:
         value: { type: integer, format: int64 }
         captured_at: { type: string, format: date-time }
+
+    LinkPreview:
+      type: object
+      required: [url, site_name, title, description, image]
+      properties:
+        url: { type: string, format: uri }
+        site_name: { type: string }
+        title: { type: string }
+        description: { type: string }
+        image: { type: string }
 
     Wallet:
       type: object

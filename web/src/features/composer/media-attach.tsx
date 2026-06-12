@@ -71,8 +71,8 @@ export function MediaAttach({
             </Button>
           </Dialog.Trigger>
           <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 z-50 bg-black/30" />
-            <Dialog.Content className="material-panel shadow-window fixed top-1/2 left-1/2 z-50 max-h-[80vh] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-xl p-6 outline-none">
+            <Dialog.Overlay className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px]" />
+            <Dialog.Content className="material-dialog shadow-popover fixed top-1/2 left-1/2 z-50 max-h-[80vh] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-xl p-6 outline-none">
               <Dialog.Title className="text-fg text-base font-semibold">Attach media</Dialog.Title>
               <Dialog.Description className="text-fg-muted mt-1 mb-4 text-sm">
                 Pick from this workspace&apos;s library. Upload new files on the Media page.

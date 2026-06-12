@@ -17,7 +17,7 @@ export interface DockItem {
 }
 
 /**
- * macOS-style bottom dock — the dashboard's primary navigation (FRONTEND_PLAN §5).
+ * macOS-style bottom dock - the dashboard's primary navigation (FRONTEND_PLAN §5).
  * Floating, translucent (vibrancy), with hover magnification + a launch spring
  * and an active-item indicator. Keyboard-navigable links; reduced-motion drops
  * the magnification. Stays bottom on mobile (thumb-reachable; 48px targets).

@@ -15,7 +15,7 @@ import { Icon } from "@/ui/primitives/icon";
 import { Panel } from "@/ui/primitives/panel";
 import { ThemeToggle } from "@/ui/theme-toggle";
 
-/** Dashboard home — the macOS-style launchpad with the bottom dock. */
+/** Dashboard home - the macOS-style launchpad with the bottom dock. */
 export default function DashboardPage() {
   const destinations = dockItems.filter((d) => d.href !== "/");
 
@@ -40,7 +40,7 @@ export default function DashboardPage() {
           <div className="flex flex-col gap-1">
             <h1 className="text-fg text-xl font-semibold tracking-tight">Welcome to Postal</h1>
             <p className="text-fg-muted max-w-prose text-sm">
-              Compose once, publish everywhere, and schedule it all — free, no paywall. Pick a
+              Compose once, publish everywhere, and schedule it all - free, no paywall. Pick a
               destination below, or use the dock at the bottom.
             </p>
           </div>

@@ -22,6 +22,8 @@ export interface PlatformInfo {
   hint: string;
   /** Client-side character cap for the compose counter (server re-validates). */
   charLimit?: number;
+  /** True when publishing to this platform spends wallet credits. */
+  payPerUse?: boolean;
 }
 
 /** Platforms a workspace can connect, in display order. X/Twitter is first. */
@@ -32,6 +34,7 @@ export const PLATFORMS: PlatformInfo[] = [
     icon: XGlyph,
     hint: "Publish posts and threads to an X account.",
     charLimit: 280,
+    payPerUse: true,
   },
 ];
 

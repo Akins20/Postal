@@ -28,11 +28,11 @@ function isApiErrorBody(v: unknown): v is ApiErrorBody {
 }
 
 function friendlyByStatus(status: number): string {
-  if (status === 0) return "Network error — check your connection and try again.";
+  if (status === 0) return "Network error - check your connection and try again.";
   if (status === 401) return "Your session expired. Please sign in again.";
   if (status === 403) return "You don't have permission to do that.";
   if (status === 404) return "Not found.";
-  if (status === 429) return "Too many requests — please slow down.";
+  if (status === 429) return "Too many requests - please slow down.";
   if (status >= 500) return "Something went wrong on our end. Please try again.";
   return "Request failed. Please try again.";
 }

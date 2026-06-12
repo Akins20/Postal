@@ -39,7 +39,7 @@ export function proxy(request: NextRequest): NextResponse {
 }
 
 export const config = {
-  // Run on pages only — skip the API proxy, static assets, and prefetches.
+  // Run on pages only - skip the API proxy, static assets, and prefetches.
   matcher: [
     {
       source: "/((?!api|_next/static|_next/image|favicon.ico).*)",

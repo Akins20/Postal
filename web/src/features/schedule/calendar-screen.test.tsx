@@ -27,7 +27,7 @@ const CHANNEL = {
   connected_by: null,
   created_at: "2026-01-01T00:00:00Z",
 };
-// Today at 09:30 local — guaranteed inside the current month and week views.
+// Today at 09:30 local - guaranteed inside the current month and week views.
 const runAt = new Date(new Date().setHours(9, 30, 0, 0));
 const JOB = {
   id: "44444444-4444-4444-4444-444444444444",

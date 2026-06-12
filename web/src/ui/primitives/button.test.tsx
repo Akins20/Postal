@@ -17,7 +17,7 @@ describe("Button", () => {
 
   it("applies variant styling", () => {
     render(<Button variant="danger">Delete</Button>);
-    expect(screen.getByRole("button", { name: "Delete" }).className).toContain("bg-danger");
+    expect(screen.getByRole("button", { name: "Delete" }).className).toContain("from-danger");
   });
 
   it("has no accessibility violations", async () => {

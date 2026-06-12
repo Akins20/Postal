@@ -38,10 +38,20 @@ func (s *Service) Wallet(ctx context.Context, workspaceID uuid.UUID) (*Wallet, e
 	if err != nil {
 		return nil, fmt.Errorf("loading wallet: %w", err)
 	}
+	costs := map[string]int64{}
+	for k, v := range s.pricing.PublishCosts {
+		costs[k] = v
+	}
+	for k, v := range s.pricing.MediaCosts {
+		costs[k+"_media"] = v
+	}
+	for k, v := range s.pricing.URLCosts {
+		costs[k+"_url"] = v
+	}
 	return &Wallet{
 		WorkspaceID:  w.WorkspaceID,
 		Balance:      w.Balance,
-		PublishCosts: s.pricing.PublishCosts,
+		PublishCosts: costs,
 		UpdatedAt:    w.UpdatedAt.Time,
 	}, nil
 }
@@ -120,12 +130,13 @@ func (s *Service) Credit(ctx context.Context, workspaceID uuid.UUID, kind string
 	return applied, nil
 }
 
-// CheckAffordable verifies the workspace can cover publishing to the given
-// platforms (the schedule-time soft gate). Free platforms cost nothing.
-func (s *Service) CheckAffordable(ctx context.Context, workspaceID uuid.UUID, platforms []string) error {
+// CheckAffordable verifies the workspace can cover publishing the given
+// variants (the schedule-time soft gate). Free platforms cost nothing; URL
+// and media posts use their tier prices.
+func (s *Service) CheckAffordable(ctx context.Context, workspaceID uuid.UUID, items []PublishItem) error {
 	var total int64
-	for _, pl := range platforms {
-		total += s.pricing.CostFor(pl)
+	for _, it := range items {
+		total += s.pricing.CostForItem(it)
 	}
 	if total == 0 {
 		return nil
@@ -140,22 +151,30 @@ func (s *Service) CheckAffordable(ctx context.Context, workspaceID uuid.UUID, pl
 	return nil
 }
 
-// ChargePublish deducts the platform cost for one publish job, atomically and
-// idempotently (reference = job ID). Free platforms are a no-op. It resolves
-// the channel to find the workspace and platform.
-func (s *Service) ChargePublish(ctx context.Context, jobID, channelID uuid.UUID) error {
+// ChargePublish deducts the content-tiered platform cost for one publish job,
+// atomically and idempotently (reference = job ID). Free platforms are a
+// no-op. It resolves the channel to find the workspace and platform.
+func (s *Service) ChargePublish(ctx context.Context, jobID, channelID uuid.UUID, body string, hasMedia bool) error {
 	ch, err := s.pool.Queries().GetChannel(ctx, channelID)
 	if err != nil {
 		return fmt.Errorf("loading channel for billing: %w", err)
 	}
-	cost := s.pricing.CostFor(ch.Platform)
+	item := PublishItem{Platform: ch.Platform, Body: body, HasMedia: hasMedia}
+	cost := s.pricing.CostForItem(item)
 	if cost == 0 {
 		return nil
+	}
+	note := "publish to " + ch.Platform
+	switch {
+	case BodyHasURL(body):
+		note += " (link post)"
+	case hasMedia:
+		note += " (media post)"
 	}
 	return s.pool.WithTx(ctx, func(q *sqlc.Queries) error {
 		_, lErr := q.InsertLedgerEntry(ctx, sqlc.InsertLedgerEntryParams{
 			WorkspaceID: ch.WorkspaceID, Kind: KindPublishCharge, Credits: -cost,
-			Reference: jobID.String(), Note: "publish to " + ch.Platform,
+			Reference: jobID.String(), Note: note,
 		})
 		if errors.Is(lErr, pgx.ErrNoRows) {
 			return nil // this job was already charged (re-claim after crash)
@@ -177,16 +196,23 @@ func (s *Service) ChargePublish(ctx context.Context, jobID, channelID uuid.UUID)
 }
 
 // RefundPublish returns a job's charge after a terminal publish failure,
-// idempotent by job ID. A job that was never charged refunds nothing.
+// idempotent by job ID. The amount comes from the recorded charge ledger
+// entry (never recomputed, so tier/config changes can't skew refunds). A job
+// that was never charged refunds nothing.
 func (s *Service) RefundPublish(ctx context.Context, jobID, channelID uuid.UUID) error {
 	ch, err := s.pool.Queries().GetChannel(ctx, channelID)
 	if err != nil {
 		return fmt.Errorf("loading channel for refund: %w", err)
 	}
-	cost := s.pricing.CostFor(ch.Platform)
-	if cost == 0 {
-		return nil
+	entry, err := s.pool.Queries().GetLedgerEntryByRef(ctx, sqlc.GetLedgerEntryByRefParams{
+		WorkspaceID: ch.WorkspaceID, Kind: KindPublishCharge, Reference: jobID.String(),
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil // never charged (free platform, or failed before the charge)
 	}
-	_, err = s.Credit(ctx, ch.WorkspaceID, KindRefund, cost, jobID.String(), "refund: publish failed")
+	if err != nil {
+		return fmt.Errorf("loading charge for refund: %w", err)
+	}
+	_, err = s.Credit(ctx, ch.WorkspaceID, KindRefund, -entry.Credits, jobID.String(), "refund: publish failed")
 	return err
 }

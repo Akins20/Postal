@@ -13,7 +13,7 @@ export const spring = {
   bouncy: { type: "spring", stiffness: 520, damping: 18 },
 } satisfies Record<string, Transition>;
 
-/** Fade — the reduced-motion-safe baseline (opacity only). */
+/** Fade - the reduced-motion-safe baseline (opacity only). */
 export const fade: Variants = {
   initial: { opacity: 0 },
   animate: { opacity: 1 },

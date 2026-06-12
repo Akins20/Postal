@@ -200,6 +200,8 @@ func buildBilling(cfg config.Config, pool *db.Pool, log *slog.Logger) *billing.S
 	pricing := billing.Pricing{
 		CreditsPerUSDCent: cfg.Billing.CreditsPerUSDCent,
 		PublishCosts:      map[string]int64{"twitter": cfg.Billing.PublishCostTwitter},
+		MediaCosts:        map[string]int64{"twitter": cfg.Billing.PublishCostTwitterMedia},
+		URLCosts:          map[string]int64{"twitter": cfg.Billing.PublishCostTwitterURL},
 		MinTopupCredits:   cfg.Billing.MinTopupCredits,
 		NGNPerUSD:         cfg.Billing.NGNPerUSD,
 		ReturnURL:         cfg.Billing.ReturnURL,

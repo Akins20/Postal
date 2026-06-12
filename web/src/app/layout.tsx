@@ -1,8 +1,17 @@
 import { headers } from "next/headers";
 import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
 
 import { Providers } from "./providers";
 import "./globals.css";
+
+// Inter (variable) - self-hosted by next/font. The previous system-font stack
+// fell back to Arial-likes off macOS, which read as dated everywhere else.
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
 
 export const metadata: Metadata = {
   title: "Postal",
@@ -22,7 +31,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const nonce = (await headers()).get("x-nonce") ?? undefined;
 
   return (
-    <html lang="en" suppressHydrationWarning className="h-full">
+    <html lang="en" suppressHydrationWarning className={`h-full ${inter.variable}`}>
       <body className="min-h-full antialiased">
         <a
           href="#main"

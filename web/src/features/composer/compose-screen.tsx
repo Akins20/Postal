@@ -19,7 +19,7 @@ import { DraftsList } from "./drafts-list";
 export function ComposeScreen() {
   const { active } = useActiveWorkspace();
   const { data: channels, isPending } = useChannels(active?.id);
-  // Editing loads the post DETAIL — the list endpoint omits variants, so the
+  // Editing loads the post DETAIL - the list endpoint omits variants, so the
   // list row alone can't seed the editor.
   const [editingId, setEditingId] = useState<string | null>(null);
   const detail = usePost(active?.id, editingId ?? undefined);
@@ -38,7 +38,7 @@ export function ComposeScreen() {
         <EmptyState
           icon={Radio}
           title="Connect a channel first"
-          description="Posts are written once and published to the channels you pick — connect a social account to start composing."
+          description="Posts are written once and published to the channels you pick - connect a social account to start composing."
           action={
             <Button asChild>
               <Link href="/channels">Go to Channels</Link>
@@ -51,28 +51,26 @@ export function ComposeScreen() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Panel className="p-6">
-        {editingId && (
-          <div className="border-separator mb-4 flex items-center justify-between gap-3 border-b pb-3">
-            <p className="text-fg-muted text-sm">Editing a saved draft.</p>
-            <Button variant="ghost" size="sm" onClick={() => setEditingId(null)}>
-              New post
-            </Button>
-          </div>
-        )}
-        {editingId && detail.isPending ? (
-          <div className="py-10 text-center">
-            <Spinner label="Loading draft" />
-          </div>
-        ) : (
-          <Composer
-            key={editingId ?? "new"}
-            workspaceId={active.id}
-            channels={channels}
-            initial={editingId ? detail.data : undefined}
-          />
-        )}
-      </Panel>
+      {editingId && (
+        <Panel className="flex items-center justify-between gap-3 p-4">
+          <p className="text-fg-muted text-sm">Editing a saved draft.</p>
+          <Button variant="ghost" size="sm" onClick={() => setEditingId(null)}>
+            New post
+          </Button>
+        </Panel>
+      )}
+      {editingId && detail.isPending ? (
+        <div className="py-10 text-center">
+          <Spinner label="Loading draft" />
+        </div>
+      ) : (
+        <Composer
+          key={editingId ?? "new"}
+          workspaceId={active.id}
+          channels={channels}
+          initial={editingId ? detail.data : undefined}
+        />
+      )}
 
       <Panel className="p-6">
         <h2 className="text-fg mb-2 text-sm font-semibold">Your posts</h2>

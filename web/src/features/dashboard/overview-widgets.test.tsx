@@ -86,7 +86,7 @@ describe("OverviewWidgets", () => {
     mockAll({ jobs: [], posts: [], channels: [] });
     renderWithProviders(<OverviewWidgets />);
     expect(await screen.findByText("Nothing scheduled yet.")).toBeInTheDocument();
-    expect(screen.getByText("No drafts — write something.")).toBeInTheDocument();
+    expect(screen.getByText("No drafts - write something.")).toBeInTheDocument();
     expect(screen.getByText("No accounts connected yet.")).toBeInTheDocument();
   });
 

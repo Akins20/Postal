@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 /**
  * Public-surface smoke (no backend session). The authenticated core loop
  * (login → connect → compose → schedule) runs against the Go backend +
- * simulator with seeded credentials — see FRONTEND_PLAN §10/12.7.
+ * simulator with seeded credentials - see FRONTEND_PLAN §10/12.7.
  */
 
 test("unauthenticated users land on sign-in", async ({ page }) => {

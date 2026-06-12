@@ -7,7 +7,7 @@ import { logger } from "@/lib/logger";
 import "./globals.css";
 
 /**
- * Global error boundary — catches errors in the root layout itself, so it must
+ * Global error boundary - catches errors in the root layout itself, so it must
  * render its own <html>/<body> (FRONTEND_PLAN §8).
  */
 export default function GlobalError({

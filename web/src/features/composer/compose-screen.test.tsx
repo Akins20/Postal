@@ -27,7 +27,7 @@ const CHANNEL = {
   created_at: "2026-01-01T00:00:00Z",
 };
 // The LIST endpoint omits variants (backend `omitempty`); only the detail
-// GET includes them — the mocks mirror that contract.
+// GET includes them - the mocks mirror that contract.
 const LIST_POST = {
   id: "44444444-4444-4444-4444-444444444444",
   workspace_id: WS.id,
@@ -52,6 +52,16 @@ function mockBase({ channels, posts }: { channels: unknown[]; posts: unknown[] }
     ),
     http.get(`http://localhost/api/v1/workspaces/${WS.id}/posts/${LIST_POST.id}`, () =>
       HttpResponse.json({ data: DETAIL_POST }),
+    ),
+    http.get(`http://localhost/api/v1/workspaces/${WS.id}/billing/wallet`, () =>
+      HttpResponse.json({
+        data: {
+          workspace_id: WS.id,
+          balance: 1000,
+          publish_costs: { twitter: 10, twitter_media: 15, twitter_url: 25 },
+          updated_at: "2026-06-12T00:00:00Z",
+        },
+      }),
     ),
   );
 }

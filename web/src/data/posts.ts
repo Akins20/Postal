@@ -120,3 +120,29 @@ export function useUtmPreview(workspaceId: string) {
     },
   });
 }
+
+export type LinkPreview = components["schemas"]["LinkPreview"];
+
+/** Extract the first http(s) URL in post text (what platforms build cards from). */
+export function firstURL(body: string): string | undefined {
+  const match = body.match(/https?:\/\/[^\s)]+/);
+  return match?.[0];
+}
+
+/** OpenGraph metadata for the composer's platform-style link card. */
+export function useLinkPreview(workspaceId: string | undefined, url: string | undefined) {
+  return useQuery<LinkPreview>({
+    queryKey: ["workspaces", workspaceId ?? "", "link-preview", url ?? ""],
+    enabled: Boolean(workspaceId && url),
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+    queryFn: async () => {
+      const { data, error, response } = await api.GET(
+        "/api/v1/workspaces/{workspaceID}/posts/link-preview",
+        { params: { path: { workspaceID: workspaceId as string }, query: { url: url as string } } },
+      );
+      if (!response.ok || !data?.data) throw normalizeError(response.status, error);
+      return data.data as LinkPreview;
+    },
+  });
+}

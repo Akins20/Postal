@@ -43,6 +43,7 @@ func setup(t *testing.T) (*billing.Service, uuid.UUID, uuid.UUID) {
 	svc := billing.NewService(pool, billing.Pricing{
 		CreditsPerUSDCent: 1,
 		PublishCosts:      map[string]int64{"twitter": 25},
+		URLCosts:          map[string]int64{"twitter": 60},
 		MinTopupCredits:   100,
 	}, nil, nil)
 	return svc, ws.ID, ch.ID
@@ -71,17 +72,17 @@ func TestChargeRefundLifecycle(t *testing.T) {
 	jobID := uuid.New()
 
 	// No funds: schedule gate and charge both refuse.
-	err := svc.CheckAffordable(ctx, wsID, []string{"twitter"})
+	err := svc.CheckAffordable(ctx, wsID, []billing.PublishItem{{Platform: "twitter", Body: "plain"}})
 	assert.ErrorIs(t, err, billing.ErrInsufficientCredits)
-	err = svc.ChargePublish(ctx, jobID, chID)
+	err = svc.ChargePublish(ctx, jobID, chID, "plain", false)
 	assert.ErrorIs(t, err, billing.ErrInsufficientCredits)
 
 	// Fund it; the same charge now succeeds, and re-claiming never double-charges.
 	_, err = svc.Credit(ctx, wsID, billing.KindTopup, 100, "stripe:evt_fund", "topup")
 	require.NoError(t, err)
-	require.NoError(t, svc.CheckAffordable(ctx, wsID, []string{"twitter"}))
-	require.NoError(t, svc.ChargePublish(ctx, jobID, chID))
-	require.NoError(t, svc.ChargePublish(ctx, jobID, chID), "idempotent re-charge")
+	require.NoError(t, svc.CheckAffordable(ctx, wsID, []billing.PublishItem{{Platform: "twitter", Body: "plain"}}))
+	require.NoError(t, svc.ChargePublish(ctx, jobID, chID, "plain", false))
+	require.NoError(t, svc.ChargePublish(ctx, jobID, chID, "plain", false), "idempotent re-charge")
 
 	w, err := svc.Wallet(ctx, wsID)
 	require.NoError(t, err)
@@ -95,7 +96,18 @@ func TestChargeRefundLifecycle(t *testing.T) {
 	assert.Equal(t, int64(100), w.Balance)
 
 	// Free platforms bypass billing entirely.
-	require.NoError(t, svc.CheckAffordable(ctx, wsID, []string{"mastodon"}))
+	require.NoError(t, svc.CheckAffordable(ctx, wsID, []billing.PublishItem{{Platform: "mastodon"}}))
+
+	// Link posts charge their tier (60 here) and refund exactly that amount.
+	jobURL := uuid.New()
+	require.NoError(t, svc.ChargePublish(ctx, jobURL, chID, "see https://a.test", false))
+	w, err = svc.Wallet(ctx, wsID)
+	require.NoError(t, err)
+	assert.Equal(t, int64(40), w.Balance, "URL tier charged (100 - 60)")
+	require.NoError(t, svc.RefundPublish(ctx, jobURL, chID))
+	w, err = svc.Wallet(ctx, wsID)
+	require.NoError(t, err)
+	assert.Equal(t, int64(100), w.Balance, "refund restores the recorded charge")
 }
 
 func TestLedgerListsMovements(t *testing.T) {

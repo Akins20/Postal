@@ -51,7 +51,7 @@ export function FeatureShell({
         </header>
 
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/30 md:hidden" />
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px] md:hidden" />
           <Dialog.Content className="fixed inset-y-0 left-0 z-50 outline-none md:hidden">
             <Dialog.Title className="sr-only">{title} navigation</Dialog.Title>
             <Sidebar sections={sections} header={header} className="h-full" />

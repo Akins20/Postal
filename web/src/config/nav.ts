@@ -1,4 +1,13 @@
-import { BarChart3, Calendar, Home, ImageIcon, Radio, Settings, SquarePen } from "lucide-react";
+import {
+  BarChart3,
+  Calendar,
+  Home,
+  ImageIcon,
+  Radio,
+  Settings,
+  SquarePen,
+  Wallet,
+} from "lucide-react";
 
 import type { DockItem } from "@/ui/dock/dock";
 import type { SidebarSection } from "@/ui/sidebar/sidebar";
@@ -27,6 +36,9 @@ export const featureSidebar: SidebarSection[] = [
   },
   {
     title: "Manage",
-    items: [{ href: "/settings", label: "Settings", icon: Settings }],
+    items: [
+      { href: "/wallet", label: "Wallet", icon: Wallet },
+      { href: "/settings", label: "Settings", icon: Settings },
+    ],
   },
 ];

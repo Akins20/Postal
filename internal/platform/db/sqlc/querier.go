@@ -49,6 +49,7 @@ type Querier interface {
 	GetChannelByAccount(ctx context.Context, arg GetChannelByAccountParams) (Channel, error)
 	GetChannelCredential(ctx context.Context, channelID uuid.UUID) (ChannelCredential, error)
 	GetEmailVerificationToken(ctx context.Context, tokenHash string) (EmailVerificationToken, error)
+	GetLedgerEntryByRef(ctx context.Context, arg GetLedgerEntryByRefParams) (WalletLedger, error)
 	GetMediaAsset(ctx context.Context, id uuid.UUID) (MediaAsset, error)
 	GetMember(ctx context.Context, arg GetMemberParams) (WorkspaceMember, error)
 	GetPasswordResetToken(ctx context.Context, tokenHash string) (PasswordResetToken, error)

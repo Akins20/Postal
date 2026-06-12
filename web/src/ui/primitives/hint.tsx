@@ -7,7 +7,7 @@ import { Icon } from "./icon";
 import { Tooltip } from "./tooltip";
 
 /**
- * An inline help affordance — a small info button that reveals a description on
+ * An inline help affordance - a small info button that reveals a description on
  * hover/focus. Teaches in place without cluttering the UI (FRONTEND_PLAN §11).
  */
 export function Hint({

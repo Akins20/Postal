@@ -2,7 +2,7 @@
  * Structured, leveled frontend logger (FRONTEND_PLAN §8). Logs are objects, not
  * concatenated strings, so they stay queryable; a `requestId` correlates a client
  * event to a backend log line (the server's `error.request_id`). No PII or tokens
- * are ever logged. The sink is pluggable — pretty console in dev; a batched
+ * are ever logged. The sink is pluggable - pretty console in dev; a batched
  * telemetry sink can be added later without touching call sites.
  */
 

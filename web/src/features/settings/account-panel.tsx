@@ -42,7 +42,7 @@ export function AccountPanel({ workspace }: { workspace: Workspace }) {
         <h2 className="text-fg text-sm font-semibold">Appearance</h2>
         <div className="mt-3 flex items-center justify-between gap-3">
           <p className="text-fg-muted text-sm">
-            Light or dark — follows your system until you choose.
+            Light or dark - follows your system until you choose.
           </p>
           <ThemeToggle />
         </div>

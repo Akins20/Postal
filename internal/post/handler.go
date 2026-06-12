@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
+	"github.com/Akins20/postal/internal/platform/apperr"
 	"github.com/Akins20/postal/internal/platform/web"
 	"github.com/Akins20/postal/internal/workspace"
 )
@@ -14,14 +15,15 @@ import (
 // Handler serves the composer endpoints under /workspaces/{workspaceID}/posts.
 // Capability gating: read to list/get/validate, create/update/delete for writes.
 type Handler struct {
-	svc   *Service
-	wsSvc *workspace.Service
-	log   *slog.Logger
+	svc     *Service
+	wsSvc   *workspace.Service
+	preview *LinkPreviewer
+	log     *slog.Logger
 }
 
 // NewHandler builds the post HTTP handler. wsSvc backs capability checks.
 func NewHandler(svc *Service, wsSvc *workspace.Service, log *slog.Logger) *Handler {
-	return &Handler{svc: svc, wsSvc: wsSvc, log: log}
+	return &Handler{svc: svc, wsSvc: wsSvc, preview: NewLinkPreviewer(), log: log}
 }
 
 // RegisterWorkspaceScoped registers post routes onto a router scoped to
@@ -31,6 +33,7 @@ func (h *Handler) RegisterWorkspaceScoped(r chi.Router) {
 		pr.With(workspace.RequireCapability(h.wsSvc, workspace.CapRead, h.log)).Get("/", web.Handler(h.log, h.list))
 		pr.With(workspace.RequireCapability(h.wsSvc, workspace.CapCreate, h.log)).Post("/", web.Handler(h.log, h.create))
 		pr.With(workspace.RequireCapability(h.wsSvc, workspace.CapRead, h.log)).Post("/utm-preview", web.Handler(h.log, h.utmPreview))
+		pr.With(workspace.RequireCapability(h.wsSvc, workspace.CapRead, h.log)).Get("/link-preview", web.Handler(h.log, h.linkPreview))
 		pr.With(workspace.RequireCapability(h.wsSvc, workspace.CapRead, h.log)).Get("/{postID}", web.Handler(h.log, h.get))
 		pr.With(workspace.RequireCapability(h.wsSvc, workspace.CapUpdate, h.log)).Put("/{postID}", web.Handler(h.log, h.update))
 		pr.With(workspace.RequireCapability(h.wsSvc, workspace.CapDelete, h.log)).Delete("/{postID}", web.Handler(h.log, h.delete))
@@ -163,4 +166,20 @@ func (h *Handler) utmPreview(w http.ResponseWriter, r *http.Request) error {
 // workspaceID parses the {workspaceID} route param.
 func workspaceID(r *http.Request) (uuid.UUID, error) {
 	return web.PathUUID(r, workspace.WorkspaceURLParam)
+}
+
+// linkPreview fetches OpenGraph metadata for a URL the user typed into the
+// composer, so the UI can render the platform-style link card. The fetch is
+// SSRF-guarded (public http(s) only, bounded size/time/redirects).
+func (h *Handler) linkPreview(w http.ResponseWriter, r *http.Request) error {
+	raw := r.URL.Query().Get("url")
+	if raw == "" {
+		return apperr.Validation("missing_url", "expected a url query parameter")
+	}
+	pv, err := h.preview.Fetch(r.Context(), raw)
+	if err != nil {
+		return apperr.Validation("preview_unavailable", "could not preview that link")
+	}
+	web.Respond(w, http.StatusOK, pv)
+	return nil
 }

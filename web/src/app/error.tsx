@@ -26,7 +26,7 @@ export default function RouteError({
       <Panel role="alert" className="flex max-w-md flex-col items-center gap-4 p-8 text-center">
         <h1 className="text-fg text-lg font-semibold">Something went wrong</h1>
         <p className="text-fg-muted text-sm">
-          An unexpected error occurred. You can try again — if it keeps happening, please reload the
+          An unexpected error occurred. You can try again - if it keeps happening, please reload the
           page.
         </p>
         <Button onClick={reset}>Try again</Button>

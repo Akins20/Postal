@@ -6,7 +6,7 @@ import { cn } from "@/lib/cn";
 
 /**
  * A post body editor with a live character counter against the platform's cap
- * (over-limit is announced, not color-only — the count text flips too). The
+ * (over-limit is announced, not color-only - the count text flips too). The
  * server re-validates on save/publish; this is a compose-time aid.
  */
 export function VariantEditor({

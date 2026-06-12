@@ -1,7 +1,7 @@
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import type { Channel } from "@/data/channels";
 import { server } from "@/test/msw/server";
@@ -27,6 +27,21 @@ const POST = {
   created_at: "2026-01-01T00:00:00Z",
   variants: [{ id: "55555555-5555-5555-5555-555555555555", channel_id: CH_A.id, body: "Hello" }],
 };
+
+const WALLET = {
+  workspace_id: WS_ID,
+  balance: 1000,
+  publish_costs: { twitter: 10, twitter_media: 15, twitter_url: 25 },
+  updated_at: "2026-06-12T00:00:00Z",
+};
+
+beforeEach(() =>
+  server.use(
+    http.get(`http://localhost/api/v1/workspaces/${WS_ID}/billing/wallet`, () =>
+      HttpResponse.json({ data: WALLET }),
+    ),
+  ),
+);
 
 describe("Composer", () => {
   it("disables save until a channel is picked and text entered", async () => {

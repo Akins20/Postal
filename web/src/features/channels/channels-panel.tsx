@@ -9,6 +9,8 @@ import { EmptyState } from "@/ui/primitives/empty-state";
 import { Hint } from "@/ui/primitives/hint";
 import { Panel } from "@/ui/primitives/panel";
 import { Spinner } from "@/ui/primitives/spinner";
+import { StatusPill } from "@/ui/primitives/status-pill";
+import { Tooltip } from "@/ui/primitives/tooltip";
 
 import { ChannelCard } from "./channel-card";
 import { ConnectChannelButton } from "./connect-channel-button";
@@ -27,7 +29,7 @@ export function ChannelsPanel() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="grid items-start gap-6 lg:grid-cols-2">
       <Panel className="p-6">
         <div className="flex items-center gap-1.5">
           <h2 className="text-fg text-sm font-semibold">Connected accounts</h2>
@@ -77,7 +79,19 @@ export function ChannelsPanel() {
                 <PlatformIcon width={18} height={18} aria-hidden />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-fg text-sm font-medium">{p.label}</p>
+                <p className="text-fg flex items-center gap-2 text-sm font-medium">
+                  {p.label}
+                  {p.payPerUse && (
+                    <Tooltip content="The platform's API bills per request, so publishing here spends wallet credits. Every other platform is free.">
+                      <span
+                        tabIndex={0}
+                        className="focus-visible:ring-ring rounded-full focus-visible:ring-2"
+                      >
+                        <StatusPill tone="warning">Pay-per-use</StatusPill>
+                      </span>
+                    </Tooltip>
+                  )}
+                </p>
                 <p className="text-fg-muted text-xs">{p.hint}</p>
               </div>
               <ConnectChannelButton workspaceId={active.id} platform={p.key} />

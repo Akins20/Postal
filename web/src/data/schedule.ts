@@ -24,7 +24,7 @@ export interface ScheduleInput {
   toSlots?: boolean;
 }
 
-/** Schedule a saved post — one job per variant/channel. */
+/** Schedule a saved post - one job per variant/channel. */
 export function useSchedulePost(workspaceId: string) {
   const qc = useQueryClient();
   return useMutation<Job[], NormalizedError, ScheduleInput>({

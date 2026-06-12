@@ -7,14 +7,17 @@ import { forwardRef, type ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
 
 const button = cva(
-  "inline-flex select-none items-center justify-center gap-2 rounded-md text-sm font-medium transition-[background-color,box-shadow,filter] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex select-none items-center justify-center gap-2 rounded-lg text-sm font-medium transition-[background-color,box-shadow,filter,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]",
   {
     variants: {
       variant: {
-        primary: "bg-accent text-accent-fg shadow-sm hover:brightness-110 active:brightness-95",
-        secondary: "border border-separator bg-elevated text-fg hover:bg-fg/5",
+        primary:
+          "bg-gradient-to-b from-accent-soft to-accent text-accent-fg shadow-[inset_0_1px_0_rgb(255_255_255/0.25),0_1px_2px_rgb(0_0_0/0.25)] hover:brightness-110",
+        secondary:
+          "border border-separator bg-elevated text-fg shadow-[0_1px_2px_rgb(0_0_0/0.06)] hover:bg-fg/5",
         ghost: "text-fg hover:bg-fg/8",
-        danger: "bg-danger text-accent-fg hover:brightness-110",
+        danger:
+          "bg-gradient-to-b from-danger to-danger text-accent-fg shadow-[inset_0_1px_0_rgb(255_255_255/0.2),0_1px_2px_rgb(0_0_0/0.25)] hover:brightness-110",
       },
       size: {
         sm: "h-8 px-3",

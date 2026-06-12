@@ -1,9 +1,9 @@
 import { OAuthCallbackClient } from "@/features/channels/oauth-callback-client";
 
-export const metadata = { title: "Connecting account — Postal" };
+export const metadata = { title: "Connecting account - Postal" };
 
 /**
- * Landing page for the IdP redirect. Sits directly under (app) — auth-guarded
+ * Landing page for the IdP redirect. Sits directly under (app) - auth-guarded
  * but outside the feature shell, since it's a transient hand-off screen.
  */
 export default async function OAuthCallbackPage({

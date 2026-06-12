@@ -51,7 +51,7 @@ export function JobItem({
       </span>
       <span className="text-fg-muted min-w-0 flex-1 truncate">
         {channel ? atHandle(channel.handle) : job.channel_id.slice(0, 8)}
-        {job.status === "failed" && job.last_error ? ` — ${job.last_error}` : ""}
+        {job.status === "failed" && job.last_error ? ` - ${job.last_error}` : ""}
       </span>
       <StatusPill tone={JOB_TONE[job.status]}>{job.status}</StatusPill>
       {job.status === "scheduled" && (

@@ -1,6 +1,6 @@
 /**
  * A handle with exactly one leading "@". The backend already stores X handles
- * as "@name"; other platforms may not — never blindly prepend.
+ * as "@name"; other platforms may not - never blindly prepend.
  */
 export function atHandle(handle: string): string {
   return handle.startsWith("@") ? handle : `@${handle}`;

@@ -75,7 +75,7 @@ export function CalendarScreen() {
   const detailDay = selectedDay;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
       <Panel className="p-4 sm:p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-1">
@@ -150,7 +150,7 @@ export function CalendarScreen() {
                     aria-label={`${format(day, "d MMMM")}, ${dayJobs.length} scheduled`}
                     aria-pressed={selected ? true : undefined}
                     className={cn(
-                      "border-separator focus-visible:ring-ring relative flex min-h-16 flex-col items-stretch gap-1 border-r border-b p-1.5 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none sm:min-h-20",
+                      "border-separator focus-visible:ring-ring relative flex min-h-20 flex-col items-stretch gap-1 border-r border-b p-1.5 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none sm:min-h-24",
                       !isSameMonth(day, cursor) && "bg-fg/2 opacity-60",
                       selected ? "bg-accent/10" : "hover:bg-fg/4",
                     )}
@@ -246,10 +246,12 @@ export function CalendarScreen() {
         )}
       </Panel>
 
-      {/* Mounted only once channels exist — its channel selection state
-          initializes from the first channel. */}
+      {/* Side rail on wide screens. Mounted only once channels exist - its
+          channel selection state initializes from the first channel. */}
       {channels && channels.length > 0 && (
-        <SlotsManager workspaceId={active.id} channels={channels} />
+        <div className="xl:sticky xl:top-6">
+          <SlotsManager workspaceId={active.id} channels={channels} />
+        </div>
       )}
     </div>
   );

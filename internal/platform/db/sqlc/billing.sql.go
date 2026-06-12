@@ -52,6 +52,33 @@ func (q *Queries) DebitWalletIfEnough(ctx context.Context, arg DebitWalletIfEnou
 	return i, err
 }
 
+const getLedgerEntryByRef = `-- name: GetLedgerEntryByRef :one
+SELECT id, workspace_id, kind, credits, reference, note, created_at
+FROM wallet_ledger
+WHERE workspace_id = $1 AND kind = $2 AND reference = $3
+`
+
+type GetLedgerEntryByRefParams struct {
+	WorkspaceID uuid.UUID `json:"workspace_id"`
+	Kind        string    `json:"kind"`
+	Reference   string    `json:"reference"`
+}
+
+func (q *Queries) GetLedgerEntryByRef(ctx context.Context, arg GetLedgerEntryByRefParams) (WalletLedger, error) {
+	row := q.db.QueryRow(ctx, getLedgerEntryByRef, arg.WorkspaceID, arg.Kind, arg.Reference)
+	var i WalletLedger
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Kind,
+		&i.Credits,
+		&i.Reference,
+		&i.Note,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const getWalletBalance = `-- name: GetWalletBalance :one
 SELECT COALESCE(
     (SELECT balance FROM wallets WHERE workspace_id = $1),

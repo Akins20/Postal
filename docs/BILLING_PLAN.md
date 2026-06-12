@@ -13,8 +13,30 @@ schedule errors).
 
 - Wallet holds **credits** (integer). Default pricing (all env-configurable):
   **1 credit = $0.01** (`CREDITS_PER_USD_CENT=1`), an X publish costs
-  **25 credits** (`PUBLISH_COST_TWITTER=25`). Platforms without a configured
+  **10 credits** (`PUBLISH_COST_TWITTER=10`). Platforms without a configured
   cost are free and skip billing entirely.
+
+### Why 10 credits ($0.10)? The cost model (checked 2026-06)
+
+X's pay-per-use API (the default for new developer accounts since Feb 2026)
+charges the OPERATOR roughly:
+- **$0.015 per standard post** created
+- **$0.20 per post containing a URL** (the expensive gotcha for a scheduler)
+- ~$0.001 per owned-data read (our analytics polling; a handful per post)
+
+Payment processing on top-ups:
+- **Stripe:** 2.9% + $0.30 per charge. On the $5 minimum top-up that is
+  ~8.9% effective; ~5.9% at $10; ~4.1% at $25.
+- **Paystack (NGN):** 1.5% + ₦100, capped at ₦2,000, so ~2-3% on typical
+  top-ups (international cards ~3.9%).
+
+A plain post therefore costs us ~1.5¢ + ~0.5-1¢ of metric reads + ~0.5¢ of
+amortized processing fees ≈ **3¢**; a URL post costs ~21¢ all-in. **10
+credits is a blended price**: healthy margin on plain posts, roughly
+break-even when ~40% of posts carry links. Operators with link-heavy
+audiences should raise `PUBLISH_COST_TWITTER`; a future refinement is
+content-aware pricing (charge the URL rate only when the variant body
+contains a link - the worker has the body at charge time).
 - Payments: **Stripe** (cards, global) and **Paystack** (cards/bank, Africa) —
   the user picks at checkout. Both are redirect checkouts + signed webhooks.
   A **dev provider** (enabled only when `POSTAL_ENV=development`) credits

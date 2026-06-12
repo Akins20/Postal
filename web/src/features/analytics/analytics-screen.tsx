@@ -49,7 +49,7 @@ export function AnalyticsScreen() {
               <h2 className="text-fg text-sm font-semibold">Published posts</h2>
               <Hint label="About these numbers">
                 Latest captured numbers per post and channel. Metrics refresh periodically after a
-                post publishes — pick a row for per-channel breakdown and trends.
+                post publishes - pick a row for per-channel breakdown and trends.
               </Hint>
             </div>
             <p className="text-fg-muted mt-1 text-sm">Latest metrics per post and channel.</p>

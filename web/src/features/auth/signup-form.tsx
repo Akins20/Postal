@@ -40,7 +40,7 @@ export function SignupForm() {
     return (
       <div role="status" className="flex flex-col gap-4 text-center">
         <p className="text-fg-muted text-sm">
-          Your account is ready. We&apos;ve sent a verification email — verify it, then sign in.
+          Your account is ready. We&apos;ve sent a verification email - verify it, then sign in.
         </p>
         <Button asChild>
           <Link href="/login">Go to sign in</Link>

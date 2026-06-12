@@ -19,8 +19,8 @@ const STATUS: Record<ChannelStatus, { label: string; tone: "success" | "warning"
 
 const STATUS_HINT: Record<ChannelStatus, string> = {
   active: "This account is connected and ready to publish.",
-  expired: "Access expired — reconnect the account to keep publishing.",
-  revoked: "Access was revoked on the platform — reconnect to use it again.",
+  expired: "Access expired - reconnect the account to keep publishing.",
+  revoked: "Access was revoked on the platform - reconnect to use it again.",
 };
 
 /** A connected social account row: identity, health, and disconnect. */

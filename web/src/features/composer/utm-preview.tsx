@@ -9,7 +9,7 @@ import { Hint } from "@/ui/primitives/hint";
 
 /**
  * Preview how links in the current text look once UTM parameters are applied
- * (the backend does the tagging — this mirrors what publish will produce).
+ * (the backend does the tagging - this mirrors what publish will produce).
  */
 export function UtmPreview({ workspaceId, text }: { workspaceId: string; text: string }) {
   const preview = useUtmPreview(workspaceId);

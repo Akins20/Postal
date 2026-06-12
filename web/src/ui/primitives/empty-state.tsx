@@ -6,7 +6,7 @@ import { cn } from "@/lib/cn";
 import { Icon } from "./icon";
 
 /**
- * A guided empty state (FRONTEND_PLAN §11) — explains what a surface is for and
+ * A guided empty state (FRONTEND_PLAN §11) - explains what a surface is for and
  * the next action, so users aren't faced with a blank screen.
  */
 export function EmptyState({

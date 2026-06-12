@@ -35,8 +35,8 @@ export function ConfirmDialog({
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/30" />
-        <Dialog.Content className="material-panel shadow-window fixed top-1/2 left-1/2 z-50 w-[calc(100vw-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl p-6 outline-none">
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px]" />
+        <Dialog.Content className="material-dialog shadow-popover fixed top-1/2 left-1/2 z-50 w-[calc(100vw-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl p-6 outline-none">
           <Dialog.Title className="text-fg text-base font-semibold">{title}</Dialog.Title>
           <Dialog.Description className="text-fg-muted mt-2 text-sm">
             {description}

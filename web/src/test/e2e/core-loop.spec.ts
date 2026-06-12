@@ -44,7 +44,7 @@ test("core loop: login → dashboard → connect X → compose → schedule → 
 
   // Compose a draft to the connected channel; server validates it.
   await page.goto("/compose");
-  // The checkbox is sr-only inside the chip label — click the chip like a user.
+  // The checkbox is sr-only inside the chip label - click the chip like a user.
   await page.locator("label", { hasText: "@simuser" }).click();
   await expect(page.getByRole("checkbox", { name: "@simuser" })).toBeChecked();
   await page.getByLabel("Post text").fill(`Browser e2e ${Date.now()}`);
@@ -52,7 +52,23 @@ test("core loop: login → dashboard → connect X → compose → schedule → 
   await expect(page.getByText(/draft saved/i)).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText("Ready")).toBeVisible();
 
+  // X is pay-per-use: an empty wallet must block scheduling with a way out.
+  await page.getByRole("button", { name: "Schedule" }).first().click();
+  const gateDialog = page.getByRole("dialog", { name: "Schedule post" });
+  await gateDialog.getByRole("button", { name: "Schedule", exact: true }).click();
+  await expect(gateDialog.getByText(/not enough wallet credits/i)).toBeVisible({
+    timeout: 15_000,
+  });
+  await gateDialog.getByRole("link", { name: "Open Wallet" }).click();
+  await expect(page).toHaveURL(/\/wallet/);
+
+  // Top up with the development provider (instant credits) and come back.
+  await expect(page.getByText(/credits per X post/i)).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: /dev top-up/i }).click();
+  await expect(page.getByText(/payment received/i)).toBeVisible({ timeout: 20_000 });
+
   // Schedule it for a specific future time via the dialog.
+  await page.goto("/compose");
   await page.getByRole("button", { name: "Schedule" }).first().click();
   const dialog = page.getByRole("dialog", { name: "Schedule post" });
   await expect(dialog).toBeVisible();

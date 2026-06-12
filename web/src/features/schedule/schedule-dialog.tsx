@@ -2,6 +2,7 @@
 
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
+import Link from "next/link";
 import { useState, type ReactNode } from "react";
 
 import { useSchedulePost } from "@/data/schedule";
@@ -29,7 +30,7 @@ export function ScheduleDialog({
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<Mode>("slots");
   const [when, setWhen] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<NormalizedError | null>(null);
   const [scheduled, setScheduled] = useState<number | null>(null);
 
   const reset = () => {
@@ -49,7 +50,7 @@ export function ScheduleDialog({
       );
       setScheduled(jobs.length);
     } catch (e) {
-      setError((e as NormalizedError).message);
+      setError(e as NormalizedError);
     }
   };
 
@@ -63,8 +64,8 @@ export function ScheduleDialog({
     >
       <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/30" />
-        <Dialog.Content className="material-panel shadow-window fixed top-1/2 left-1/2 z-50 w-[calc(100vw-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl p-6 outline-none">
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px]" />
+        <Dialog.Content className="material-dialog shadow-popover fixed top-1/2 left-1/2 z-50 w-[calc(100vw-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl p-6 outline-none">
           <Dialog.Title className="text-fg text-base font-semibold">Schedule post</Dialog.Title>
           <Dialog.Description className="text-fg-muted mt-1 mb-4 text-sm">
             One job is created per selected channel.
@@ -73,7 +74,7 @@ export function ScheduleDialog({
           {scheduled !== null ? (
             <div role="status" className="flex flex-col gap-4">
               <p className="text-fg text-sm">
-                Scheduled — {scheduled} job{scheduled === 1 ? "" : "s"} created. Track them on the
+                Scheduled - {scheduled} job{scheduled === 1 ? "" : "s"} created. Track them on the
                 calendar.
               </p>
               <Dialog.Close asChild>
@@ -132,7 +133,15 @@ export function ScheduleDialog({
 
               {error && (
                 <p role="alert" className="text-danger text-xs">
-                  {error}
+                  {error.message}
+                  {error.code === "insufficient_credits" && (
+                    <>
+                      {" "}
+                      <Link href="/wallet" className="text-accent font-medium hover:underline">
+                        Open Wallet
+                      </Link>
+                    </>
+                  )}
                 </p>
               )}
 

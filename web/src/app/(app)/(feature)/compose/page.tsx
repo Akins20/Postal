@@ -1,16 +1,18 @@
-import { ComposeScreen } from "@/features/composer/compose-screen";
+import { SquarePen } from "lucide-react";
 
-export const metadata = { title: "Compose — Postal" };
+import { ComposeScreen } from "@/features/composer/compose-screen";
+import { PageHeader } from "@/ui/page-header";
+
+export const metadata = { title: "Compose | Postal" };
 
 export default function ComposePage() {
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-6 p-6">
-      <header>
-        <h1 className="text-fg text-lg font-semibold">Compose</h1>
-        <p className="text-fg-muted mt-1 text-sm">
-          Write once, tailor per channel if you like, and save as a draft to schedule.
-        </p>
-      </header>
+    <div className="mx-auto flex max-w-6xl flex-col gap-6 p-4 sm:p-6">
+      <PageHeader
+        icon={SquarePen}
+        title="Compose"
+        subtitle="Write once, tailor per channel if you like, and save as a draft to schedule."
+      />
       <ComposeScreen />
     </div>
   );

@@ -108,7 +108,7 @@ export function OverviewWidgets() {
         <WidgetHeader icon={SquarePen} title="Drafts" href="/compose" linkLabel="Compose" />
         {postsPending && <Spinner label="Loading drafts" className="mx-auto block" />}
         {!postsPending && drafts.length === 0 && (
-          <p className="text-fg-muted text-sm">No drafts — write something.</p>
+          <p className="text-fg-muted text-sm">No drafts - write something.</p>
         )}
         <ul className="flex list-none flex-col gap-2">
           {drafts.map((p) => (

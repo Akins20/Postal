@@ -26,10 +26,20 @@ func TestPricingUSDCents(t *testing.T) {
 	assert.Equal(t, int64(7), p.USDCents(7))
 }
 
-func TestPricingCostFor(t *testing.T) {
-	p := Pricing{PublishCosts: map[string]int64{"twitter": 25}}
-	assert.Equal(t, int64(25), p.CostFor("twitter"))
-	assert.Zero(t, p.CostFor("mastodon"), "unlisted platforms are free")
+func TestPricingCostForItem(t *testing.T) {
+	p := Pricing{
+		PublishCosts: map[string]int64{"twitter": 10},
+		MediaCosts:   map[string]int64{"twitter": 15},
+		URLCosts:     map[string]int64{"twitter": 25},
+	}
+	assert.Equal(t, int64(10), p.CostForItem(PublishItem{Platform: "twitter", Body: "plain"}))
+	assert.Equal(t, int64(15), p.CostForItem(PublishItem{Platform: "twitter", Body: "pic", HasMedia: true}))
+	assert.Equal(t, int64(25), p.CostForItem(PublishItem{Platform: "twitter", Body: "see https://a.test"}))
+	assert.Equal(t, int64(25),
+		p.CostForItem(PublishItem{Platform: "twitter", Body: "https://a.test", HasMedia: true}),
+		"highest tier wins for link+media")
+	assert.Zero(t, p.CostForItem(PublishItem{Platform: "mastodon", Body: "https://a.test"}),
+		"unlisted platforms are free")
 }
 
 // stripeSig builds a valid Stripe-Signature header for payload at ts.

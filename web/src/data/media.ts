@@ -31,7 +31,7 @@ export function mediaDownloadURL(workspaceId: string, mediaId: string): string {
 }
 
 /**
- * Upload one file as multipart/form-data via XHR — fetch can't report upload
+ * Upload one file as multipart/form-data via XHR - fetch can't report upload
  * progress. Mirrors the api client's conventions: cookie credentials, CSRF
  * double-submit, request-id correlation.
  */

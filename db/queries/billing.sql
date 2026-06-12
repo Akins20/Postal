@@ -40,3 +40,8 @@ FROM wallet_ledger
 WHERE workspace_id = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3;
+
+-- name: GetLedgerEntryByRef :one
+SELECT id, workspace_id, kind, credits, reference, note, created_at
+FROM wallet_ledger
+WHERE workspace_id = $1 AND kind = $2 AND reference = $3;

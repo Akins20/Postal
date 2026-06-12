@@ -8,6 +8,7 @@ package billing
 
 import (
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -45,12 +46,19 @@ type LedgerEntry struct {
 }
 
 // Pricing holds the credit economics (from config; see docs/BILLING_PLAN.md).
+// Costs are tiered by content because X bills URL posts (~$0.20) far above
+// plain or media posts (~$0.015 + upload requests): base < media < URL, and
+// the highest applicable tier wins.
 type Pricing struct {
 	// CreditsPerUSDCent converts a top-up amount to credits (default 1).
 	CreditsPerUSDCent int64
-	// PublishCosts maps a platform key to its per-publish cost in credits.
-	// Platforms absent from the map are free.
+	// PublishCosts maps a platform key to its base per-publish cost in
+	// credits. Platforms absent from every cost map are free.
 	PublishCosts map[string]int64
+	// MediaCosts is the per-publish cost when the post carries media.
+	MediaCosts map[string]int64
+	// URLCosts is the per-publish cost when the post body contains a link.
+	URLCosts map[string]int64
 	// MinTopupCredits is the smallest accepted top-up.
 	MinTopupCredits int64
 	// NGNPerUSD converts USD pricing to NGN for Paystack charges.
@@ -59,9 +67,34 @@ type Pricing struct {
 	ReturnURL string
 }
 
-// CostFor returns the per-publish cost for a platform (0 = free).
-func (p Pricing) CostFor(platform string) int64 {
-	return p.PublishCosts[platform]
+// PublishItem describes one variant about to publish, for pricing.
+type PublishItem struct {
+	Platform string
+	Body     string
+	HasMedia bool
+}
+
+// BodyHasURL reports whether post text contains a web link (X bills these at
+// the URL rate).
+func BodyHasURL(body string) bool {
+	return strings.Contains(body, "http://") || strings.Contains(body, "https://")
+}
+
+// CostForItem returns the per-publish cost for one variant: the highest
+// applicable tier (URL > media > base). 0 = free platform.
+func (p Pricing) CostForItem(it PublishItem) int64 {
+	cost := p.PublishCosts[it.Platform]
+	if it.HasMedia {
+		if c := p.MediaCosts[it.Platform]; c > cost {
+			cost = c
+		}
+	}
+	if BodyHasURL(it.Body) {
+		if c := p.URLCosts[it.Platform]; c > cost {
+			cost = c
+		}
+	}
+	return cost
 }
 
 // USDCents converts credits to the USD amount (in cents) a buyer pays.

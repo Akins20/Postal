@@ -20,7 +20,7 @@ export interface SidebarSection {
 }
 
 /**
- * macOS source-list sidebar — navigation for a feature/sub-route (FRONTEND_PLAN
+ * macOS source-list sidebar - navigation for a feature/sub-route (FRONTEND_PLAN
  * §5). Translucent, sectioned, with a selection highlight. Used persistently on
  * desktop/tablet and inside a slide-over sheet on mobile (see FeatureShell).
  */

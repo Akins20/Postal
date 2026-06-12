@@ -40,7 +40,7 @@ type Publisher interface {
 // claim time and refunds after a terminal failure. Free platforms are no-ops.
 // billing.Service satisfies it; nil disables billing (everything free).
 type PublishBiller interface {
-	ChargePublish(ctx context.Context, jobID, channelID uuid.UUID) error
+	ChargePublish(ctx context.Context, jobID, channelID uuid.UUID, body string, hasMedia bool) error
 	RefundPublish(ctx context.Context, jobID, channelID uuid.UUID) error
 }
 
@@ -111,7 +111,7 @@ func (p *Processor) ProcessPublish(ctx context.Context, t *asynq.Task) error {
 		return fmt.Errorf("loading job %s: %v: %w", pl.JobID, err, asynq.SkipRetry)
 	}
 
-	if err := p.chargeForPublish(ctx, pl.JobID, channelID); err != nil {
+	if err := p.chargeForPublish(ctx, pl.JobID, channelID, variant); err != nil {
 		return err
 	}
 
@@ -141,16 +141,16 @@ func (p *Processor) ProcessPublish(ctx context.Context, t *asynq.Task) error {
 // free platforms are a no-op). The charge is idempotent by job ID, so a
 // re-claimed job never double-charges. No funds = permanent failure the user
 // fixes by topping up.
-func (p *Processor) chargeForPublish(ctx context.Context, jobID, channelID uuid.UUID) error {
+func (p *Processor) chargeForPublish(ctx context.Context, jobID, channelID uuid.UUID, v publish.PostVariant) error {
 	if p.biller == nil {
 		return nil
 	}
-	err := p.biller.ChargePublish(ctx, jobID, channelID)
+	err := p.biller.ChargePublish(ctx, jobID, channelID, v.Text, len(v.Media) > 0)
 	switch {
 	case err == nil:
 		return nil
 	case errors.Is(err, billing.ErrInsufficientCredits):
-		_ = p.sched.MarkFailed(ctx, jobID, "insufficient wallet credits — top up to publish to this platform")
+		_ = p.sched.MarkFailed(ctx, jobID, "insufficient wallet credits. Top up to publish to this platform")
 		return fmt.Errorf("insufficient credits for job %s: %w", jobID, asynq.SkipRetry)
 	default:
 		_ = p.sched.MarkRetry(ctx, jobID, err.Error())

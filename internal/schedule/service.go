@@ -28,7 +28,7 @@ type ChannelResolver interface {
 // the hard gate at claim time). billing.Service satisfies it; nil disables
 // the gate (all platforms free).
 type AffordabilityChecker interface {
-	CheckAffordable(ctx context.Context, workspaceID uuid.UUID, platforms []string) error
+	CheckAffordable(ctx context.Context, workspaceID uuid.UUID, items []billing.PublishItem) error
 }
 
 // maxPendingJobsPerWorkspace caps not-yet-completed scheduled jobs per workspace
@@ -70,18 +70,23 @@ func (s *Service) checkBilling(ctx context.Context, workspaceID uuid.UUID, varia
 	if s.biller == nil {
 		return nil
 	}
-	platforms := make([]string, 0, len(variants))
+	items := make([]billing.PublishItem, 0, len(variants))
 	for _, v := range variants {
 		platform, err := s.channels.PlatformFor(ctx, workspaceID, v.ChannelID)
 		if err != nil {
 			return err
 		}
-		platforms = append(platforms, platform)
+		media := string(v.MediaRefs)
+		items = append(items, billing.PublishItem{
+			Platform: platform,
+			Body:     v.Body,
+			HasMedia: media != "" && media != "null" && media != "[]",
+		})
 	}
-	if err := s.biller.CheckAffordable(ctx, workspaceID, platforms); err != nil {
+	if err := s.biller.CheckAffordable(ctx, workspaceID, items); err != nil {
 		if errors.Is(err, billing.ErrInsufficientCredits) {
 			return apperr.Validation("insufficient_credits",
-				"not enough wallet credits to schedule this — top up on the Wallet page")
+				"not enough wallet credits to schedule this. Top up on the Wallet page")
 		}
 		return err
 	}

@@ -8,7 +8,7 @@ import { featureSidebar } from "@/config/nav";
 import { FeatureShell } from "@/ui/sidebar/feature-shell";
 
 /**
- * Layout for feature/sub-routes — wraps them in the macOS side-rail shell with
+ * Layout for feature/sub-routes - wraps them in the macOS side-rail shell with
  * the workspace switcher in the rail header. The dashboard sits outside this
  * group and uses the Dock instead.
  */

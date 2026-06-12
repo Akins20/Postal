@@ -1,16 +1,18 @@
-import { ChannelsPanel } from "@/features/channels/channels-panel";
+import { Radio } from "lucide-react";
 
-export const metadata = { title: "Channels — Postal" };
+import { ChannelsPanel } from "@/features/channels/channels-panel";
+import { PageHeader } from "@/ui/page-header";
+
+export const metadata = { title: "Channels | Postal" };
 
 export default function ChannelsPage() {
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-6 p-6">
-      <header>
-        <h1 className="text-fg text-lg font-semibold">Channels</h1>
-        <p className="text-fg-muted mt-1 text-sm">
-          Connect and manage the social accounts this workspace publishes to.
-        </p>
-      </header>
+    <div className="mx-auto flex max-w-5xl flex-col gap-6 p-4 sm:p-6">
+      <PageHeader
+        icon={Radio}
+        title="Channels"
+        subtitle="Connect and manage the social accounts this workspace publishes to."
+      />
       <ChannelsPanel />
     </div>
   );

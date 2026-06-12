@@ -116,7 +116,7 @@ export function DraftsList({
     );
   }
   if (!posts || posts.length === 0) {
-    return <p className="text-fg-muted py-2 text-sm">Nothing saved yet — your drafts land here.</p>;
+    return <p className="text-fg-muted py-2 text-sm">Nothing saved yet - your drafts land here.</p>;
   }
   return (
     <ul className="flex list-none flex-col">
