@@ -41,6 +41,12 @@ func (s *Server) mountAPI(deps Deps) {
 			r.Mount("/auth", deps.AuthHandler.Routes())
 		}
 
+		// Payment webhooks are public by design: their provider signature over
+		// the raw body is the authentication (no session, no CSRF).
+		if deps.BillingHandler != nil {
+			deps.BillingHandler.RegisterPublic(r)
+		}
+
 		// Authenticated API: every route requires a valid access token, and
 		// state-changing cookie-authenticated requests are CSRF-protected.
 		if deps.Tokens != nil {
@@ -85,6 +91,9 @@ func mountAuthenticated(pr chi.Router, deps Deps) {
 			}
 			if deps.AnalyticsHandler != nil {
 				deps.AnalyticsHandler.RegisterWorkspaceScoped(sr)
+			}
+			if deps.BillingHandler != nil {
+				deps.BillingHandler.RegisterWorkspaceScoped(sr)
 			}
 		})
 	})

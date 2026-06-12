@@ -26,7 +26,7 @@ func TestAnalytics_PollAndReport(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SchedulePost: %v", err)
 	}
-	proc := worker.NewProcessor(h.sched, h.pipeline, h.channels, nil, slog.Default(), nil)
+	proc := worker.NewProcessor(h.sched, h.pipeline, h.channels, nil, nil, slog.Default(), nil)
 	if err := proc.ProcessPublish(ctx, publishTask(t, jobs[0].ID)); err != nil {
 		t.Fatalf("ProcessPublish: %v", err)
 	}

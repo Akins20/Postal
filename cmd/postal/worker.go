@@ -58,15 +58,20 @@ func runWorker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	if mediaSvc != nil {
 		mediaLoader = mediaSvc
 	}
+	// Wallet billing: the worker holds the hard gate — charge at claim, refund
+	// on terminal failure (X is the only platform with a cost).
+	billingSvc := buildBilling(cfg, pool, log)
+
 	// The worker only processes jobs (claim/execute/mark) — it never enqueues —
-	// so it needs no asynq client (nil Enqueuer).
-	scheduleSvc := schedule.NewService(pool, channelSvc, nil, mediaLoader, auditor, nil)
+	// so it needs no asynq client (nil Enqueuer). The billing soft gate is the
+	// API server's concern; the worker passes nil.
+	scheduleSvc := schedule.NewService(pool, channelSvc, nil, mediaLoader, auditor, nil, nil)
 
 	// The analytics poller fetches platform metrics via the publish pipeline
 	// (which owns token/refresh handling) and stores time-series snapshots.
 	analyticsSvc := analytics.NewService(pool, pipeline, auditor, nil)
 
-	processor := worker.NewProcessor(scheduleSvc, pipeline, channelSvc, analyticsSvc, log, nil)
+	processor := worker.NewProcessor(scheduleSvc, pipeline, channelSvc, analyticsSvc, billingSvc, log, nil)
 	log.Info("starting postal worker", slog.String("env", cfg.HTTP.Env))
 	return worker.Run(ctx, redisOpt(cfg), processor, log)
 }

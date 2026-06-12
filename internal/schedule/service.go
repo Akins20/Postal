@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
+	"github.com/Akins20/postal/internal/billing"
 	"github.com/Akins20/postal/internal/platform/apperr"
 	"github.com/Akins20/postal/internal/platform/db"
 	"github.com/Akins20/postal/internal/platform/db/sqlc"
@@ -20,6 +21,14 @@ import (
 // ChannelResolver verifies channel ownership within a workspace.
 type ChannelResolver interface {
 	PlatformFor(ctx context.Context, workspaceID, channelID uuid.UUID) (string, error)
+}
+
+// AffordabilityChecker verifies a workspace's wallet covers the paid-platform
+// publishes about to be queued (the schedule-time soft gate; the worker holds
+// the hard gate at claim time). billing.Service satisfies it; nil disables
+// the gate (all platforms free).
+type AffordabilityChecker interface {
+	CheckAffordable(ctx context.Context, workspaceID uuid.UUID, platforms []string) error
 }
 
 // maxPendingJobsPerWorkspace caps not-yet-completed scheduled jobs per workspace
@@ -42,16 +51,41 @@ type Service struct {
 	enqueuer Enqueuer
 	media    MediaLoader
 	audit    security.Recorder
+	biller   AffordabilityChecker
 	clock    func() time.Time
 }
 
 // NewService builds a schedule Service. media may be nil (media disabled);
-// clock defaults to time.Now.
-func NewService(pool *db.Pool, channels ChannelResolver, enqueuer Enqueuer, media MediaLoader, audit security.Recorder, clock func() time.Time) *Service {
+// biller may be nil (billing disabled); clock defaults to time.Now.
+func NewService(pool *db.Pool, channels ChannelResolver, enqueuer Enqueuer, media MediaLoader, audit security.Recorder, biller AffordabilityChecker, clock func() time.Time) *Service {
 	if clock == nil {
 		clock = time.Now
 	}
-	return &Service{pool: pool, channels: channels, enqueuer: enqueuer, media: media, audit: audit, clock: clock}
+	return &Service{pool: pool, channels: channels, enqueuer: enqueuer, media: media, audit: audit, biller: biller, clock: clock}
+}
+
+// checkBilling runs the wallet soft gate for the platforms these variants
+// target, mapping a shortfall to a user-actionable validation error.
+func (s *Service) checkBilling(ctx context.Context, workspaceID uuid.UUID, variants []sqlc.PostVariant) error {
+	if s.biller == nil {
+		return nil
+	}
+	platforms := make([]string, 0, len(variants))
+	for _, v := range variants {
+		platform, err := s.channels.PlatformFor(ctx, workspaceID, v.ChannelID)
+		if err != nil {
+			return err
+		}
+		platforms = append(platforms, platform)
+	}
+	if err := s.biller.CheckAffordable(ctx, workspaceID, platforms); err != nil {
+		if errors.Is(err, billing.ErrInsufficientCredits) {
+			return apperr.Validation("insufficient_credits",
+				"not enough wallet credits to schedule this — top up on the Wallet page")
+		}
+		return err
+	}
+	return nil
 }
 
 // SchedulePost schedules every variant of a post to publish at runAt (UTC),
@@ -63,6 +97,9 @@ func (s *Service) SchedulePost(ctx context.Context, workspaceID, postID uuid.UUI
 		return nil, err
 	}
 	if err := s.checkPendingQuota(ctx, workspaceID, len(variants)); err != nil {
+		return nil, err
+	}
+	if err := s.checkBilling(ctx, workspaceID, variants); err != nil {
 		return nil, err
 	}
 	jobs := make([]Job, 0, len(variants))
@@ -85,6 +122,9 @@ func (s *Service) ScheduleToSlots(ctx context.Context, workspaceID, postID uuid.
 		return nil, err
 	}
 	if err := s.checkPendingQuota(ctx, workspaceID, len(variants)); err != nil {
+		return nil, err
+	}
+	if err := s.checkBilling(ctx, workspaceID, variants); err != nil {
 		return nil, err
 	}
 	now := s.clock()

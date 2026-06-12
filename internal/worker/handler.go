@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
 
+	"github.com/Akins20/postal/internal/billing"
 	"github.com/Akins20/postal/internal/publish"
 )
 
@@ -35,6 +36,14 @@ type Publisher interface {
 	Publish(ctx context.Context, channelID uuid.UUID, v publish.PostVariant) (*publish.Result, error)
 }
 
+// PublishBiller charges a workspace's wallet for a paid-platform publish at
+// claim time and refunds after a terminal failure. Free platforms are no-ops.
+// billing.Service satisfies it; nil disables billing (everything free).
+type PublishBiller interface {
+	ChargePublish(ctx context.Context, jobID, channelID uuid.UUID) error
+	RefundPublish(ctx context.Context, jobID, channelID uuid.UUID) error
+}
+
 // TokenRefresher lists and refreshes channels nearing token expiry.
 // channel.Service satisfies it.
 type TokenRefresher interface {
@@ -55,17 +64,18 @@ type Processor struct {
 	pipeline  Publisher
 	channels  TokenRefresher
 	analytics AnalyticsPoller
+	biller    PublishBiller
 	log       *slog.Logger
 	clock     func() time.Time
 }
 
 // NewProcessor builds a Processor. analytics may be nil (metrics sweep disabled);
-// clock defaults to time.Now.
-func NewProcessor(sched Scheduler, pipeline Publisher, channels TokenRefresher, analytics AnalyticsPoller, log *slog.Logger, clock func() time.Time) *Processor {
+// biller may be nil (billing disabled); clock defaults to time.Now.
+func NewProcessor(sched Scheduler, pipeline Publisher, channels TokenRefresher, analytics AnalyticsPoller, biller PublishBiller, log *slog.Logger, clock func() time.Time) *Processor {
 	if clock == nil {
 		clock = time.Now
 	}
-	return &Processor{sched: sched, pipeline: pipeline, channels: channels, analytics: analytics, log: log, clock: clock}
+	return &Processor{sched: sched, pipeline: pipeline, channels: channels, analytics: analytics, biller: biller, log: log, clock: clock}
 }
 
 // ProcessPublish executes one scheduled publish job. Terminal failures are not
@@ -101,6 +111,10 @@ func (p *Processor) ProcessPublish(ctx context.Context, t *asynq.Task) error {
 		return fmt.Errorf("loading job %s: %v: %w", pl.JobID, err, asynq.SkipRetry)
 	}
 
+	if err := p.chargeForPublish(ctx, pl.JobID, channelID); err != nil {
+		return err
+	}
+
 	_, err = p.pipeline.Publish(ctx, channelID, variant)
 	if err == nil {
 		return p.sched.MarkPublished(ctx, pl.JobID)
@@ -108,12 +122,40 @@ func (p *Processor) ProcessPublish(ctx context.Context, t *asynq.Task) error {
 
 	var ae *publish.Error
 	if errors.As(err, &ae) && ae.Class == publish.ClassTerminal {
+		// The publish definitively didn't happen — return the charge.
+		if p.biller != nil {
+			if rErr := p.biller.RefundPublish(ctx, pl.JobID, channelID); rErr != nil && p.log != nil {
+				p.log.ErrorContext(ctx, "refund after terminal publish failure failed",
+					slog.String("job_id", pl.JobID.String()), slog.String("error", rErr.Error()))
+			}
+		}
 		_ = p.sched.MarkFailed(ctx, pl.JobID, ae.Error())
 		return fmt.Errorf("terminal publish failure for job %s: %v: %w", pl.JobID, err, asynq.SkipRetry)
 	}
 	// Retryable (or exhausted): record and let asynq retry.
 	_ = p.sched.MarkRetry(ctx, pl.JobID, err.Error())
 	return fmt.Errorf("retryable publish failure for job %s: %w", pl.JobID, err)
+}
+
+// chargeForPublish deducts the wallet cost before publishing (X is pay-per-use;
+// free platforms are a no-op). The charge is idempotent by job ID, so a
+// re-claimed job never double-charges. No funds = permanent failure the user
+// fixes by topping up.
+func (p *Processor) chargeForPublish(ctx context.Context, jobID, channelID uuid.UUID) error {
+	if p.biller == nil {
+		return nil
+	}
+	err := p.biller.ChargePublish(ctx, jobID, channelID)
+	switch {
+	case err == nil:
+		return nil
+	case errors.Is(err, billing.ErrInsufficientCredits):
+		_ = p.sched.MarkFailed(ctx, jobID, "insufficient wallet credits — top up to publish to this platform")
+		return fmt.Errorf("insufficient credits for job %s: %w", jobID, asynq.SkipRetry)
+	default:
+		_ = p.sched.MarkRetry(ctx, jobID, err.Error())
+		return fmt.Errorf("charging wallet for job %s: %w", jobID, err)
+	}
 }
 
 // ProcessRefreshTokens refreshes channels whose credentials are near expiry.

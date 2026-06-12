@@ -26,7 +26,7 @@ func TestCheckPendingQuota(t *testing.T) {
 	}
 	t.Cleanup(pool.Close)
 
-	svc := NewService(pool, nil, nil, nil, nil, nil)
+	svc := NewService(pool, nil, nil, nil, nil, nil, nil)
 	ws := uuid.New() // a workspace with zero pending jobs
 
 	orig := maxPendingJobsPerWorkspace

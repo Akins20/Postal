@@ -15,6 +15,7 @@ import (
 
 	"github.com/Akins20/postal/internal/analytics"
 	"github.com/Akins20/postal/internal/auth"
+	"github.com/Akins20/postal/internal/billing"
 	"github.com/Akins20/postal/internal/channel"
 	"github.com/Akins20/postal/internal/media"
 	"github.com/Akins20/postal/internal/platform/metrics"
@@ -46,6 +47,7 @@ type Deps struct {
 	ScheduleHandler  *schedule.Handler
 	MediaHandler     *media.Handler
 	AnalyticsHandler *analytics.Handler
+	BillingHandler   *billing.Handler
 	RequestTimeout   time.Duration
 	// Production gates HSTS (only sent over the assumed-TLS production edge).
 	Production bool

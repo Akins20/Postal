@@ -34,6 +34,10 @@ type Querier interface {
 	CreateScheduledJob(ctx context.Context, arg CreateScheduledJobParams) (ScheduledJob, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams) (Workspace, error)
+	// Add credits (topup/refund). The wallet row is created if missing.
+	CreditWallet(ctx context.Context, arg CreditWalletParams) (Wallet, error)
+	// Atomically deduct; returns no row when funds are insufficient.
+	DebitWalletIfEnough(ctx context.Context, arg DebitWalletIfEnoughParams) (Wallet, error)
 	DeleteChannel(ctx context.Context, id uuid.UUID) error
 	DeleteChannelCredential(ctx context.Context, channelID uuid.UUID) error
 	DeleteMediaAsset(ctx context.Context, id uuid.UUID) error
@@ -55,7 +59,11 @@ type Querier interface {
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	GetVariantByPostChannel(ctx context.Context, arg GetVariantByPostChannelParams) (PostVariant, error)
+	GetWalletBalance(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	InsertAuditLog(ctx context.Context, arg InsertAuditLogParams) (InsertAuditLogRow, error)
+	// Append a ledger entry. ON CONFLICT DO NOTHING + no row returned signals a
+	// duplicate (webhook retry / double claim) so the caller can skip the credit.
+	InsertLedgerEntry(ctx context.Context, arg InsertLedgerEntryParams) (WalletLedger, error)
 	// Batched insert of all metrics for one poll (atomic, single round-trip).
 	InsertMetricSnapshots(ctx context.Context, arg []InsertMetricSnapshotsParams) (int64, error)
 	InsertPublishResult(ctx context.Context, arg InsertPublishResultParams) (PublishResult, error)
@@ -72,6 +80,7 @@ type Querier interface {
 	ListAuditLogByWorkspace(ctx context.Context, arg ListAuditLogByWorkspaceParams) ([]AuditLog, error)
 	ListChannels(ctx context.Context, workspaceID uuid.UUID) ([]Channel, error)
 	ListChannelsDueForRefresh(ctx context.Context, arg ListChannelsDueForRefreshParams) ([]ListChannelsDueForRefreshRow, error)
+	ListLedgerEntries(ctx context.Context, arg ListLedgerEntriesParams) ([]WalletLedger, error)
 	ListMediaAssets(ctx context.Context, arg ListMediaAssetsParams) ([]MediaAsset, error)
 	ListMembers(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceMember, error)
 	ListPostsByWorkspace(ctx context.Context, arg ListPostsByWorkspaceParams) ([]Post, error)
@@ -107,6 +116,8 @@ type Querier interface {
 	// Record a poll attempt for a (channel, platform post). done is sticky: once a
 	// post is gone at the platform it stays done so it's never polled again.
 	UpsertPollState(ctx context.Context, arg UpsertPollStateParams) error
+	// Ensure the workspace has a wallet row and return it.
+	UpsertWallet(ctx context.Context, workspaceID uuid.UUID) (Wallet, error)
 }
 
 var _ Querier = (*Queries)(nil)

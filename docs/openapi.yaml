@@ -58,6 +58,8 @@ tags:
     description: Media upload, listing, download
   - name: Analytics
     description: Post-performance metrics and export
+  - name: Billing
+    description: Wallet credits — X/Twitter is the only pay-per-use platform
 
 security:
   - bearerAuth: []
@@ -820,6 +822,96 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
 
+  /api/v1/workspaces/{workspaceID}/billing/wallet:
+    parameters:
+      - $ref: "#/components/parameters/workspaceID"
+    get:
+      tags: [Billing]
+      summary: Wallet balance + per-platform publish costs (capability; read)
+      responses:
+        "200":
+          description: Wallet
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/Wallet" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/workspaces/{workspaceID}/billing/ledger:
+    parameters:
+      - $ref: "#/components/parameters/workspaceID"
+    get:
+      tags: [Billing]
+      summary: Wallet movement history, newest first (capability; read)
+      responses:
+        "200":
+          description: Ledger entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/LedgerEntry" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/workspaces/{workspaceID}/billing/topup:
+    parameters:
+      - $ref: "#/components/parameters/workspaceID"
+    post:
+      tags: [Billing]
+      summary: Start a wallet top-up checkout (capability; manage_workspace)
+      description: The charge amount is derived server-side from credits. Returns the provider's hosted checkout URL; crediting happens via the signed webhook, never on redirect.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [provider, credits]
+              properties:
+                provider: { type: string, enum: [stripe, paystack, dev], description: dev is development-only }
+                credits: { type: integer, format: int64, minimum: 1 }
+      responses:
+        "200":
+          description: Hosted checkout URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    required: [checkout_url]
+                    properties:
+                      checkout_url: { type: string, format: uri }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/billing/webhooks/stripe:
+    post:
+      tags: [Billing]
+      summary: Stripe webhook (public; Stripe-Signature is the auth)
+      security: []
+      responses:
+        "200": { description: Acknowledged (credited, duplicate, or ignored) }
+        "401": { description: Signature verification failed }
+
+  /api/v1/billing/webhooks/paystack:
+    post:
+      tags: [Billing]
+      summary: Paystack webhook (public; x-paystack-signature is the auth)
+      security: []
+      responses:
+        "200": { description: Acknowledged (credited, duplicate, or ignored) }
+        "401": { description: Signature verification failed }
+
   /api/v1/workspaces/{workspaceID}/analytics/:
     parameters:
       - $ref: "#/components/parameters/workspaceID"
@@ -1304,3 +1396,27 @@ components:
       properties:
         value: { type: integer, format: int64 }
         captured_at: { type: string, format: date-time }
+
+    Wallet:
+      type: object
+      required: [workspace_id, balance, publish_costs, updated_at]
+      properties:
+        workspace_id: { type: string, format: uuid }
+        balance: { type: integer, format: int64, description: credits }
+        publish_costs:
+          type: object
+          additionalProperties: { type: integer, format: int64 }
+          description: per-publish cost in credits by platform; absent platforms are free
+        updated_at: { type: string, format: date-time }
+
+    LedgerEntry:
+      type: object
+      required: [id, workspace_id, kind, credits, reference, note, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        workspace_id: { type: string, format: uuid }
+        kind: { type: string, enum: [topup, publish_charge, refund, adjustment] }
+        credits: { type: integer, format: int64, description: signed; charges are negative }
+        reference: { type: string }
+        note: { type: string }
+        created_at: { type: string, format: date-time }

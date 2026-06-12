@@ -162,6 +162,22 @@ type User struct {
 	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
 }
 
+type Wallet struct {
+	WorkspaceID uuid.UUID          `json:"workspace_id"`
+	Balance     int64              `json:"balance"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+}
+
+type WalletLedger struct {
+	ID          uuid.UUID          `json:"id"`
+	WorkspaceID uuid.UUID          `json:"workspace_id"`
+	Kind        string             `json:"kind"`
+	Credits     int64              `json:"credits"`
+	Reference   string             `json:"reference"`
+	Note        string             `json:"note"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
 type Workspace struct {
 	ID          uuid.UUID          `json:"id"`
 	Name        string             `json:"name"`

@@ -47,6 +47,23 @@ type Config struct {
 	Auth    Auth
 	Twitter Twitter
 	Storage Storage
+	Billing Billing
+}
+
+// Billing holds the wallet economics and payment-provider credentials
+// (Phase 13; see docs/BILLING_PLAN.md). A provider with a blank secret key is
+// disabled. X/Twitter is the only platform with a publish cost.
+type Billing struct {
+	CreditsPerUSDCent   int64
+	PublishCostTwitter  int64
+	MinTopupCredits     int64
+	NGNPerUSD           int64
+	ReturnURL           string
+	StripeSecretKey     string
+	StripeWebhookSecret string
+	StripeAPIBase       string
+	PaystackSecretKey   string
+	PaystackAPIBase     string
 }
 
 // Twitter holds the X/Twitter OAuth app credentials. When ClientID is empty the
@@ -180,6 +197,18 @@ func Load() (Config, error) {
 			RedirectURI:  getString("X_REDIRECT_URI", ""),
 			APIBaseURL:   getString("X_API_BASE_URL", ""),
 			AuthBaseURL:  getString("X_AUTH_BASE_URL", ""),
+		},
+		Billing: Billing{
+			CreditsPerUSDCent:   getInt64("BILLING_CREDITS_PER_USD_CENT", 1),
+			PublishCostTwitter:  getInt64("BILLING_PUBLISH_COST_TWITTER", 25),
+			MinTopupCredits:     getInt64("BILLING_MIN_TOPUP_CREDITS", 500),
+			NGNPerUSD:           getInt64("PAYSTACK_NGN_PER_USD", 1600),
+			ReturnURL:           getString("BILLING_RETURN_URL", "http://localhost:3000/wallet"),
+			StripeSecretKey:     getString("STRIPE_SECRET_KEY", ""),
+			StripeWebhookSecret: getString("STRIPE_WEBHOOK_SECRET", ""),
+			StripeAPIBase:       getString("STRIPE_API_BASE", ""),
+			PaystackSecretKey:   getString("PAYSTACK_SECRET_KEY", ""),
+			PaystackAPIBase:     getString("PAYSTACK_API_BASE", ""),
 		},
 		Storage: Storage{
 			Endpoint:          getString("STORAGE_ENDPOINT", ""),

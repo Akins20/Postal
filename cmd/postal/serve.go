@@ -7,6 +7,7 @@ import (
 
 	"github.com/Akins20/postal/internal/analytics"
 	"github.com/Akins20/postal/internal/auth"
+	"github.com/Akins20/postal/internal/billing"
 	"github.com/Akins20/postal/internal/channel"
 	"github.com/Akins20/postal/internal/config"
 	"github.com/Akins20/postal/internal/media"
@@ -180,11 +181,60 @@ func (w *wiring) wireChannels(deps *server.Deps) {
 	postSvc := post.NewService(w.pool, channelSvc, publish.NewRegistry(adapters...), mediaResolver, w.auditor, nil)
 	deps.PostHandler = post.NewHandler(postSvc, w.wsSvc, w.log)
 
+	// Wallet billing (Phase 13): X is pay-per-use; scheduling gets the
+	// affordability soft gate, the worker the hard charge.
+	billingSvc := buildBilling(w.cfg, w.pool, w.log)
+	deps.BillingHandler = newBillingHandler(w.cfg, billingSvc, w.wsSvc, w.log)
+
 	// Scheduling: enqueue publish tasks to asynq; the worker process executes
 	// them. The asynq client satisfies schedule.Enqueuer; closed by runServe.
 	w.enqueuer = worker.NewClient(redisOpt(w.cfg))
-	scheduleSvc := schedule.NewService(w.pool, channelSvc, w.enqueuer, mediaLoader, w.auditor, nil)
+	scheduleSvc := schedule.NewService(w.pool, channelSvc, w.enqueuer, mediaLoader, w.auditor, billingSvc, nil)
 	deps.ScheduleHandler = schedule.NewHandler(scheduleSvc, w.wsSvc, w.log)
+}
+
+// buildBilling constructs the wallet service with whichever payment providers
+// are configured. The dev provider (instant free credits) registers ONLY in
+// development. Shared by server and worker wiring.
+func buildBilling(cfg config.Config, pool *db.Pool, log *slog.Logger) *billing.Service {
+	pricing := billing.Pricing{
+		CreditsPerUSDCent: cfg.Billing.CreditsPerUSDCent,
+		PublishCosts:      map[string]int64{"twitter": cfg.Billing.PublishCostTwitter},
+		MinTopupCredits:   cfg.Billing.MinTopupCredits,
+		NGNPerUSD:         cfg.Billing.NGNPerUSD,
+		ReturnURL:         cfg.Billing.ReturnURL,
+	}
+	providers := map[string]billing.Provider{}
+	if cfg.Billing.StripeSecretKey != "" {
+		providers["stripe"] = billing.NewStripeProvider(
+			cfg.Billing.StripeSecretKey, cfg.Billing.StripeWebhookSecret, cfg.Billing.StripeAPIBase, nil, nil)
+	}
+	if cfg.Billing.PaystackSecretKey != "" {
+		providers["paystack"] = billing.NewPaystackProvider(
+			cfg.Billing.PaystackSecretKey, cfg.Billing.PaystackAPIBase, cfg.Billing.NGNPerUSD, nil)
+	}
+	svc := billing.NewService(pool, pricing, providers, log)
+	if !cfg.HTTP.IsProduction() {
+		providers["dev"] = billing.NewDevProvider(svc.Credit)
+		log.Warn("dev payment provider enabled (instant credits) — development only")
+	}
+	return svc
+}
+
+// newBillingHandler builds the billing HTTP handler with the webhook verifiers
+// for whichever providers are configured.
+func newBillingHandler(cfg config.Config, svc *billing.Service, wsSvc *workspace.Service, log *slog.Logger) *billing.Handler {
+	var stripe *billing.StripeProvider
+	if cfg.Billing.StripeSecretKey != "" {
+		stripe = billing.NewStripeProvider(
+			cfg.Billing.StripeSecretKey, cfg.Billing.StripeWebhookSecret, cfg.Billing.StripeAPIBase, nil, nil)
+	}
+	var paystack *billing.PaystackProvider
+	if cfg.Billing.PaystackSecretKey != "" {
+		paystack = billing.NewPaystackProvider(
+			cfg.Billing.PaystackSecretKey, cfg.Billing.PaystackAPIBase, cfg.Billing.NGNPerUSD, nil)
+	}
+	return billing.NewHandler(svc, wsSvc, stripe, paystack, log)
 }
 
 // buildMedia constructs the media service over object storage. When the storage
