@@ -88,7 +88,10 @@ describe("WalletScreen", () => {
     );
     renderWithProviders(<WalletScreen />);
     await screen.findByText("975");
-    await userEvent.click(screen.getByRole("radio", { name: /2500/ }));
+    // $25 (USD via Stripe) maps to 2500 credits.
+    const amount = screen.getByLabelText("Amount (USD)");
+    await userEvent.clear(amount);
+    await userEvent.type(amount, "25");
     await userEvent.click(screen.getByRole("button", { name: /buy 2500 credits/i }));
     await waitFor(() => expect(assign).toHaveBeenCalledWith("https://pay.test/cs_1"));
     await waitFor(() => expect(sent).toMatchObject({ provider: "stripe", credits: 2500 }));
@@ -106,7 +109,8 @@ describe("WalletScreen", () => {
     );
     renderWithProviders(<WalletScreen />);
     await screen.findByText("975");
-    await userEvent.click(screen.getByRole("button", { name: /buy 1000 credits/i }));
+    // Default $5 = 500 credits.
+    await userEvent.click(screen.getByRole("button", { name: /buy 500 credits/i }));
     expect(await screen.findByRole("alert")).toHaveTextContent(/permission/i);
   });
 });
