@@ -29,9 +29,9 @@ echo
 c=$(code -X POST "$BASE/signup" -H 'Content-Type: application/json' -d "{\"email\":\"$EMAIL\",\"password\":\"$PASS\"}")
 [ "$c" = "201" ] && ok "signup -> 201" || bad "signup -> $c (want 201)"
 
-# 2. duplicate signup -> 409
+# 2. duplicate signup while UNVERIFIED -> 201 (resends verification, not a conflict)
 c=$(code -X POST "$BASE/signup" -H 'Content-Type: application/json' -d "{\"email\":\"$EMAIL\",\"password\":\"$PASS\"}")
-[ "$c" = "409" ] && ok "duplicate signup -> 409" || bad "duplicate signup -> $c (want 409)"
+[ "$c" = "201" ] && ok "duplicate signup (unverified) -> 201 (resend)" || bad "duplicate signup (unverified) -> $c (want 201)"
 
 # 3. weak password -> 400
 c=$(code -X POST "$BASE/signup" -H 'Content-Type: application/json' -d '{"email":"weak@example.com","password":"short"}')
@@ -45,6 +45,14 @@ c=$(code -X POST "$BASE/signup" -H 'Content-Type: application/json' -d "{\"email
 c=$(code -X POST "$BASE/login" -H 'Content-Type: application/json' -d "{\"email\":\"$EMAIL\",\"password\":\"wrong-password\"}")
 [ "$c" = "401" ] && ok "wrong password -> 401" || bad "wrong password -> $c (want 401)"
 
+# 5b. login BEFORE verification -> 403 email_not_verified
+c=$(code -X POST "$BASE/login" -H 'Content-Type: application/json' -d "{\"email\":\"$EMAIL\",\"password\":\"$PASS\"}")
+[ "$c" = "403" ] && ok "login before verify -> 403" || bad "login before verify -> $c (want 403)"
+
+# 5c. resend verification -> 200 (always, no enumeration)
+c=$(code -X POST "$BASE/verify-email/resend" -H 'Content-Type: application/json' -d "{\"email\":\"$EMAIL\"}")
+[ "$c" = "200" ] && ok "resend verification -> 200" || bad "resend verification -> $c (want 200)"
+
 # 6. verify email (pull token from server log)
 TOKEN="$(grep -a 'verification_token' "$LOG" 2>/dev/null | tail -1 | sed -n 's/.*verification_token=\([A-Za-z0-9_-]*\).*/\1/p')"
 if [ -n "$TOKEN" ]; then
@@ -53,6 +61,10 @@ if [ -n "$TOKEN" ]; then
 else
 	bad "could not read verification token from $LOG"
 fi
+
+# 6b. duplicate signup AFTER verification -> 409 (now truly already registered)
+c=$(code -X POST "$BASE/signup" -H 'Content-Type: application/json' -d "{\"email\":\"$EMAIL\",\"password\":\"$PASS\"}")
+[ "$c" = "409" ] && ok "duplicate signup (verified) -> 409" || bad "duplicate signup (verified) -> $c (want 409)"
 
 # 7. login (capture cookies + body)
 BODY="$(j -c "$JAR" -X POST "$BASE/login" -d "{\"email\":\"$EMAIL\",\"password\":\"$PASS\"}")"

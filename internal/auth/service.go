@@ -80,6 +80,22 @@ func (s *Service) Signup(ctx context.Context, email, password, ip string) (sqlc.
 		return sqlc.User{}, err
 	}
 
+	// If the address already exists but was never verified, treat this as a
+	// re-send rather than a conflict: only a verified account is "already
+	// registered". This also avoids leaking the existence of unverified accounts
+	// and never touches the existing account's password.
+	if existing, lookupErr := s.pool.Queries().GetUserByEmail(ctx, email); lookupErr == nil {
+		if existing.EmailVerified {
+			return sqlc.User{}, apperr.Conflict("email_taken", "that email address is already registered")
+		}
+		if resendErr := s.ResendEmailVerification(ctx, email, ip); resendErr != nil {
+			return sqlc.User{}, resendErr
+		}
+		return existing, nil
+	} else if !errors.Is(lookupErr, pgx.ErrNoRows) {
+		return sqlc.User{}, apperr.Internal(lookupErr)
+	}
+
 	hash, err := HashPassword(password)
 	if err != nil {
 		return sqlc.User{}, apperr.Internal(err)
