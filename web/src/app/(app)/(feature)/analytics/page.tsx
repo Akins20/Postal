@@ -3,7 +3,7 @@ import { BarChart3 } from "lucide-react";
 import { AnalyticsScreen } from "@/features/analytics/analytics-screen";
 import { PageHeader } from "@/ui/page-header";
 
-export const metadata = { title: "Analytics | Postal" };
+export const metadata = { title: "Analytics" };
 
 export default function AnalyticsPage() {
   return (

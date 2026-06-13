@@ -13,9 +13,62 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
+// Absolute base for OpenGraph/canonical URLs. Production sets the real domain;
+// local dev falls back so build-time metadata resolution never throws.
+const siteURL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+const description =
+  "Postal is a free, no-paywall social-media scheduling and publishing platform. " +
+  "Compose once, schedule, and publish to X, Instagram, and TikTok from one calendar.";
+
 export const metadata: Metadata = {
-  title: "Postal",
-  description: "Free, no-paywall social-media scheduling & publishing.",
+  metadataBase: new URL(siteURL),
+  title: {
+    default: "Postal — Free social-media scheduling & publishing",
+    template: "%s · Postal",
+  },
+  description,
+  applicationName: "Postal",
+  keywords: [
+    "social media scheduling",
+    "free Buffer alternative",
+    "schedule posts",
+    "X scheduling",
+    "Instagram scheduling",
+    "TikTok scheduling",
+    "social media calendar",
+    "publish everywhere",
+    "no paywall",
+  ],
+  authors: [{ name: "Postal" }],
+  creator: "Postal",
+  publisher: "Postal",
+  alternates: { canonical: "/" },
+  category: "productivity",
+  openGraph: {
+    type: "website",
+    siteName: "Postal",
+    title: "Postal — Free social-media scheduling & publishing",
+    description,
+    url: "/",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Postal — Free social-media scheduling & publishing",
+    description,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
 };
 
 export const viewport: Viewport = {

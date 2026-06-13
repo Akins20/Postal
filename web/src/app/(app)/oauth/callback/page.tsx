@@ -1,6 +1,6 @@
 import { OAuthCallbackClient } from "@/features/channels/oauth-callback-client";
 
-export const metadata = { title: "Connecting account - Postal" };
+export const metadata = { title: "Connecting account" };
 
 /**
  * Landing page for the IdP redirect. Sits directly under (app) - auth-guarded

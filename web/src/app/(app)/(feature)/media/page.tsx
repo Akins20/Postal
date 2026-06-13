@@ -3,7 +3,7 @@ import { ImageIcon } from "lucide-react";
 import { MediaPanel } from "@/features/media/media-panel";
 import { PageHeader } from "@/ui/page-header";
 
-export const metadata = { title: "Media | Postal" };
+export const metadata = { title: "Media" };
 
 export default function MediaPage() {
   return (

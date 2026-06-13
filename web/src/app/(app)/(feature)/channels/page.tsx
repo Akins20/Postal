@@ -3,7 +3,7 @@ import { Radio } from "lucide-react";
 import { ChannelsPanel } from "@/features/channels/channels-panel";
 import { PageHeader } from "@/ui/page-header";
 
-export const metadata = { title: "Channels | Postal" };
+export const metadata = { title: "Channels" };
 
 export default function ChannelsPage() {
   return (

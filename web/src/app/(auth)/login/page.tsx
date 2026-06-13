@@ -3,6 +3,11 @@ import Link from "next/link";
 import { AuthPanel } from "@/features/auth/auth-panel";
 import { LoginForm } from "@/features/auth/login-form";
 
+export const metadata = {
+  title: "Log in",
+  description: "Log in to Postal to schedule and publish across X, Instagram, and TikTok.",
+};
+
 export default function LoginPage() {
   return (
     <AuthPanel

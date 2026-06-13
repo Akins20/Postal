@@ -3,7 +3,7 @@ import { Puzzle } from "lucide-react";
 import { IntegrationsScreen } from "@/features/integrations/integrations-screen";
 import { PageHeader } from "@/ui/page-header";
 
-export const metadata = { title: "Integrations | Postal" };
+export const metadata = { title: "Integrations" };
 
 export default function IntegrationsPage() {
   return (

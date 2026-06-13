@@ -3,7 +3,7 @@ import { Calendar } from "lucide-react";
 import { CalendarScreen } from "@/features/schedule/calendar-screen";
 import { PageHeader } from "@/ui/page-header";
 
-export const metadata = { title: "Calendar | Postal" };
+export const metadata = { title: "Calendar" };
 
 export default function CalendarPage() {
   return (

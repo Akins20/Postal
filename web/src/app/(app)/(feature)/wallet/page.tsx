@@ -5,7 +5,7 @@ import { WalletScreen } from "@/features/wallet/wallet-screen";
 import { PageHeader } from "@/ui/page-header";
 import { Spinner } from "@/ui/primitives/spinner";
 
-export const metadata = { title: "Wallet | Postal" };
+export const metadata = { title: "Wallet" };
 
 export default function WalletPage() {
   return (

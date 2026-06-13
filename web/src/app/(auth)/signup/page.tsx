@@ -3,6 +3,12 @@ import Link from "next/link";
 import { AuthPanel } from "@/features/auth/auth-panel";
 import { SignupForm } from "@/features/auth/signup-form";
 
+export const metadata = {
+  title: "Sign up",
+  description:
+    "Create a free Postal account. No paywall. Schedule and publish to X, Instagram, and TikTok.",
+};
+
 export default function SignupPage() {
   return (
     <AuthPanel

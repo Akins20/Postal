@@ -3,7 +3,7 @@ import { SquarePen } from "lucide-react";
 import { ComposeScreen } from "@/features/composer/compose-screen";
 import { PageHeader } from "@/ui/page-header";
 
-export const metadata = { title: "Compose | Postal" };
+export const metadata = { title: "Compose" };
 
 export default function ComposePage() {
   return (
