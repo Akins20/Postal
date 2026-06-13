@@ -148,11 +148,17 @@ Layer rules enforced with the same eslint `no-restricted-imports` boundaries.
   preview (FlatList-friendly), link preview card, UTM, shorten-links action.
 - **15.4 Scheduling & calendar**: publish-now/slots/specific-time sheet
   (native date-time pickers, tz-correct), month/agenda calendar, cancel.
-- **15.5 Analytics**: overview list, per-post breakdown, series chart
-  (victory-native), CSV export via share-sheet.
-- **15.6 Wallet (read-only) + Integrations + Settings**: balance/ledger/tier
-  prices, "top up on the web" hand-off, OGShortener status (key entry stays
-  web-only v1), account/appearance/members.
+- [x] **15.5 Analytics** DONE 2026-06-13: analytics data (overview + per-post
+  breakdown); Analytics screen (lifecycle-aware empty states, per-row @handle +
+  post excerpt + inline metric tiles). _Deferred to polish: the time-series
+  chart (victory-native) and CSV share-sheet export._
+- [x] **15.6 Wallet (read-only) + Settings** DONE 2026-06-13: "More" tab is now
+  a stack hub (Analytics / Wallet / Settings). Wallet (read-only per the Google
+  Play billing decision): balance hero, the three X credit tiers, ledger
+  history, and a "top up from any browser" hand-off. Settings: account (email +
+  verification pill, member-since), Appearance (System/Light/Dark segmented,
+  drives the theme store live), workspace facts, sign out. _Deferred to polish:
+  Integrations screen (OGShortener status) and a Media library screen._
 - **15.7 Hardening & release**: Maestro e2e of the core loop against the
   local stack + simulators, accessibility pass (TalkBack, touch targets,
   reduced motion), ProGuard/shrink config, EAS build, Play internal testing.
