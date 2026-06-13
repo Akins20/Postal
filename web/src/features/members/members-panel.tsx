@@ -7,35 +7,44 @@ import { Spinner } from "@/ui/primitives/spinner";
 import { StatusPill } from "@/ui/primitives/status-pill";
 
 import { AddMemberForm } from "./add-member-form";
+import { ActivityFeed } from "./activity-feed";
+import { MemberChannelAccess } from "./member-channel-access";
 
 function MemberRow({ workspaceId, member }: { workspaceId: string; member: Member }) {
   const update = useUpdateCapabilities(workspaceId);
   const count = member.permissions.length;
 
   return (
-    <div className="border-separator flex items-center justify-between gap-3 border-b py-3 last:border-0">
-      <div className="flex flex-col">
-        <span className="text-fg-muted font-mono text-xs">{member.user_id.slice(0, 8)}…</span>
-        <span className="text-fg-subtle text-xs">
-          {count} permission{count === 1 ? "" : "s"}
-        </span>
+    <div className="border-separator border-b py-3 last:border-0">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col">
+          <span className="text-fg-muted font-mono text-xs">{member.user_id.slice(0, 8)}…</span>
+          <span className="text-fg-subtle text-xs">
+            {count} permission{count === 1 ? "" : "s"}
+          </span>
+        </div>
+        {member.role === "owner" ? (
+          <StatusPill tone="accent">Owner</StatusPill>
+        ) : (
+          <select
+            aria-label="Member role"
+            defaultValue={member.role}
+            disabled={update.isPending}
+            onChange={(e) =>
+              update.mutate({ userId: member.user_id, role: e.target.value as Role })
+            }
+            className="border-separator bg-elevated text-fg focus-visible:ring-ring h-9 rounded-md border px-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
+          >
+            {ROLES.map((r) => (
+              <option key={r} value={r}>
+                {ROLE_LABELS[r]}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
-      {member.role === "owner" ? (
-        <StatusPill tone="accent">Owner</StatusPill>
-      ) : (
-        <select
-          aria-label="Member role"
-          defaultValue={member.role}
-          disabled={update.isPending}
-          onChange={(e) => update.mutate({ userId: member.user_id, role: e.target.value as Role })}
-          className="border-separator bg-elevated text-fg focus-visible:ring-ring h-9 rounded-md border px-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
-        >
-          {ROLES.map((r) => (
-            <option key={r} value={r}>
-              {ROLE_LABELS[r]}
-            </option>
-          ))}
-        </select>
+      {member.role !== "owner" && (
+        <MemberChannelAccess workspaceId={workspaceId} userId={member.user_id} />
       )}
     </div>
   );
@@ -72,6 +81,8 @@ export function MembersPanel({ workspaceId }: { workspaceId: string }) {
         </p>
         <AddMemberForm workspaceId={workspaceId} />
       </Panel>
+
+      <ActivityFeed workspaceId={workspaceId} />
     </div>
   );
 }
