@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 
@@ -100,6 +101,17 @@ export function AuthPanel({
             {children}
             {footer && <div className="text-fg-muted mt-6 text-sm">{footer}</div>}
           </Panel>
+          <p className="text-fg-subtle mt-4 text-center text-xs">
+            By continuing you agree to our{" "}
+            <Link href="/terms" className="hover:underline">
+              Terms
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy" className="hover:underline">
+              Privacy Policy
+            </Link>
+            .
+          </p>
         </div>
       </main>
     </div>
