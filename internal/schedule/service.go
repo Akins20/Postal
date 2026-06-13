@@ -121,6 +121,10 @@ func (s *Service) SchedulePost(ctx context.Context, workspaceID, postID uuid.UUI
 		}
 		jobs = append(jobs, job)
 	}
+	// The post is no longer a draft once it has scheduled jobs.
+	if err := s.pool.Queries().UpdatePostStatus(ctx, sqlc.UpdatePostStatusParams{ID: postID, Status: StatusScheduled}); err != nil {
+		return nil, apperr.Internal(err)
+	}
 	s.recordAudit(ctx, workspaceID, "post.schedule", postID.String())
 	return jobs, nil
 }
@@ -150,6 +154,10 @@ func (s *Service) ScheduleToSlots(ctx context.Context, workspaceID, postID uuid.
 			return nil, err
 		}
 		jobs = append(jobs, job)
+	}
+	// The post is no longer a draft once it has scheduled jobs.
+	if err := s.pool.Queries().UpdatePostStatus(ctx, sqlc.UpdatePostStatusParams{ID: postID, Status: StatusScheduled}); err != nil {
+		return nil, apperr.Internal(err)
 	}
 	s.recordAudit(ctx, workspaceID, "post.schedule_slots", postID.String())
 	return jobs, nil
@@ -331,8 +339,17 @@ func (s *Service) Claim(ctx context.Context, jobID uuid.UUID) (bool, error) {
 }
 
 // MarkPublished records a successful publish (the attempt was counted at Claim).
+// It also reflects publication on the post itself: the first channel to publish
+// moves the post out of draft/scheduled so clients stop labelling it a draft.
+// The post-status update is best-effort — the publish has already succeeded.
 func (s *Service) MarkPublished(ctx context.Context, jobID uuid.UUID) error {
-	return s.setStatus(ctx, jobID, StatusPublished, "", 0)
+	if err := s.setStatus(ctx, jobID, StatusPublished, "", 0); err != nil {
+		return err
+	}
+	if job, err := s.pool.Queries().GetScheduledJob(ctx, jobID); err == nil {
+		_ = s.pool.Queries().UpdatePostStatus(ctx, sqlc.UpdatePostStatusParams{ID: job.PostID, Status: StatusPublished})
+	}
+	return nil
 }
 
 // MarkFailed records a terminal failure.
