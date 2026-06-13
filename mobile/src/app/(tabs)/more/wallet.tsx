@@ -1,10 +1,14 @@
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Linking, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { useLedger, useWallet, type LedgerEntry } from "@/data/billing";
 import { useActiveWorkspace } from "@/features/workspace/use-active-workspace";
 import { radius, space, type } from "@/lib/tokens";
 import { usePalette } from "@/lib/use-palette";
+import { Button } from "@/ui/button";
 import { Panel } from "@/ui/panel";
+
+// Top-ups happen on the web (Play billing policy keeps the app read-only).
+const WEB_WALLET_URL = "https://postal.lettstv.com/wallet";
 
 const KIND_LABEL: Record<string, string> = {
   topup: "Top-up",
@@ -75,9 +79,12 @@ export default function WalletScreen() {
 
           <View style={[styles.note, { backgroundColor: `${palette.accent}12`, borderColor: `${palette.accent}33` }]}>
             <Text style={[styles.sub, { color: palette.fg }]}>
-              Top up from any browser at the Postal web app (Wallet page). Only publishing to X
-              uses credits; every other platform is free.
+              Top-ups are handled on the Postal web app. Only publishing to X uses credits; every
+              other platform is free.
             </Text>
+            <Button onPress={() => Linking.openURL(WEB_WALLET_URL)} style={styles.topUpBtn}>
+              Top up on the web
+            </Button>
           </View>
 
           <Panel>
@@ -100,7 +107,8 @@ const styles = StyleSheet.create({
   balance: { fontSize: 40, fontWeight: "700", letterSpacing: -1, fontVariant: ["tabular-nums"], marginVertical: 2 },
   tierRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: space.xs },
   tierVal: { fontSize: type.body, fontWeight: "600", fontVariant: ["tabular-nums"] },
-  note: { padding: space.md, borderRadius: radius.md, borderWidth: 1 },
+  note: { padding: space.md, borderRadius: radius.md, borderWidth: 1, gap: space.sm },
+  topUpBtn: { marginTop: space.xs },
   ledgerRow: { flexDirection: "row", alignItems: "center", paddingVertical: space.md, borderBottomWidth: StyleSheet.hairlineWidth },
   kind: { fontSize: type.body, fontWeight: "500" },
   amount: { fontSize: type.body, fontWeight: "700", fontVariant: ["tabular-nums"] },

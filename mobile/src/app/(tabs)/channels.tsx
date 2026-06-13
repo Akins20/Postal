@@ -59,7 +59,15 @@ function ConnectedRow({ workspaceId, channel }: { workspaceId: string; channel: 
   );
 }
 
-function ConnectRow({ workspaceId, platformKey }: { workspaceId: string; platformKey: string }) {
+function ConnectRow({
+  workspaceId,
+  platformKey,
+  connected,
+}: {
+  workspaceId: string;
+  platformKey: string;
+  connected: boolean;
+}) {
   const { palette } = usePalette();
   const info = platformInfo(platformKey);
   const flow = useConnectFlow(workspaceId);
@@ -79,6 +87,7 @@ function ConnectRow({ workspaceId, platformKey }: { workspaceId: string; platfor
       <View style={{ flex: 1, minWidth: 0 }}>
         <View style={styles.labelRow}>
           <Text style={[styles.name, { color: palette.fg }]}>{info.label}</Text>
+          {connected && <StatusPill tone="success">Connected</StatusPill>}
           {info.payPerUse && <StatusPill tone="warning">Pay-per-use</StatusPill>}
         </View>
         <Text style={[styles.sub, { color: palette.fgMuted }]}>{info.hint}</Text>
@@ -89,8 +98,13 @@ function ConnectRow({ workspaceId, platformKey }: { workspaceId: string; platfor
           </Text>
         )}
       </View>
-      <Button onPress={connect} loading={flow.pending} style={styles.discBtn}>
-        Connect
+      <Button
+        onPress={connect}
+        loading={flow.pending}
+        variant={connected ? "secondary" : "primary"}
+        style={styles.discBtn}
+      >
+        {connected ? "Add another" : "Connect"}
       </Button>
     </View>
   );
@@ -101,6 +115,7 @@ export default function ChannelsScreen() {
   const insets = useSafeAreaInsets();
   const { active } = useActiveWorkspace();
   const { data: channels, isPending, isError } = useChannels(active?.id);
+  const connectedPlatforms = new Set((channels ?? []).map((c) => c.platform));
 
   return (
     <ScrollView
@@ -133,7 +148,12 @@ export default function ChannelsScreen() {
         </Text>
         {active &&
           PLATFORMS.map((p) => (
-            <ConnectRow key={p.key} workspaceId={active.id} platformKey={p.key} />
+            <ConnectRow
+              key={p.key}
+              workspaceId={active.id}
+              platformKey={p.key}
+              connected={connectedPlatforms.has(p.key)}
+            />
           ))}
       </Panel>
     </ScrollView>
