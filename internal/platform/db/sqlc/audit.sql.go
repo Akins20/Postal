@@ -88,3 +88,56 @@ func (q *Queries) ListAuditLogByWorkspace(ctx context.Context, arg ListAuditLogB
 	}
 	return items, nil
 }
+
+const listWorkspaceActivity = `-- name: ListWorkspaceActivity :many
+SELECT a.id, a.actor_user_id, u.email AS actor_email, a.action, a.target,
+       a.metadata, a.created_at
+FROM audit_log a
+LEFT JOIN users u ON u.id = a.actor_user_id
+WHERE a.workspace_id = $1
+ORDER BY a.id DESC
+LIMIT $2
+`
+
+type ListWorkspaceActivityParams struct {
+	WorkspaceID *uuid.UUID `json:"workspace_id"`
+	Limit       int32      `json:"limit"`
+}
+
+type ListWorkspaceActivityRow struct {
+	ID          int64              `json:"id"`
+	ActorUserID *uuid.UUID         `json:"actor_user_id"`
+	ActorEmail  *string            `json:"actor_email"`
+	Action      string             `json:"action"`
+	Target      string             `json:"target"`
+	Metadata    []byte             `json:"metadata"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
+func (q *Queries) ListWorkspaceActivity(ctx context.Context, arg ListWorkspaceActivityParams) ([]ListWorkspaceActivityRow, error) {
+	rows, err := q.db.Query(ctx, listWorkspaceActivity, arg.WorkspaceID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListWorkspaceActivityRow{}
+	for rows.Next() {
+		var i ListWorkspaceActivityRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ActorUserID,
+			&i.ActorEmail,
+			&i.Action,
+			&i.Target,
+			&i.Metadata,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

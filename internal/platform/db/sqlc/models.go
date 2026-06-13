@@ -44,6 +44,13 @@ type ChannelCredential struct {
 	UpdatedAt             pgtype.Timestamptz `json:"updated_at"`
 }
 
+type ChannelGrant struct {
+	WorkspaceID uuid.UUID          `json:"workspace_id"`
+	ChannelID   uuid.UUID          `json:"channel_id"`
+	UserID      uuid.UUID          `json:"user_id"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
 type EmailVerificationToken struct {
 	ID         uuid.UUID          `json:"id"`
 	UserID     uuid.UUID          `json:"user_id"`
@@ -197,9 +204,10 @@ type WorkspaceIntegration struct {
 }
 
 type WorkspaceMember struct {
-	WorkspaceID uuid.UUID          `json:"workspace_id"`
-	UserID      uuid.UUID          `json:"user_id"`
-	Role        string             `json:"role"`
-	Permissions []string           `json:"permissions"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	WorkspaceID       uuid.UUID          `json:"workspace_id"`
+	UserID            uuid.UUID          `json:"user_id"`
+	Role              string             `json:"role"`
+	Permissions       []string           `json:"permissions"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	ChannelRestricted bool               `json:"channel_restricted"`
 }

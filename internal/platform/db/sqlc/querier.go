@@ -40,6 +40,7 @@ type Querier interface {
 	DebitWalletIfEnough(ctx context.Context, arg DebitWalletIfEnoughParams) (Wallet, error)
 	DeleteChannel(ctx context.Context, id uuid.UUID) error
 	DeleteChannelCredential(ctx context.Context, channelID uuid.UUID) error
+	DeleteChannelGrantsForUser(ctx context.Context, arg DeleteChannelGrantsForUserParams) error
 	DeleteMediaAsset(ctx context.Context, id uuid.UUID) error
 	DeletePost(ctx context.Context, id uuid.UUID) error
 	DeletePostVariant(ctx context.Context, id uuid.UUID) error
@@ -52,6 +53,7 @@ type Querier interface {
 	GetLedgerEntryByRef(ctx context.Context, arg GetLedgerEntryByRefParams) (WalletLedger, error)
 	GetMediaAsset(ctx context.Context, id uuid.UUID) (MediaAsset, error)
 	GetMember(ctx context.Context, arg GetMemberParams) (WorkspaceMember, error)
+	GetMemberChannelRestricted(ctx context.Context, arg GetMemberChannelRestrictedParams) (bool, error)
 	GetPasswordResetToken(ctx context.Context, tokenHash string) (PasswordResetToken, error)
 	GetPost(ctx context.Context, id uuid.UUID) (Post, error)
 	GetPostVariant(ctx context.Context, id uuid.UUID) (PostVariant, error)
@@ -63,6 +65,7 @@ type Querier interface {
 	GetWalletBalance(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	GetWorkspaceIntegration(ctx context.Context, arg GetWorkspaceIntegrationParams) (WorkspaceIntegration, error)
 	InsertAuditLog(ctx context.Context, arg InsertAuditLogParams) (InsertAuditLogRow, error)
+	InsertChannelGrant(ctx context.Context, arg InsertChannelGrantParams) error
 	// Append a ledger entry. ON CONFLICT DO NOTHING + no row returned signals a
 	// duplicate (webhook retry / double claim) so the caller can skip the credit.
 	InsertLedgerEntry(ctx context.Context, arg InsertLedgerEntryParams) (WalletLedger, error)
@@ -72,6 +75,7 @@ type Querier interface {
 	// Trivial query proving the sqlc generation chain works. Replaced by real
 	// domain queries from Phase 2 onward.
 	InsertSmoke(ctx context.Context, note string) (SchemaSmoke, error)
+	IsChannelPublishAllowed(ctx context.Context, arg IsChannelPublishAllowedParams) (*bool, error)
 	// The most recent value of every metric for one post, per channel it was
 	// published to (workspace-scoped).
 	LatestMetricsForPost(ctx context.Context, arg LatestMetricsForPostParams) ([]LatestMetricsForPostRow, error)
@@ -80,6 +84,7 @@ type Querier interface {
 	// recency) so a large workspace never materializes its whole history.
 	LatestMetricsForWorkspace(ctx context.Context, arg LatestMetricsForWorkspaceParams) ([]LatestMetricsForWorkspaceRow, error)
 	ListAuditLogByWorkspace(ctx context.Context, arg ListAuditLogByWorkspaceParams) ([]AuditLog, error)
+	ListChannelGrantsForUser(ctx context.Context, arg ListChannelGrantsForUserParams) ([]uuid.UUID, error)
 	ListChannels(ctx context.Context, workspaceID uuid.UUID) ([]Channel, error)
 	ListChannelsDueForRefresh(ctx context.Context, arg ListChannelsDueForRefreshParams) ([]ListChannelsDueForRefreshRow, error)
 	ListLedgerEntries(ctx context.Context, arg ListLedgerEntriesParams) ([]WalletLedger, error)
@@ -95,6 +100,7 @@ type Querier interface {
 	ListScheduledRunAtForChannel(ctx context.Context, arg ListScheduledRunAtForChannelParams) ([]pgtype.Timestamptz, error)
 	ListSlotsForChannel(ctx context.Context, channelID uuid.UUID) ([]ScheduleSlot, error)
 	ListVariantsByPost(ctx context.Context, postID uuid.UUID) ([]PostVariant, error)
+	ListWorkspaceActivity(ctx context.Context, arg ListWorkspaceActivityParams) ([]ListWorkspaceActivityRow, error)
 	ListWorkspaceIntegrations(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceIntegration, error)
 	ListWorkspacesForUser(ctx context.Context, userID uuid.UUID) ([]Workspace, error)
 	// Row-locks the workspace so a quota check + media insert is serialized against
@@ -105,6 +111,7 @@ type Querier interface {
 	// Retention: drop snapshots older than the cutoff to bound table growth.
 	PruneSnapshotsBefore(ctx context.Context, capturedAt pgtype.Timestamptz) error
 	SetEmailVerified(ctx context.Context, id uuid.UUID) error
+	SetMemberChannelRestricted(ctx context.Context, arg SetMemberChannelRestrictedParams) error
 	SetScheduledJobStatus(ctx context.Context, arg SetScheduledJobStatusParams) error
 	SetScheduledJobTaskID(ctx context.Context, arg SetScheduledJobTaskIDParams) error
 	SumMediaBytesForWorkspace(ctx context.Context, workspaceID uuid.UUID) (int64, error)

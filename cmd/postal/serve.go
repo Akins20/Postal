@@ -229,7 +229,8 @@ func (w *wiring) wireChannels(deps *server.Deps) {
 	// Scheduling: enqueue publish tasks to asynq; the worker process executes
 	// them. The asynq client satisfies schedule.Enqueuer; closed by runServe.
 	w.enqueuer = worker.NewClient(redisOpt(w.cfg))
-	scheduleSvc := schedule.NewService(w.pool, channelSvc, w.enqueuer, mediaLoader, w.auditor, billingSvc, nil)
+	scheduleSvc := schedule.NewService(w.pool, channelSvc, w.enqueuer, mediaLoader, w.auditor, billingSvc, nil).
+		WithPublishAuthorizer(w.wsSvc)
 	deps.ScheduleHandler = schedule.NewHandler(scheduleSvc, w.wsSvc, w.log)
 }
 

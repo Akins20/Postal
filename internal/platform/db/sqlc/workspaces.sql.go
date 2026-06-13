@@ -14,7 +14,7 @@ import (
 const createMember = `-- name: CreateMember :one
 INSERT INTO workspace_members (workspace_id, user_id, role, permissions)
 VALUES ($1, $2, $3, $4)
-RETURNING workspace_id, user_id, role, permissions, created_at
+RETURNING workspace_id, user_id, role, permissions, created_at, channel_restricted
 `
 
 type CreateMemberParams struct {
@@ -38,6 +38,7 @@ func (q *Queries) CreateMember(ctx context.Context, arg CreateMemberParams) (Wor
 		&i.Role,
 		&i.Permissions,
 		&i.CreatedAt,
+		&i.ChannelRestricted,
 	)
 	return i, err
 }
@@ -67,7 +68,7 @@ func (q *Queries) CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams
 }
 
 const getMember = `-- name: GetMember :one
-SELECT workspace_id, user_id, role, permissions, created_at
+SELECT workspace_id, user_id, role, permissions, created_at, channel_restricted
 FROM workspace_members
 WHERE workspace_id = $1 AND user_id = $2
 `
@@ -86,12 +87,13 @@ func (q *Queries) GetMember(ctx context.Context, arg GetMemberParams) (Workspace
 		&i.Role,
 		&i.Permissions,
 		&i.CreatedAt,
+		&i.ChannelRestricted,
 	)
 	return i, err
 }
 
 const listMembers = `-- name: ListMembers :many
-SELECT workspace_id, user_id, role, permissions, created_at
+SELECT workspace_id, user_id, role, permissions, created_at, channel_restricted
 FROM workspace_members
 WHERE workspace_id = $1
 ORDER BY created_at
@@ -112,6 +114,7 @@ func (q *Queries) ListMembers(ctx context.Context, workspaceID uuid.UUID) ([]Wor
 			&i.Role,
 			&i.Permissions,
 			&i.CreatedAt,
+			&i.ChannelRestricted,
 		); err != nil {
 			return nil, err
 		}
@@ -161,7 +164,7 @@ const updateMemberPermissions = `-- name: UpdateMemberPermissions :one
 UPDATE workspace_members
 SET role = $3, permissions = $4
 WHERE workspace_id = $1 AND user_id = $2
-RETURNING workspace_id, user_id, role, permissions, created_at
+RETURNING workspace_id, user_id, role, permissions, created_at, channel_restricted
 `
 
 type UpdateMemberPermissionsParams struct {
@@ -185,6 +188,7 @@ func (q *Queries) UpdateMemberPermissions(ctx context.Context, arg UpdateMemberP
 		&i.Role,
 		&i.Permissions,
 		&i.CreatedAt,
+		&i.ChannelRestricted,
 	)
 	return i, err
 }

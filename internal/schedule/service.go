@@ -14,6 +14,7 @@ import (
 	"github.com/Akins20/postal/internal/platform/apperr"
 	"github.com/Akins20/postal/internal/platform/db"
 	"github.com/Akins20/postal/internal/platform/db/sqlc"
+	"github.com/Akins20/postal/internal/platform/web"
 	"github.com/Akins20/postal/internal/publish"
 	"github.com/Akins20/postal/internal/security"
 )
@@ -52,13 +53,27 @@ const mediaURLTTL = 2 * time.Hour
 // Service implements scheduling over scheduled_jobs/schedule_slots, enqueuing
 // publish tasks via the Enqueuer and exposing execution context to the worker.
 type Service struct {
-	pool     *db.Pool
-	channels ChannelResolver
-	enqueuer Enqueuer
-	media    MediaLoader
-	audit    security.Recorder
-	biller   AffordabilityChecker
-	clock    func() time.Time
+	pool        *db.Pool
+	channels    ChannelResolver
+	enqueuer    Enqueuer
+	media       MediaLoader
+	audit       security.Recorder
+	biller      AffordabilityChecker
+	publishAuth PublishAuthorizer
+	clock       func() time.Time
+}
+
+// PublishAuthorizer decides whether the acting user may publish to a given
+// channel (per-channel permissions). A nil authorizer disables the check.
+type PublishAuthorizer interface {
+	CanPublishToChannel(ctx context.Context, workspaceID, userID, channelID uuid.UUID) (bool, error)
+}
+
+// WithPublishAuthorizer attaches the per-channel publish authorizer. Returns the
+// service for chaining at wire time.
+func (s *Service) WithPublishAuthorizer(a PublishAuthorizer) *Service {
+	s.publishAuth = a
+	return s
 }
 
 // NewService builds a schedule Service. media may be nil (media disabled);
@@ -107,6 +122,9 @@ func (s *Service) SchedulePost(ctx context.Context, workspaceID, postID uuid.UUI
 	if err != nil {
 		return nil, err
 	}
+	if err := s.checkChannelPermissions(ctx, workspaceID, variants); err != nil {
+		return nil, err
+	}
 	if err := s.checkPendingQuota(ctx, workspaceID, len(variants)); err != nil {
 		return nil, err
 	}
@@ -134,6 +152,9 @@ func (s *Service) SchedulePost(ctx context.Context, workspaceID, postID uuid.UUI
 func (s *Service) ScheduleToSlots(ctx context.Context, workspaceID, postID uuid.UUID) ([]Job, error) {
 	variants, err := s.postVariants(ctx, workspaceID, postID)
 	if err != nil {
+		return nil, err
+	}
+	if err := s.checkChannelPermissions(ctx, workspaceID, variants); err != nil {
 		return nil, err
 	}
 	if err := s.checkPendingQuota(ctx, workspaceID, len(variants)); err != nil {
@@ -372,6 +393,30 @@ func (s *Service) setStatus(ctx context.Context, jobID uuid.UUID, status, cause 
 
 // postVariants loads a workspace-owned post's variants, erroring if the post is
 // foreign/missing or has no variants.
+// checkChannelPermissions enforces per-channel publish permissions for the
+// acting user against every target channel. It is a no-op when no authorizer is
+// wired or no user is in context (the endpoint already gates on CapPublish).
+func (s *Service) checkChannelPermissions(ctx context.Context, workspaceID uuid.UUID, variants []sqlc.PostVariant) error {
+	if s.publishAuth == nil {
+		return nil
+	}
+	userID, ok := web.UserID(ctx)
+	if !ok {
+		return nil
+	}
+	for _, v := range variants {
+		allowed, err := s.publishAuth.CanPublishToChannel(ctx, workspaceID, userID, v.ChannelID)
+		if err != nil {
+			return apperr.Internal(err)
+		}
+		if !allowed {
+			return apperr.Forbidden("channel_forbidden",
+				"you do not have permission to publish to one of the selected channels")
+		}
+	}
+	return nil
+}
+
 func (s *Service) postVariants(ctx context.Context, workspaceID, postID uuid.UUID) ([]sqlc.PostVariant, error) {
 	p, err := s.pool.Queries().GetPost(ctx, postID)
 	if err != nil {
