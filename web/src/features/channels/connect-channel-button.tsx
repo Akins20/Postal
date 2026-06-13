@@ -15,10 +15,12 @@ export function ConnectChannelButton({
   workspaceId,
   platform,
   label = "Connect",
+  variant = "primary",
 }: {
   workspaceId: string;
   platform: string;
   label?: string;
+  variant?: "primary" | "secondary";
 }) {
   const connect = useConnectChannel(workspaceId);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +37,7 @@ export function ConnectChannelButton({
 
   return (
     <div className="flex flex-col items-end gap-1.5">
-      <Button onClick={onClick} disabled={connect.isPending}>
+      <Button onClick={onClick} disabled={connect.isPending} variant={variant}>
         {connect.isPending ? "Redirecting…" : label}
       </Button>
       {error && (

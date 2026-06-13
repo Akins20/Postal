@@ -19,6 +19,9 @@ import { ConnectChannelButton } from "./connect-channel-button";
 export function ChannelsPanel() {
   const { active } = useActiveWorkspace();
   const { data: channels, isPending, isError } = useChannels(active?.id);
+  // Platforms that already have at least one connected account, so the connect
+  // list can show "Add another" instead of a plain "Connect".
+  const connectedPlatforms = new Set((channels ?? []).map((c) => c.platform));
 
   if (!active) {
     return (
@@ -70,6 +73,7 @@ export function ChannelsPanel() {
         </p>
         {PLATFORMS.map((p) => {
           const PlatformIcon = p.icon;
+          const isConnected = connectedPlatforms.has(p.key);
           return (
             <div
               key={p.key}
@@ -81,6 +85,7 @@ export function ChannelsPanel() {
               <div className="min-w-0 flex-1">
                 <p className="text-fg flex items-center gap-2 text-sm font-medium">
                   {p.label}
+                  {isConnected && <StatusPill tone="success">Connected</StatusPill>}
                   {p.payPerUse && (
                     <Tooltip content="The platform's API bills per request, so publishing here spends wallet credits. Every other platform is free.">
                       <span
@@ -95,7 +100,12 @@ export function ChannelsPanel() {
                 <p className="text-fg-muted text-xs">{p.hint}</p>
                 {p.caveat && <p className="text-warning mt-0.5 text-xs">{p.caveat}</p>}
               </div>
-              <ConnectChannelButton workspaceId={active.id} platform={p.key} />
+              <ConnectChannelButton
+                workspaceId={active.id}
+                platform={p.key}
+                label={isConnected ? "Add another" : "Connect"}
+                variant={isConnected ? "secondary" : "primary"}
+              />
             </div>
           );
         })}
