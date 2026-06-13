@@ -20,6 +20,7 @@ import {
   type VariantValidation,
 } from "@/data/posts";
 import { pickMedia } from "@/features/compose/pick-media";
+import { PostPreview } from "@/features/compose/post-preview";
 import { PublishSheet } from "@/features/schedule/publish-sheet";
 import { useActiveWorkspace } from "@/features/workspace/use-active-workspace";
 import { radius, space, type } from "@/lib/tokens";
@@ -220,6 +221,16 @@ export function ComposeScreen() {
           </Button>
         </View>
 
+        <View style={styles.previewWrap}>
+          <Text style={[styles.cardTitle, { color: palette.fg }]}>Preview</Text>
+          <PostPreview
+            workspaceId={active?.id ?? ""}
+            handle={selectedChannels[0]?.handle ?? null}
+            body={body}
+            media={media}
+          />
+        </View>
+
         {xSelected && xCost !== undefined && xCost > 0 && (
           <Text style={[styles.notice, { color: palette.fg, backgroundColor: `${palette.warning}1a`, borderColor: `${palette.warning}40` }]}>
             Publishing to X costs {xCost} credits per channel for {hasLink ? "link posts" : media.length > 0 ? "media posts" : "plain posts"}. Other platforms are free.
@@ -344,6 +355,7 @@ const styles = StyleSheet.create({
   attachBtn: { minHeight: 40, paddingHorizontal: space.md },
   notice: { fontSize: type.caption, marginTop: space.md, padding: space.sm, borderRadius: radius.md, borderWidth: 1 },
   warn: { fontSize: type.caption, marginTop: space.sm },
+  previewWrap: { marginTop: space.md, gap: space.sm },
   verdicts: { marginTop: space.md, gap: space.sm },
   verdictRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
   draftRow: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingVertical: space.md, borderBottomWidth: StyleSheet.hairlineWidth },

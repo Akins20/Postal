@@ -1,5 +1,11 @@
 import { useRouter } from "expo-router";
-import { BarChart3, ChevronRight, Settings as SettingsIcon, Wallet as WalletIcon } from "lucide-react-native";
+import {
+  BarChart3,
+  ChevronRight,
+  Settings as SettingsIcon,
+  Users as UsersIcon,
+  Wallet as WalletIcon,
+} from "lucide-react-native";
 import type { ComponentType } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -10,6 +16,7 @@ import { Panel } from "@/ui/panel";
 
 const ITEMS: { href: string; label: string; sub: string; Icon: ComponentType<{ size?: number; color?: string }> }[] = [
   { href: "/more/analytics", label: "Analytics", sub: "How your posts perform", Icon: BarChart3 },
+  { href: "/more/members", label: "Members", sub: "Workspace team and roles", Icon: UsersIcon },
   { href: "/more/wallet", label: "Wallet", sub: "Credits for X publishing", Icon: WalletIcon },
   { href: "/more/settings", label: "Settings", sub: "Account and appearance", Icon: SettingsIcon },
 ];
