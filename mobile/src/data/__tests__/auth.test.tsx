@@ -2,7 +2,7 @@ import { renderHook, waitFor } from "@testing-library/react-native";
 import * as SecureStore from "expo-secure-store";
 
 import { useLogin, useLogout, useMe, useSignup } from "@/data/auth";
-import { getAccessToken } from "@/lib/secure-session";
+import { getAccessToken, setAccessToken } from "@/lib/secure-session";
 import { calls, mockRoute } from "@/test/fetch-mock";
 import { createWrapper } from "@/test/react";
 
@@ -61,15 +61,16 @@ describe("useLogin", () => {
 });
 
 describe("useSignup", () => {
-  it("signs up then logs in to obtain a session", async () => {
+  it("creates the account without a session (verification required before login)", async () => {
     mockRoute("POST", "/auth/signup", 201, { data: USER });
-    mockRoute("POST", "/auth/login", 200, { data: TOKEN });
+    setAccessToken(null); // ensure no leaked session from a prior test
     const { result } = await renderHook(() => useSignup(), { wrapper: createWrapper() });
     result.current.mutate({ email: "ada@example.com", password: "correct horse" });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(getAccessToken()).toBe("acc-1");
+    // No auto-login: signup issues no token, so no access token is stored.
+    expect(getAccessToken()).toBeNull();
     expect(calls.some((c) => c.url.includes("/auth/signup"))).toBe(true);
-    expect(calls.some((c) => c.url.includes("/auth/login"))).toBe(true);
+    expect(calls.some((c) => c.url.includes("/auth/login"))).toBe(false);
   });
 });
 

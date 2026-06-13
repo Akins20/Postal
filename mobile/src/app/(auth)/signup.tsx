@@ -4,6 +4,7 @@ import { StyleSheet, Text } from "react-native";
 
 import { useSignup } from "@/data/auth";
 import { AuthScaffold } from "@/features/auth/auth-scaffold";
+import { ResendVerification } from "@/features/auth/resend-verification";
 import type { NormalizedError } from "@/lib/api-error";
 import { signupSchema } from "@/lib/schemas";
 import { type } from "@/lib/tokens";
@@ -19,6 +20,7 @@ export default function SignupScreen() {
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [sentEmail, setSentEmail] = useState<string | null>(null);
 
   const submit = async () => {
     setFormError(null);
@@ -32,13 +34,29 @@ export default function SignupScreen() {
     setErrors({});
     try {
       await signup.mutateAsync(parsed.data);
-      // Signup logs in; unverified accounts can still use the app (the backend
-      // does not gate on verification). Verify-email reminder lives in Settings.
-      router.replace("/");
+      // No session is issued; the user must verify their email, then sign in.
+      setSentEmail(parsed.data.email);
     } catch (e) {
       setFormError((e as NormalizedError).message);
     }
   };
+
+  if (sentEmail) {
+    return (
+      <AuthScaffold
+        title="Check your email"
+        subtitle={`We sent a verification link to ${sentEmail}.`}
+      >
+        <Text style={[styles.foot, { color: palette.fgMuted }]}>
+          Open the link to finish setting up your account, then sign in.
+        </Text>
+        <ResendVerification email={sentEmail} />
+        <Button variant="secondary" onPress={() => router.replace("/login")}>
+          Go to sign in
+        </Button>
+      </AuthScaffold>
+    );
+  }
 
   return (
     <AuthScaffold

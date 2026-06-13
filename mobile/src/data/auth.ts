@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { api } from "@/api/client";
+import { api, API_ORIGIN } from "@/api/client";
 import type { components } from "@/api/schema";
 import { normalizeError, type NormalizedError } from "@/lib/api-error";
 import { clearSession, saveSession } from "@/lib/secure-session";
@@ -48,23 +48,34 @@ export function useLogin() {
 }
 
 export function useSignup() {
-  const qc = useQueryClient();
-  return useMutation<{ verified: boolean }, NormalizedError, SignupBody>({
+  return useMutation<User, NormalizedError, SignupBody>({
     mutationFn: async (body) => {
-      // Signup returns the user; the app then logs in to obtain tokens (the
-      // signup endpoint does not issue a session).
-      const signup = await api.POST("/api/v1/auth/signup", { body });
-      if (!signup.response.ok || !signup.data) {
-        throw normalizeError(signup.response.status, signup.error);
+      // Signup creates the account but issues no session: the user must verify
+      // their email before they can log in (the backend gates login on it).
+      const { data, error, response } = await api.POST("/api/v1/auth/signup", { body });
+      if (!response.ok || !data) throw normalizeError(response.status, error);
+      return data.data as User;
+    },
+  });
+}
+
+/**
+ * Resend the account-verification email. The endpoint is not in the generated
+ * schema, so this uses a direct fetch. The backend always reports success (no
+ * enumeration) but rate-limits per IP, so a 429 surfaces for the cooldown UI.
+ */
+export function useResendVerification() {
+  return useMutation<void, NormalizedError, { email: string }>({
+    mutationFn: async (body) => {
+      const res = await fetch(`${API_ORIGIN}/api/v1/auth/verify-email/resend`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => undefined);
+        throw normalizeError(res.status, err);
       }
-      const login = await api.POST("/api/v1/auth/login", { body });
-      if (!login.response.ok || !login.data) {
-        throw normalizeError(login.response.status, login.error);
-      }
-      const token = login.data.data as Token;
-      await saveSession(token.access_token, token.refresh_token);
-      qc.setQueryData(authKeys.me, token.user);
-      return { verified: Boolean(token.user?.email_verified) };
     },
   });
 }

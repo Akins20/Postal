@@ -4,6 +4,7 @@ import { StyleSheet, Text } from "react-native";
 
 import { useLogin } from "@/data/auth";
 import { AuthScaffold } from "@/features/auth/auth-scaffold";
+import { ResendVerification } from "@/features/auth/resend-verification";
 import type { NormalizedError } from "@/lib/api-error";
 import { loginSchema } from "@/lib/schemas";
 import { type } from "@/lib/tokens";
@@ -19,6 +20,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
 
   const submit = async () => {
     setFormError(null);
@@ -34,9 +36,28 @@ export default function LoginScreen() {
       await login.mutateAsync(parsed.data);
       router.replace("/");
     } catch (e) {
-      setFormError((e as NormalizedError).message);
+      const err = e as NormalizedError;
+      if (err.code === "email_not_verified") {
+        setUnverifiedEmail(parsed.data.email);
+        return;
+      }
+      setFormError(err.message);
     }
   };
+
+  if (unverifiedEmail) {
+    return (
+      <AuthScaffold title="Verify your email" subtitle="Please verify before signing in.">
+        <Text style={[styles.foot, { color: palette.fgMuted }]}>
+          We sent a verification link to {unverifiedEmail}.
+        </Text>
+        <ResendVerification email={unverifiedEmail} />
+        <Button variant="secondary" onPress={() => setUnverifiedEmail(null)}>
+          Back to sign in
+        </Button>
+      </AuthScaffold>
+    );
+  }
 
   return (
     <AuthScaffold
