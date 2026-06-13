@@ -127,17 +127,11 @@ func (w *wiring) wireAuth(deps *server.Deps) error {
 		return fmt.Errorf("building session store: %w", err)
 	}
 
-	// The console mailer logs verification/reset tokens (single-use account
-	// secrets), acceptable only for local development. Refuse it in production.
-	if w.cfg.HTTP.IsProduction() {
-		return fmt.Errorf("no production mailer configured: refusing to start auth with the dev console mailer in production")
+	mailer, err := w.buildMailer()
+	if err != nil {
+		return err
 	}
-	// Local e2e runs sign up many throwaway accounts; keep production strict.
-	if !w.cfg.HTTP.IsProduction() {
-		auth.RelaxAuthLimitsForDevelopment()
-		w.log.Warn("auth rate limits relaxed (development only)")
-	}
-	authSvc := auth.NewService(w.pool, tokens, sessions, auth.NewConsoleMailer(w.log), w.auditor, nil)
+	authSvc := auth.NewService(w.pool, tokens, sessions, mailer, w.auditor, nil)
 
 	deps.Tokens = tokens
 	deps.AuthHandler = auth.NewHandler(auth.HandlerConfig{
@@ -155,6 +149,27 @@ func (w *wiring) wireAuth(deps *server.Deps) error {
 	// poller), so it needs no metrics fetcher — only the pool + workspace service.
 	deps.AnalyticsHandler = analytics.NewHandler(analytics.NewService(w.pool, nil, w.auditor, nil), w.wsSvc, w.log)
 	return nil
+}
+
+// buildMailer selects the transactional mailer. Configured Resend settings win;
+// otherwise production refuses to start (the dev console mailer logs single-use
+// tokens, never acceptable in production), while non-production relaxes auth
+// rate limits and uses the console mailer so flows are testable without Resend.
+func (w *wiring) buildMailer() (auth.Mailer, error) {
+	if w.cfg.Mail.Configured() {
+		w.log.Info("using Resend mailer", slog.String("from", w.cfg.Mail.From))
+		return auth.NewResendMailer(auth.ResendConfig{
+			APIKey:     w.cfg.Mail.APIKey,
+			From:       w.cfg.Mail.From,
+			AppBaseURL: w.cfg.Mail.AppBaseURL,
+		}, w.log), nil
+	}
+	if w.cfg.HTTP.IsProduction() {
+		return nil, fmt.Errorf("no mailer configured: set POSTAL_RESEND_API_KEY and POSTAL_MAIL_FROM to enable transactional email")
+	}
+	auth.RelaxAuthLimitsForDevelopment()
+	w.log.Warn("auth rate limits relaxed (development only); using console mailer")
+	return auth.NewConsoleMailer(w.log), nil
 }
 
 // wireChannels constructs the channel/OAuth-vault stack AND the composer (posts),

@@ -52,6 +52,24 @@ type Config struct {
 	Storage      Storage
 	Billing      Billing
 	Integrations Integrations
+	Mail         Mail
+}
+
+// Mail holds transactional email settings. Postal sends auth mail (account
+// verification, password reset) exclusively through Resend (resend.com). When
+// APIKey or From is empty no mailer is built and production refuses to start
+// auth (cmd/postal/serve.go); development falls back to the console mailer.
+// AppBaseURL is the public web base used to build the action links inside those
+// emails. APIKey is never logged.
+type Mail struct {
+	APIKey     string
+	From       string
+	AppBaseURL string
+}
+
+// Configured reports whether enough Resend settings are present to send mail.
+func (m Mail) Configured() bool {
+	return m.APIKey != "" && m.From != ""
 }
 
 // Integrations holds third-party integration settings. OGShortenerAPIBase
@@ -257,6 +275,11 @@ func Load() (Config, error) {
 		},
 		Integrations: Integrations{
 			OGShortenerAPIBase: getString("OGSHORTENER_API_BASE", ""),
+		},
+		Mail: Mail{
+			APIKey:     getString("RESEND_API_KEY", ""),
+			From:       getString("MAIL_FROM", ""),
+			AppBaseURL: getString("APP_BASE_URL", ""),
 		},
 		Billing: Billing{
 			CreditsPerUSDCent:       getInt64("BILLING_CREDITS_PER_USD_CENT", 1),
