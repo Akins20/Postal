@@ -1,0 +1,32 @@
+# Keep the build context tiny — the Go image needs only Go sources, migrations,
+# and the entrypoint. Excluding web/ and mobile/ (each carries a multi-hundred-MB
+# node_modules) is what keeps `docker build` from uploading gigabytes.
+web/
+mobile/
+.git/
+.github/
+
+# Local build output & caches
+bin/
+postal
+dist/
+vendor/
+coverage.out
+coverage.html
+*.test
+*.out
+*.exe
+
+# Secrets & local env (compose injects real config via env)
+.env
+.env.local
+*.local
+
+# Docs, scripts, and editor/OS noise not needed at build time
+docs/
+scripts/curl/
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.md
