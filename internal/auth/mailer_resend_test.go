@@ -26,15 +26,23 @@ func TestResendMailerActionLink(t *testing.T) {
 	}
 }
 
-func TestActionHTMLFallsBackToToken(t *testing.T) {
+func TestRenderEmail(t *testing.T) {
 	t.Parallel()
 
-	if html := actionHTML("Verify", "", "TOKEN123"); !strings.Contains(html, "TOKEN123") {
-		t.Fatalf("actionHTML without link should show the token, got %q", html)
-	}
-	withLink := actionHTML("Verify", "https://x/y?token=z", "TOKEN123")
+	// With a link: the button href is present and the bare token is not shown
+	// as a fallback code block.
+	withLink := renderEmail("Verify your email", "intro", "Verify email", "https://x/y?token=z", "TOKEN123")
 	if !strings.Contains(withLink, "https://x/y?token=z") {
-		t.Fatalf("actionHTML with link should include it, got %q", withLink)
+		t.Fatalf("renderEmail with link should include the link, got %q", withLink)
+	}
+	if !strings.Contains(withLink, "Verify email") {
+		t.Fatalf("renderEmail should include the button label, got %q", withLink)
+	}
+
+	// Without a link: fall back to showing the token for manual entry.
+	noLink := renderEmail("Verify your email", "intro", "Verify email", "", "TOKEN123")
+	if !strings.Contains(noLink, "TOKEN123") {
+		t.Fatalf("renderEmail without link should show the token, got %q", noLink)
 	}
 }
 

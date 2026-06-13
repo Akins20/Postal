@@ -86,22 +86,24 @@ func NewResendMailer(cfg ResendConfig, log *slog.Logger) *ResendMailer {
 	}
 }
 
-// SendEmailVerification emails the verification link/token.
+// SendEmailVerification emails a one-click verification button.
 func (m *ResendMailer) SendEmailVerification(ctx context.Context, email, token string) error {
 	link := m.actionLink("/verify-email", token)
-	subject := "Verify your Postal email"
-	body := "Welcome to Postal. Confirm your email address to finish setting up your account." +
-		actionHTML("Verify email", link, token)
-	return m.send(ctx, email, subject, body)
+	html := renderEmail(
+		"Verify your email",
+		"Welcome to Postal. Confirm your email address to finish setting up your account.",
+		"Verify email", link, token)
+	return m.send(ctx, email, "Verify your Postal email", html)
 }
 
-// SendPasswordReset emails the password-reset link/token.
+// SendPasswordReset emails a one-click password-reset button.
 func (m *ResendMailer) SendPasswordReset(ctx context.Context, email, token string) error {
 	link := m.actionLink("/reset/confirm", token)
-	subject := "Reset your Postal password"
-	body := "We received a request to reset your Postal password. If this was not you, you can ignore this email." +
-		actionHTML("Reset password", link, token)
-	return m.send(ctx, email, subject, body)
+	html := renderEmail(
+		"Reset your password",
+		"We received a request to reset your Postal password. If this was not you, you can ignore this email.",
+		"Reset password", link, token)
+	return m.send(ctx, email, "Reset your Postal password", html)
 }
 
 // actionLink builds a public web link with the token, or returns "" when no
@@ -113,22 +115,47 @@ func (m *ResendMailer) actionLink(path, token string) string {
 	return strings.TrimRight(m.cfg.AppBaseURL, "/") + path + "?token=" + url.QueryEscape(token)
 }
 
-// actionHTML renders the call-to-action: a link when one is available, otherwise
-// the bare token for manual entry.
-func actionHTML(label, link, token string) string {
-	if link == "" {
-		return fmt.Sprintf("<p>Your token: <code>%s</code></p>", token)
+// renderEmail builds a branded, table-based HTML email with a primary action
+// button. When no link is available (AppBaseURL unset) it falls back to showing
+// the token for manual entry, so the flow still works in pure dev setups.
+func renderEmail(heading, intro, label, link, token string) string {
+	var action string
+	if link != "" {
+		action = fmt.Sprintf(
+			`<a href=%q style="display:inline-block;background:#2f6bef;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:13px 26px;border-radius:10px">%s</a>`+
+				`<p style="color:#8a8a8e;font-size:12px;line-height:1.5;margin:22px 0 0">If the button does not work, copy and paste this link into your browser:<br>`+
+				`<a href=%q style="color:#2f6bef;word-break:break-all">%s</a></p>`,
+			link, label, link, link)
+	} else {
+		action = fmt.Sprintf(
+			`<p style="font-size:14px;color:#3a3a3c;margin:0 0 8px">Enter this code in the app:</p>`+
+				`<p style="font-family:ui-monospace,Menlo,monospace;font-size:16px;background:#f2f2f7;color:#1c1c1e;padding:12px 16px;border-radius:10px;word-break:break-all;margin:0">%s</p>`,
+			token)
 	}
-	return fmt.Sprintf("<p><a href=%q>%s</a></p><p>Or paste this token: <code>%s</code></p>", link, label, token)
+	return fmt.Sprintf(
+		`<!doctype html><html><body style="margin:0;background:#f5f5f7;padding:32px 16px;`+
+			`font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">`+
+			`<table role="presentation" width="100%%" cellpadding="0" cellspacing="0"><tr><td align="center">`+
+			`<table role="presentation" width="480" cellpadding="0" cellspacing="0" `+
+			`style="background:#ffffff;border-radius:16px;padding:36px;text-align:left;max-width:480px">`+
+			`<tr><td>`+
+			`<div style="font-size:18px;font-weight:700;color:#1c1c1e">Postal</div>`+
+			`<h1 style="font-size:21px;color:#1c1c1e;margin:18px 0 10px">%s</h1>`+
+			`<p style="font-size:15px;color:#3a3a3c;line-height:1.55;margin:0 0 24px">%s</p>`+
+			`%s`+
+			`</td></tr></table>`+
+			`<p style="color:#aeaeb2;font-size:11px;margin-top:18px">Postal. Free, no-paywall social media scheduling.</p>`+
+			`</td></tr></table></body></html>`,
+		heading, intro, action)
 }
 
 // send posts a single HTML email to the Resend API.
-func (m *ResendMailer) send(ctx context.Context, to, subject, body string) error {
+func (m *ResendMailer) send(ctx context.Context, to, subject, html string) error {
 	payload, err := json.Marshal(map[string]any{
 		"from":    m.cfg.From,
 		"to":      []string{to},
 		"subject": subject,
-		"html":    "<html><body>" + body + "</body></html>",
+		"html":    html,
 	})
 	if err != nil {
 		return fmt.Errorf("marshal resend payload: %w", err)
