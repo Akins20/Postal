@@ -20,6 +20,7 @@ import {
   type VariantValidation,
 } from "@/data/posts";
 import { pickMedia } from "@/features/compose/pick-media";
+import { PublishSheet } from "@/features/schedule/publish-sheet";
 import { useActiveWorkspace } from "@/features/workspace/use-active-workspace";
 import { radius, space, type } from "@/lib/tokens";
 import { usePalette } from "@/lib/use-palette";
@@ -276,6 +277,7 @@ function DraftsCard({ workspaceId, onEdit }: { workspaceId: string; onEdit: (p: 
   const { palette } = usePalette();
   const { data: posts, isPending } = usePosts(workspaceId);
   const del = useDeletePost(workspaceId);
+  const [publishing, setPublishing] = useState<string | null>(null);
 
   const confirmDelete = (id: string) =>
     Alert.alert("Delete this draft?", "This removes the draft and its variants.", [
@@ -300,11 +302,24 @@ function DraftsCard({ workspaceId, onEdit }: { workspaceId: string; onEdit: (p: 
               {p.status} · {new Date(p.created_at).toLocaleDateString()}
             </Text>
           </Pressable>
+          {p.status === "draft" && (
+            <Button onPress={() => setPublishing(p.id)} style={styles.smallBtn}>
+              Publish
+            </Button>
+          )}
           <Button variant="ghost" onPress={() => confirmDelete(p.id)} style={styles.smallBtn}>
             Delete
           </Button>
         </View>
       ))}
+      {publishing && (
+        <PublishSheet
+          workspaceId={workspaceId}
+          postId={publishing}
+          visible={Boolean(publishing)}
+          onClose={() => setPublishing(null)}
+        />
+      )}
     </Panel>
   );
 }
