@@ -129,9 +129,20 @@ Layer rules enforced with the same eslint `no-restricted-imports` boundaries.
   android` bundles clean. _Gotcha: RNTL v14 made render, renderHook AND
   fireEvent all async - await every one._ Emulator click-through still owed
   (no AVD on this machine).
-- **15.2 Workspaces & channels**: workspace switcher, channels list/connect
-  (Custom Tabs + deep link)/disconnect with the platform caveats. DoD:
-  connect X + IG + TikTok against the simulators from the emulator.
+- [x] **15.2 Workspaces & channels** DONE 2026-06-13: workspaces hook +
+  active-workspace store, channels data (list/connect/complete/disconnect),
+  platform registry with brand glyphs (react-native-svg), the on-device OAuth
+  flow (expo-web-browser Custom Tabs -> `postal://oauth-callback` deep link ->
+  expo-linking parse -> exchange), and the Channels screen (connected list with
+  native disconnect confirm, connect list with pay-per-use / media-required /
+  audit caveats). **Backend change (additive, production-correct):** the
+  connect endpoint now accepts an optional allowlisted `redirect_uri`
+  (`POSTAL_OAUTH_ALLOWED_REDIRECTS`) stored in the OAuth state and threaded
+  through `AuthURL`/`ExchangeCode` (interface + 3 adapters), so web and native
+  clients use distinct redirects without reconfiguring. 24 mobile tests green
+  (channels data asserts the deep-link redirect_uri; connect-flow covers
+  success/cancel/error); `make check` green; android export clean. Emulator
+  click-through still owed.
 - **15.3 Composer & media**: compose-once editor, per-channel tabs, char
   counter, media-required gate, picker/camera upload with progress, X-style
   preview (FlatList-friendly), link preview card, UTM, shorten-links action.

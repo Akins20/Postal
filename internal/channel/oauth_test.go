@@ -33,9 +33,9 @@ func TestNewPKCE(t *testing.T) {
 // stubProvider is a minimal OAuthProvider for registry tests.
 type stubProvider struct{ name string }
 
-func (s stubProvider) Platform() string                       { return s.name }
-func (s stubProvider) AuthURL(state, challenge string) string { return "url?" + state + challenge }
-func (s stubProvider) ExchangeCode(context.Context, string, string) (*Token, error) {
+func (s stubProvider) Platform() string                          { return s.name }
+func (s stubProvider) AuthURL(state, challenge, _ string) string { return "url?" + state + challenge }
+func (s stubProvider) ExchangeCode(context.Context, string, string, string) (*Token, error) {
 	return &Token{AccessToken: "a", ExpiresAt: time.Now()}, nil
 }
 func (s stubProvider) RefreshToken(context.Context, string) (*Token, error) {

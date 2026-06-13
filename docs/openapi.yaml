@@ -433,6 +433,14 @@ paths:
               required: [platform]
               properties:
                 platform: { type: string, example: twitter }
+                redirect_uri:
+                  type: string
+                  description: >-
+                    Optional allowlisted OAuth callback override. Web omits it
+                    (server default); native clients send their deep link
+                    (e.g. postal://oauth-callback).
+                  example: "postal://oauth-callback"
+
       responses:
         "200":
           description: Authorization URL to redirect the user to

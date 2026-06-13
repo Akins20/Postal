@@ -46,6 +46,7 @@ type Config struct {
 	Crypto       Crypto
 	Auth         Auth
 	Twitter      Twitter
+	OAuth        OAuth
 	Instagram    Instagram
 	TikTok       TikTok
 	Storage      Storage
@@ -75,6 +76,13 @@ type Billing struct {
 	StripeAPIBase           string
 	PaystackSecretKey       string
 	PaystackAPIBase         string
+}
+
+// OAuth holds cross-provider OAuth settings. AllowedRedirects is the allowlist
+// of client-supplied callback URIs (web page + native deep links); a connect
+// request may only override the adapter default with a URI in this set.
+type OAuth struct {
+	AllowedRedirects []string
 }
 
 // Twitter holds the X/Twitter OAuth app credentials. When ClientID is empty the
@@ -222,6 +230,9 @@ func Load() (Config, error) {
 			RefreshTokenMaxTTL: getDuration("REFRESH_TOKEN_MAX_TTL", defaultRefreshTokenMaxTTL),
 			CookieDomain:       getString("COOKIE_DOMAIN", ""),
 			CookieSecure:       getBool("COOKIE_SECURE", defaultCookieSecure),
+		},
+		OAuth: OAuth{
+			AllowedRedirects: getStringSlice("OAUTH_ALLOWED_REDIRECTS"),
 		},
 		Twitter: Twitter{
 			ClientID:     getString("X_CLIENT_ID", ""),

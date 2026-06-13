@@ -111,7 +111,7 @@ func seed(t *testing.T, ctx context.Context, pool *db.Pool, enc *security.Encryp
 	}
 
 	// Obtain a simulator-valid token and store it encrypted as the credential.
-	tok, err := adapter.ExchangeCode(ctx, "seed-code", "verifier")
+	tok, err := adapter.ExchangeCode(ctx, "seed-code", "verifier", "")
 	if err != nil {
 		t.Fatalf("exchange: %v", err)
 	}

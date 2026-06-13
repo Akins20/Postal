@@ -26,7 +26,7 @@ func setup(t *testing.T) (*twitter.Adapter, *twittersim.Server, channel.Token) {
 		APIBaseURL:  sim.URL(),
 		AuthBaseURL: sim.URL(),
 	})
-	tok, err := a.ExchangeCode(context.Background(), "auth-code", "verifier")
+	tok, err := a.ExchangeCode(context.Background(), "auth-code", "verifier", "")
 	if err != nil {
 		t.Fatalf("ExchangeCode: %v", err)
 	}
@@ -49,7 +49,7 @@ func wantClass(t *testing.T, err error, want publish.Class) {
 
 func TestAdapter_AuthURL(t *testing.T) {
 	a := twitter.New(twitter.Config{ClientID: "cid", RedirectURI: "https://app/cb", AuthBaseURL: "https://x.com"})
-	u := a.AuthURL("state123", "challenge456")
+	u := a.AuthURL("state123", "challenge456", "")
 	for _, want := range []string{"/i/oauth2/authorize", "response_type=code", "code_challenge=challenge456", "code_challenge_method=S256", "state=state123", "scope="} {
 		if !strings.Contains(u, want) {
 			t.Errorf("AuthURL missing %q: %s", want, u)

@@ -69,7 +69,7 @@ func harness(t *testing.T) (*twitter.Adapter, *twittersim.Server, *fakeChannels,
 	sim := twittersim.New()
 	t.Cleanup(sim.Close)
 	a := twitter.New(twitter.Config{ClientID: "c", RedirectURI: "https://app/cb", APIBaseURL: sim.URL(), AuthBaseURL: sim.URL()})
-	tok, err := a.ExchangeCode(context.Background(), "code", "verifier")
+	tok, err := a.ExchangeCode(context.Background(), "code", "verifier", "")
 	if err != nil {
 		t.Fatalf("exchange: %v", err)
 	}

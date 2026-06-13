@@ -28,6 +28,9 @@ type oauthState struct {
 	UserID       uuid.UUID `json:"user_id"`
 	Platform     string    `json:"platform"`
 	CodeVerifier string    `json:"code_verifier"`
+	// RedirectURI is the allowlisted callback chosen at connect time; reused at
+	// exchange so authorize/exchange redirect_uri match. Empty = adapter default.
+	RedirectURI string `json:"redirect_uri,omitempty"`
 }
 
 // stateRedis is the subset of the Redis client the state store needs.

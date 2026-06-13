@@ -126,12 +126,15 @@ func (a *Adapter) Validate(v publish.PostVariant) error {
 }
 
 // AuthURL implements channel.OAuthProvider (PKCE S256, client_key param).
-func (a *Adapter) AuthURL(state, codeChallenge string) string {
+func (a *Adapter) AuthURL(state, codeChallenge, redirectURI string) string {
+	if redirectURI == "" {
+		redirectURI = a.cfg.RedirectURI
+	}
 	v := url.Values{}
 	v.Set("client_key", a.cfg.ClientKey)
 	v.Set("response_type", "code")
 	v.Set("scope", oauthScopes)
-	v.Set("redirect_uri", a.cfg.RedirectURI)
+	v.Set("redirect_uri", redirectURI)
 	v.Set("state", state)
 	v.Set("code_challenge", codeChallenge)
 	v.Set("code_challenge_method", "S256")
@@ -139,13 +142,16 @@ func (a *Adapter) AuthURL(state, codeChallenge string) string {
 }
 
 // ExchangeCode implements channel.OAuthProvider.
-func (a *Adapter) ExchangeCode(ctx context.Context, code, codeVerifier string) (*channel.Token, error) {
+func (a *Adapter) ExchangeCode(ctx context.Context, code, codeVerifier, redirectURI string) (*channel.Token, error) {
+	if redirectURI == "" {
+		redirectURI = a.cfg.RedirectURI
+	}
 	form := url.Values{}
 	form.Set("client_key", a.cfg.ClientKey)
 	form.Set("client_secret", a.cfg.ClientSecret)
 	form.Set("code", code)
 	form.Set("grant_type", "authorization_code")
-	form.Set("redirect_uri", a.cfg.RedirectURI)
+	form.Set("redirect_uri", redirectURI)
 	form.Set("code_verifier", codeVerifier)
 	return a.tokenRequest(ctx, form)
 }

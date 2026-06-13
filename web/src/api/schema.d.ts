@@ -4,2646 +4,2642 @@
  */
 
 export interface paths {
-  "/healthz": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Liveness probe */
-    get: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path?: never;
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Process is alive */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": {
-              /** @example ok */
-              status?: string;
+    "/healthz": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Liveness probe */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
             };
-          };
-        };
-      };
-    };
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/readyz": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Readiness probe (checks Postgres + Redis) */
-    get: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path?: never;
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description All dependencies reachable */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["Readiness"];
-          };
-        };
-        /** @description A dependency is unavailable */
-        503: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["Readiness"];
-          };
-        };
-      };
-    };
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/metrics": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Prometheus metrics exposition */
-    get: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path?: never;
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Prometheus text format */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "text/plain": string;
-          };
-        };
-      };
-    };
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/ping": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Demo ping (rate-limited) */
-    get: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path?: never;
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Pong */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["MessageEnvelope"];
-          };
-        };
-        429: components["responses"]["RateLimited"];
-      };
-    };
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/auth/signup": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Create an account (auto-creates a personal workspace) */
-    post: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path?: never;
-        cookie?: never;
-      };
-      requestBody: {
-        content: {
-          "application/json": components["schemas"]["SignupRequest"];
-        };
-      };
-      responses: {
-        /** @description Account created */
-        201: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["UserEnvelope"];
-          };
-        };
-        400: components["responses"]["ValidationError"];
-        409: components["responses"]["Conflict"];
-        429: components["responses"]["RateLimited"];
-      };
-    };
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/auth/login": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Log in (returns tokens; sets session cookies) */
-    post: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path?: never;
-        cookie?: never;
-      };
-      requestBody: {
-        content: {
-          "application/json": components["schemas"]["LoginRequest"];
-        };
-      };
-      responses: {
-        /** @description Authenticated */
-        200: {
-          headers: {
-            /** @description postal_access, postal_refresh, postal_csrf */
-            "Set-Cookie"?: string;
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["TokenEnvelope"];
-          };
-        };
-        400: components["responses"]["ValidationError"];
-        401: components["responses"]["Unauthorized"];
-        429: components["responses"]["RateLimited"];
-      };
-    };
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/auth/refresh": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Rotate the refresh token and issue a new access token
-     * @description Refresh token from the `postal_refresh` cookie or request body. CSRF-protected for the cookie flow.
-     */
-    post: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path?: never;
-        cookie?: never;
-      };
-      requestBody?: {
-        content: {
-          "application/json": components["schemas"]["RefreshRequest"];
-        };
-      };
-      responses: {
-        /** @description New tokens (rotated) */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["TokenEnvelope"];
-          };
-        };
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["CSRFFailed"];
-        429: components["responses"]["RateLimited"];
-      };
-    };
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/auth/logout": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Revoke the refresh token and clear cookies */
-    post: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path?: never;
-        cookie?: never;
-      };
-      requestBody?: {
-        content: {
-          "application/json": components["schemas"]["RefreshRequest"];
-        };
-      };
-      responses: {
-        /** @description Logged out */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["MessageEnvelope"];
-          };
-        };
-        403: components["responses"]["CSRFFailed"];
-        429: components["responses"]["RateLimited"];
-      };
-    };
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/auth/verify-email": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Verify an email address with a single-use token */
-    post: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path?: never;
-        cookie?: never;
-      };
-      requestBody: {
-        content: {
-          "application/json": {
-            token: string;
-          };
-        };
-      };
-      responses: {
-        /** @description Email verified */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["MessageEnvelope"];
-          };
-        };
-        400: components["responses"]["ValidationError"];
-        404: components["responses"]["NotFound"];
-        429: components["responses"]["RateLimited"];
-      };
-    };
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/auth/password-reset/request": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Request a password-reset token (no account enumeration) */
-    post: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path?: never;
-        cookie?: never;
-      };
-      requestBody: {
-        content: {
-          "application/json": {
-            /** Format: email */
-            email: string;
-          };
-        };
-      };
-      responses: {
-        /** @description Always succeeds whether or not the email is registered */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["MessageEnvelope"];
-          };
-        };
-        400: components["responses"]["ValidationError"];
-        429: components["responses"]["RateLimited"];
-      };
-    };
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/auth/password-reset/confirm": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Set a new password using a reset token */
-    post: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path?: never;
-        cookie?: never;
-      };
-      requestBody: {
-        content: {
-          "application/json": {
-            token: string;
-            /** Format: password */
-            new_password: string;
-          };
-        };
-      };
-      responses: {
-        /** @description Password updated */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["MessageEnvelope"];
-          };
-        };
-        400: components["responses"]["ValidationError"];
-        404: components["responses"]["NotFound"];
-        429: components["responses"]["RateLimited"];
-      };
-    };
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/auth/me": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Current authenticated user */
-    get: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path?: never;
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description The caller */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["UserEnvelope"];
-          };
-        };
-        401: components["responses"]["Unauthorized"];
-      };
-    };
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/workspaces/": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** List workspaces the caller belongs to */
-    get: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path?: never;
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Workspaces */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": {
-              data?: components["schemas"]["Workspace"][];
+            requestBody?: never;
+            responses: {
+                /** @description Process is alive */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example ok */
+                            status?: string;
+                        };
+                    };
+                };
             };
-          };
         };
-        401: components["responses"]["Unauthorized"];
-      };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/workspaces/{workspaceID}/members": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceID: components["parameters"]["workspaceID"];
-      };
-      cookie?: never;
-    };
-    /** List members (capability; read) */
-    get: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
+    "/readyz": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Members */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": {
-              data?: components["schemas"]["Member"][];
+        /** Readiness probe (checks Postgres + Redis) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
             };
-          };
-        };
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-      };
-    };
-    put?: never;
-    /** Add a member (capability; manage_members) */
-    post: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
-        };
-        cookie?: never;
-      };
-      requestBody: {
-        content: {
-          "application/json": components["schemas"]["AddMemberRequest"];
-        };
-      };
-      responses: {
-        /** @description Member added */
-        201: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["MemberEnvelope"];
-          };
-        };
-        400: components["responses"]["ValidationError"];
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-        404: components["responses"]["NotFound"];
-        409: components["responses"]["Conflict"];
-        429: components["responses"]["RateLimited"];
-      };
-    };
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/workspaces/{workspaceID}/members/{userID}/capabilities": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceID: components["parameters"]["workspaceID"];
-        userID: string;
-      };
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    /** Update a member's role/capabilities (capability; manage_members) */
-    patch: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
-          userID: string;
-        };
-        cookie?: never;
-      };
-      requestBody: {
-        content: {
-          "application/json": components["schemas"]["UpdateCapabilitiesRequest"];
-        };
-      };
-      responses: {
-        /** @description Updated */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["MemberEnvelope"];
-          };
-        };
-        400: components["responses"]["ValidationError"];
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-        404: components["responses"]["NotFound"];
-        429: components["responses"]["RateLimited"];
-      };
-    };
-    trace?: never;
-  };
-  "/api/v1/channels/oauth/callback": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * OAuth redirect callback (completes a channel connection)
-     * @description The IdP redirects the user's browser here. Re-checks manage_channels from the bound, single-use state.
-     */
-    get: {
-      parameters: {
-        query: {
-          state: string;
-          code: string;
-        };
-        header?: never;
-        path?: never;
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Channel connected */
-        201: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["ChannelEnvelope"];
-          };
-        };
-        400: components["responses"]["ValidationError"];
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-      };
-    };
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/workspaces/{workspaceID}/channels/": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceID: components["parameters"]["workspaceID"];
-      };
-      cookie?: never;
-    };
-    /** List connected channels (capability; read) */
-    get: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
-        };
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Channels */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": {
-              data?: components["schemas"]["Channel"][];
+            requestBody?: never;
+            responses: {
+                /** @description All dependencies reachable */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Readiness"];
+                    };
+                };
+                /** @description A dependency is unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Readiness"];
+                    };
+                };
             };
-          };
         };
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-      };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/workspaces/{workspaceID}/channels/connect": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceID: components["parameters"]["workspaceID"];
-      };
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Begin connecting a social account (capability; manage_channels) */
-    post: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
+    "/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        cookie?: never;
-      };
-      requestBody: {
-        content: {
-          "application/json": {
-            /** @example twitter */
-            platform: string;
-          };
-        };
-      };
-      responses: {
-        /** @description Authorization URL to redirect the user to */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": {
-              data?: {
-                /** Format: uri */
-                authorize_url?: string;
-              };
+        /** Prometheus metrics exposition */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
             };
-          };
-        };
-        400: components["responses"]["ValidationError"];
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-      };
-    };
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/workspaces/{workspaceID}/channels/{channelID}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceID: components["parameters"]["workspaceID"];
-        channelID: components["parameters"]["channelID"];
-      };
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    /** Disconnect a channel (capability; manage_channels) */
-    delete: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
-          channelID: components["parameters"]["channelID"];
-        };
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Disconnected */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["MessageEnvelope"];
-          };
-        };
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-        404: components["responses"]["NotFound"];
-      };
-    };
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/workspaces/{workspaceID}/posts/": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceID: components["parameters"]["workspaceID"];
-      };
-      cookie?: never;
-    };
-    /** List posts (capability; read) */
-    get: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
-        };
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Posts */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": {
-              data?: components["schemas"]["Post"][];
+            requestBody?: never;
+            responses: {
+                /** @description Prometheus text format */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": string;
+                    };
+                };
             };
-          };
         };
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-      };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    put?: never;
-    /** Create a draft post with per-channel variants (capability; create) */
-    post: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
+    "/api/v1/ping": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        cookie?: never;
-      };
-      requestBody: {
-        content: {
-          "application/json": components["schemas"]["PostWriteRequest"];
-        };
-      };
-      responses: {
-        /** @description Created */
-        201: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["PostEnvelope"];
-          };
-        };
-        400: components["responses"]["ValidationError"];
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-      };
-    };
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/workspaces/{workspaceID}/posts/utm-preview": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceID: components["parameters"]["workspaceID"];
-      };
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Preview UTM-tagged links in body text (capability; read) */
-    post: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
-        };
-        cookie?: never;
-      };
-      requestBody: {
-        content: {
-          "application/json": {
-            text?: string;
-            utm?: {
-              [key: string]: string;
+        /** Demo ping (rate-limited) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
             };
-          };
-        };
-      };
-      responses: {
-        /** @description Tagged text */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": {
-              data?: {
-                text?: string;
-              };
+            requestBody?: never;
+            responses: {
+                /** @description Pong */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageEnvelope"];
+                    };
+                };
+                429: components["responses"]["RateLimited"];
             };
-          };
         };
-        400: components["responses"]["ValidationError"];
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-      };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/workspaces/{workspaceID}/posts/link-preview": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceID: components["parameters"]["workspaceID"];
-      };
-      cookie?: never;
-    };
-    /**
-     * OpenGraph preview of a URL for the composer's link card (capability; read)
-     * @description SSRF-guarded fetch (public http(s) only, bounded size/time/redirects).
-     */
-    get: {
-      parameters: {
-        query: {
-          url: string;
+    "/api/v1/auth/signup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
-        };
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Link metadata (fields empty when absent on the page) */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": {
-              data?: components["schemas"]["LinkPreview"];
+        get?: never;
+        put?: never;
+        /** Create an account (auto-creates a personal workspace) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
             };
-          };
-        };
-        400: components["responses"]["ValidationError"];
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-      };
-    };
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/workspaces/{workspaceID}/posts/{postID}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceID: components["parameters"]["workspaceID"];
-        postID: components["parameters"]["postID"];
-      };
-      cookie?: never;
-    };
-    /** Get a post (capability; read) */
-    get: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
-          postID: components["parameters"]["postID"];
-        };
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Post */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["PostEnvelope"];
-          };
-        };
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-        404: components["responses"]["NotFound"];
-      };
-    };
-    /** Replace a post's variants (capability; update) */
-    put: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
-          postID: components["parameters"]["postID"];
-        };
-        cookie?: never;
-      };
-      requestBody: {
-        content: {
-          "application/json": components["schemas"]["PostWriteRequest"];
-        };
-      };
-      responses: {
-        /** @description Updated */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["PostEnvelope"];
-          };
-        };
-        400: components["responses"]["ValidationError"];
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-        404: components["responses"]["NotFound"];
-      };
-    };
-    post?: never;
-    /** Delete a post (capability; delete) */
-    delete: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
-          postID: components["parameters"]["postID"];
-        };
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Deleted */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["MessageEnvelope"];
-          };
-        };
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-        404: components["responses"]["NotFound"];
-      };
-    };
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/workspaces/{workspaceID}/posts/{postID}/validate": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceID: components["parameters"]["workspaceID"];
-        postID: components["parameters"]["postID"];
-      };
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Validate each variant against its platform (capability; read) */
-    post: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
-          postID: components["parameters"]["postID"];
-        };
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Per-variant validation results */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": {
-              data?: {
-                variants?: components["schemas"]["VariantValidation"][];
-              };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SignupRequest"];
+                };
             };
-          };
-        };
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-        404: components["responses"]["NotFound"];
-      };
-    };
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/workspaces/{workspaceID}/schedule": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceID: components["parameters"]["workspaceID"];
-      };
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Schedule a post (capability; publish)
-     * @description Provide run_at for a specific time, or to_slots=true to use the next open posting slots.
-     */
-    post: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
-        };
-        cookie?: never;
-      };
-      requestBody: {
-        content: {
-          "application/json": {
-            /** Format: uuid */
-            post_id: string;
-            /** Format: date-time */
-            run_at?: string;
-            /** @default false */
-            to_slots?: boolean;
-          };
-        };
-      };
-      responses: {
-        /** @description Jobs created (one per variant/channel) */
-        201: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": {
-              data?: {
-                jobs?: components["schemas"]["Job"][];
-              };
+            responses: {
+                /** @description Account created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserEnvelope"];
+                    };
+                };
+                400: components["responses"]["ValidationError"];
+                409: components["responses"]["Conflict"];
+                429: components["responses"]["RateLimited"];
             };
-          };
         };
-        400: components["responses"]["ValidationError"];
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-      };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/workspaces/{workspaceID}/calendar": {
-    parameters: {
-      query?: {
-        from?: string;
-        to?: string;
-      };
-      header?: never;
-      path: {
-        workspaceID: components["parameters"]["workspaceID"];
-      };
-      cookie?: never;
-    };
-    /** List scheduled jobs in a time window (capability; read) */
-    get: {
-      parameters: {
-        query?: {
-          from?: string;
-          to?: string;
+    "/api/v1/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
-        };
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Jobs in range (default [now, now+30d)) */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": {
-              data?: {
-                jobs?: components["schemas"]["Job"][];
-              };
+        get?: never;
+        put?: never;
+        /** Log in (returns tokens; sets session cookies) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
             };
-          };
-        };
-        400: components["responses"]["ValidationError"];
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-      };
-    };
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/workspaces/{workspaceID}/scheduled-jobs/{jobID}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceID: components["parameters"]["workspaceID"];
-        jobID: string;
-      };
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    /** Cancel a scheduled job (capability; publish) */
-    delete: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
-          jobID: string;
-        };
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Canceled */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["MessageEnvelope"];
-          };
-        };
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-        404: components["responses"]["NotFound"];
-      };
-    };
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/workspaces/{workspaceID}/slots/": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceID: components["parameters"]["workspaceID"];
-      };
-      cookie?: never;
-    };
-    /** List a channel's posting slots (capability; read) */
-    get: {
-      parameters: {
-        query: {
-          channel_id: string;
-        };
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
-        };
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Slots */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": {
-              data?: components["schemas"]["Slot"][];
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LoginRequest"];
+                };
             };
-          };
-        };
-        400: components["responses"]["ValidationError"];
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-      };
-    };
-    put?: never;
-    /** Create a posting slot (capability; publish) */
-    post: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
-        };
-        cookie?: never;
-      };
-      requestBody: {
-        content: {
-          "application/json": components["schemas"]["SlotRequest"];
-        };
-      };
-      responses: {
-        /** @description Slot created */
-        201: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["SlotEnvelope"];
-          };
-        };
-        400: components["responses"]["ValidationError"];
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-      };
-    };
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/workspaces/{workspaceID}/slots/{slotID}": {
-    parameters: {
-      query: {
-        channel_id: string;
-      };
-      header?: never;
-      path: {
-        workspaceID: components["parameters"]["workspaceID"];
-        slotID: string;
-      };
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    /** Delete a posting slot (capability; publish) */
-    delete: {
-      parameters: {
-        query: {
-          channel_id: string;
-        };
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
-          slotID: string;
-        };
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Deleted */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["MessageEnvelope"];
-          };
-        };
-        400: components["responses"]["ValidationError"];
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-        404: components["responses"]["NotFound"];
-      };
-    };
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/workspaces/{workspaceID}/media/": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceID: components["parameters"]["workspaceID"];
-      };
-      cookie?: never;
-    };
-    /** List media assets (capability; read) */
-    get: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
-        };
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Assets */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": {
-              data?: components["schemas"]["Asset"][];
+            responses: {
+                /** @description Authenticated */
+                200: {
+                    headers: {
+                        /** @description postal_access, postal_refresh, postal_csrf */
+                        "Set-Cookie"?: string;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TokenEnvelope"];
+                    };
+                };
+                400: components["responses"]["ValidationError"];
+                401: components["responses"]["Unauthorized"];
+                429: components["responses"]["RateLimited"];
             };
-          };
         };
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-      };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    put?: never;
-    /**
-     * Upload a media asset (capability; upload)
-     * @description multipart/form-data with a `file` part declaring its Content-Type. Image 5 MiB / GIF 15 MiB / video 512 MiB caps plus the per-workspace storage quota.
-     */
-    post: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
+    "/api/v1/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        cookie?: never;
-      };
-      requestBody: {
-        content: {
-          "multipart/form-data": {
-            /** Format: binary */
-            file: string;
-          };
-        };
-      };
-      responses: {
-        /** @description Uploaded */
-        201: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["AssetEnvelope"];
-          };
-        };
-        400: components["responses"]["ValidationError"];
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-      };
-    };
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/workspaces/{workspaceID}/media/{mediaID}/download": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceID: components["parameters"]["workspaceID"];
-        mediaID: string;
-      };
-      cookie?: never;
-    };
-    /** Download asset bytes (capability; read) */
-    get: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
-          mediaID: string;
-        };
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Raw asset bytes */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/octet-stream": string;
-          };
-        };
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-        404: components["responses"]["NotFound"];
-      };
-    };
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/workspaces/{workspaceID}/media/{mediaID}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceID: components["parameters"]["workspaceID"];
-        mediaID: string;
-      };
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    /** Delete a media asset (capability; delete) */
-    delete: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
-          mediaID: string;
-        };
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Deleted */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["MessageEnvelope"];
-          };
-        };
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-        404: components["responses"]["NotFound"];
-      };
-    };
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/workspaces/{workspaceID}/integrations/": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceID: components["parameters"]["workspaceID"];
-      };
-      cookie?: never;
-    };
-    /** List integrations, secrets omitted (capability; read) */
-    get: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
-        };
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Integrations (offered providers always listed) */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": {
-              data?: components["schemas"]["Integration"][];
+        get?: never;
+        put?: never;
+        /**
+         * Rotate the refresh token and issue a new access token
+         * @description Refresh token from the `postal_refresh` cookie or request body. CSRF-protected for the cookie flow.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
             };
-          };
-        };
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-      };
-    };
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/workspaces/{workspaceID}/integrations/{provider}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceID: components["parameters"]["workspaceID"];
-        provider: "ogshortener";
-      };
-      cookie?: never;
-    };
-    get?: never;
-    /**
-     * Configure an integration (capability; manage_workspace)
-     * @description A submitted api_key is verified against the provider before being encrypted at rest; omitting it keeps the stored key.
-     */
-    put: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
-          provider: "ogshortener";
-        };
-        cookie?: never;
-      };
-      requestBody: {
-        content: {
-          "application/json": {
-            enabled: boolean;
-            auto_apply?: boolean;
-            api_key?: string | null;
-          };
-        };
-      };
-      responses: {
-        /** @description Updated integration */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": {
-              data?: components["schemas"]["Integration"];
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["RefreshRequest"];
+                };
             };
-          };
-        };
-        400: components["responses"]["ValidationError"];
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-      };
-    };
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/workspaces/{workspaceID}/integrations/ogshortener/shorten": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceID: components["parameters"]["workspaceID"];
-      };
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Replace every link in text with an OGShortener short link (capability; create) */
-    post: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
-        };
-        cookie?: never;
-      };
-      requestBody: {
-        content: {
-          "application/json": {
-            text: string;
-          };
-        };
-      };
-      responses: {
-        /** @description Rewritten text */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": {
-              data?: {
-                text: string;
-              };
+            responses: {
+                /** @description New tokens (rotated) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TokenEnvelope"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["CSRFFailed"];
+                429: components["responses"]["RateLimited"];
             };
-          };
         };
-        400: components["responses"]["ValidationError"];
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-      };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/workspaces/{workspaceID}/billing/wallet": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceID: components["parameters"]["workspaceID"];
-      };
-      cookie?: never;
-    };
-    /** Wallet balance + per-platform publish costs (capability; read) */
-    get: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
+    "/api/v1/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Wallet */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": {
-              data?: components["schemas"]["Wallet"];
+        get?: never;
+        put?: never;
+        /** Revoke the refresh token and clear cookies */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
             };
-          };
-        };
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-      };
-    };
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/workspaces/{workspaceID}/billing/ledger": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceID: components["parameters"]["workspaceID"];
-      };
-      cookie?: never;
-    };
-    /** Wallet movement history, newest first (capability; read) */
-    get: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
-        };
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Ledger entries */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": {
-              data?: components["schemas"]["LedgerEntry"][];
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["RefreshRequest"];
+                };
             };
-          };
-        };
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-      };
-    };
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/workspaces/{workspaceID}/billing/topup": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceID: components["parameters"]["workspaceID"];
-      };
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Start a wallet top-up checkout (capability; manage_workspace)
-     * @description The charge amount is derived server-side from credits. Returns the provider's hosted checkout URL; crediting happens via the signed webhook, never on redirect.
-     */
-    post: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
-        };
-        cookie?: never;
-      };
-      requestBody: {
-        content: {
-          "application/json": {
-            /**
-             * @description dev is development-only
-             * @enum {string}
-             */
-            provider: "stripe" | "paystack" | "dev";
-            /** Format: int64 */
-            credits: number;
-          };
-        };
-      };
-      responses: {
-        /** @description Hosted checkout URL */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": {
-              data?: {
-                /** Format: uri */
-                checkout_url: string;
-              };
+            responses: {
+                /** @description Logged out */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageEnvelope"];
+                    };
+                };
+                403: components["responses"]["CSRFFailed"];
+                429: components["responses"]["RateLimited"];
             };
-          };
         };
-        400: components["responses"]["ValidationError"];
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-      };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/billing/webhooks/stripe": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Stripe webhook (public; Stripe-Signature is the auth) */
-    post: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path?: never;
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Acknowledged (credited */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content?: never;
+    "/api/v1/auth/verify-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        /** @description Signature verification failed */
-        401: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content?: never;
-        };
-      };
-    };
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/billing/webhooks/paystack": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Paystack webhook (public; x-paystack-signature is the auth) */
-    post: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path?: never;
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Acknowledged (credited */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content?: never;
-        };
-        /** @description Signature verification failed */
-        401: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content?: never;
-        };
-      };
-    };
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/workspaces/{workspaceID}/analytics/": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceID: components["parameters"]["workspaceID"];
-      };
-      cookie?: never;
-    };
-    /** Workspace metrics overview, per (post, channel) (capability; read) */
-    get: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
-        };
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Latest metrics per post/channel */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": {
-              data?: {
-                posts?: components["schemas"]["PostMetrics"][];
-              };
+        get?: never;
+        put?: never;
+        /** Verify an email address with a single-use token */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
             };
-          };
-        };
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-      };
-    };
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/workspaces/{workspaceID}/analytics/export.csv": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceID: components["parameters"]["workspaceID"];
-      };
-      cookie?: never;
-    };
-    /** Export latest metrics as CSV (capability; read) */
-    get: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
-        };
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description CSV download */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "text/csv": string;
-          };
-        };
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-      };
-    };
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/workspaces/{workspaceID}/analytics/posts/{postID}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceID: components["parameters"]["workspaceID"];
-        postID: components["parameters"]["postID"];
-      };
-      cookie?: never;
-    };
-    /** Latest metrics for one post, broken out per channel (capability; read) */
-    get: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
-          postID: components["parameters"]["postID"];
-        };
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Per-channel metrics */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": {
-              data?: {
-                /** Format: uuid */
-                post_id?: string;
-                channels?: components["schemas"]["ChannelMetrics"][];
-              };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        token: string;
+                    };
+                };
             };
-          };
+            responses: {
+                /** @description Email verified */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageEnvelope"];
+                    };
+                };
+                400: components["responses"]["ValidationError"];
+                404: components["responses"]["NotFound"];
+                429: components["responses"]["RateLimited"];
+            };
         };
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-      };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/workspaces/{workspaceID}/analytics/posts/{postID}/series": {
-    parameters: {
-      query: {
-        channel_id: string;
-        metric?: string;
-        from?: string;
-        to?: string;
-      };
-      header?: never;
-      path: {
-        workspaceID: components["parameters"]["workspaceID"];
-        postID: components["parameters"]["postID"];
-      };
-      cookie?: never;
+    "/api/v1/auth/password-reset/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request a password-reset token (no account enumeration) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: email */
+                        email: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Always succeeds whether or not the email is registered */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageEnvelope"];
+                    };
+                };
+                400: components["responses"]["ValidationError"];
+                429: components["responses"]["RateLimited"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Time series of one metric for a post on a channel (capability; read) */
-    get: {
-      parameters: {
-        query: {
-          channel_id: string;
-          metric?: string;
-          from?: string;
-          to?: string;
+    "/api/v1/auth/password-reset/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        header?: never;
-        path: {
-          workspaceID: components["parameters"]["workspaceID"];
-          postID: components["parameters"]["postID"];
+        get?: never;
+        put?: never;
+        /** Set a new password using a reset token */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        token: string;
+                        /** Format: password */
+                        new_password: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Password updated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageEnvelope"];
+                    };
+                };
+                400: components["responses"]["ValidationError"];
+                404: components["responses"]["NotFound"];
+                429: components["responses"]["RateLimited"];
+            };
         };
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Series points (default window [now-30d, now]) */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": {
-              data?: {
-                /** Format: uuid */
-                post_id?: string;
-                /** Format: uuid */
-                channel_id?: string;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Current authenticated user */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The caller */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserEnvelope"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List workspaces the caller belongs to */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Workspaces */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["Workspace"][];
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceID}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceID: components["parameters"]["workspaceID"];
+            };
+            cookie?: never;
+        };
+        /** List members (capability; read) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Members */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["Member"][];
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        /** Add a member (capability; manage_members) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AddMemberRequest"];
+                };
+            };
+            responses: {
+                /** @description Member added */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MemberEnvelope"];
+                    };
+                };
+                400: components["responses"]["ValidationError"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
+                429: components["responses"]["RateLimited"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceID}/members/{userID}/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceID: components["parameters"]["workspaceID"];
+                userID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update a member's role/capabilities (capability; manage_members) */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                    userID: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateCapabilitiesRequest"];
+                };
+            };
+            responses: {
+                /** @description Updated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MemberEnvelope"];
+                    };
+                };
+                400: components["responses"]["ValidationError"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                429: components["responses"]["RateLimited"];
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/channels/oauth/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * OAuth redirect callback (completes a channel connection)
+         * @description The IdP redirects the user's browser here. Re-checks manage_channels from the bound, single-use state.
+         */
+        get: {
+            parameters: {
+                query: {
+                    state: string;
+                    code: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Channel connected */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ChannelEnvelope"];
+                    };
+                };
+                400: components["responses"]["ValidationError"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceID}/channels/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceID: components["parameters"]["workspaceID"];
+            };
+            cookie?: never;
+        };
+        /** List connected channels (capability; read) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Channels */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["Channel"][];
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceID}/channels/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceID: components["parameters"]["workspaceID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Begin connecting a social account (capability; manage_channels) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @example twitter */
+                        platform: string;
+                        /**
+                         * @description Optional allowlisted OAuth callback override. Web omits it (server default); native clients send their deep link (e.g. postal://oauth-callback).
+                         * @example postal://oauth-callback
+                         */
+                        redirect_uri?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Authorization URL to redirect the user to */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                /** Format: uri */
+                                authorize_url?: string;
+                            };
+                        };
+                    };
+                };
+                400: components["responses"]["ValidationError"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceID}/channels/{channelID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceID: components["parameters"]["workspaceID"];
+                channelID: components["parameters"]["channelID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Disconnect a channel (capability; manage_channels) */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                    channelID: components["parameters"]["channelID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Disconnected */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageEnvelope"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceID}/posts/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceID: components["parameters"]["workspaceID"];
+            };
+            cookie?: never;
+        };
+        /** List posts (capability; read) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Posts */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["Post"][];
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        /** Create a draft post with per-channel variants (capability; create) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PostWriteRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PostEnvelope"];
+                    };
+                };
+                400: components["responses"]["ValidationError"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceID}/posts/utm-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceID: components["parameters"]["workspaceID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview UTM-tagged links in body text (capability; read) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        text?: string;
+                        utm?: {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description Tagged text */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                text?: string;
+                            };
+                        };
+                    };
+                };
+                400: components["responses"]["ValidationError"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceID}/posts/link-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceID: components["parameters"]["workspaceID"];
+            };
+            cookie?: never;
+        };
+        /**
+         * OpenGraph preview of a URL for the composer's link card (capability; read)
+         * @description SSRF-guarded fetch (public http(s) only, bounded size/time/redirects).
+         */
+        get: {
+            parameters: {
+                query: {
+                    url: string;
+                };
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Link metadata (fields empty when absent on the page) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["LinkPreview"];
+                        };
+                    };
+                };
+                400: components["responses"]["ValidationError"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceID}/posts/{postID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceID: components["parameters"]["workspaceID"];
+                postID: components["parameters"]["postID"];
+            };
+            cookie?: never;
+        };
+        /** Get a post (capability; read) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                    postID: components["parameters"]["postID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Post */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PostEnvelope"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        /** Replace a post's variants (capability; update) */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                    postID: components["parameters"]["postID"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PostWriteRequest"];
+                };
+            };
+            responses: {
+                /** @description Updated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PostEnvelope"];
+                    };
+                };
+                400: components["responses"]["ValidationError"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        post?: never;
+        /** Delete a post (capability; delete) */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                    postID: components["parameters"]["postID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Deleted */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageEnvelope"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceID}/posts/{postID}/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceID: components["parameters"]["workspaceID"];
+                postID: components["parameters"]["postID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate each variant against its platform (capability; read) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                    postID: components["parameters"]["postID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Per-variant validation results */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                variants?: components["schemas"]["VariantValidation"][];
+                            };
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceID}/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceID: components["parameters"]["workspaceID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Schedule a post (capability; publish)
+         * @description Provide run_at for a specific time, or to_slots=true to use the next open posting slots.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        post_id: string;
+                        /** Format: date-time */
+                        run_at?: string;
+                        /** @default false */
+                        to_slots?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Jobs created (one per variant/channel) */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                jobs?: components["schemas"]["Job"][];
+                            };
+                        };
+                    };
+                };
+                400: components["responses"]["ValidationError"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceID}/calendar": {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path: {
+                workspaceID: components["parameters"]["workspaceID"];
+            };
+            cookie?: never;
+        };
+        /** List scheduled jobs in a time window (capability; read) */
+        get: {
+            parameters: {
+                query?: {
+                    from?: string;
+                    to?: string;
+                };
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Jobs in range (default [now, now+30d)) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                jobs?: components["schemas"]["Job"][];
+                            };
+                        };
+                    };
+                };
+                400: components["responses"]["ValidationError"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceID}/scheduled-jobs/{jobID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceID: components["parameters"]["workspaceID"];
+                jobID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Cancel a scheduled job (capability; publish) */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                    jobID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Canceled */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageEnvelope"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceID}/slots/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceID: components["parameters"]["workspaceID"];
+            };
+            cookie?: never;
+        };
+        /** List a channel's posting slots (capability; read) */
+        get: {
+            parameters: {
+                query: {
+                    channel_id: string;
+                };
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Slots */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["Slot"][];
+                        };
+                    };
+                };
+                400: components["responses"]["ValidationError"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        /** Create a posting slot (capability; publish) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SlotRequest"];
+                };
+            };
+            responses: {
+                /** @description Slot created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SlotEnvelope"];
+                    };
+                };
+                400: components["responses"]["ValidationError"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceID}/slots/{slotID}": {
+        parameters: {
+            query: {
+                channel_id: string;
+            };
+            header?: never;
+            path: {
+                workspaceID: components["parameters"]["workspaceID"];
+                slotID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a posting slot (capability; publish) */
+        delete: {
+            parameters: {
+                query: {
+                    channel_id: string;
+                };
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                    slotID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Deleted */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageEnvelope"];
+                    };
+                };
+                400: components["responses"]["ValidationError"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceID}/media/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceID: components["parameters"]["workspaceID"];
+            };
+            cookie?: never;
+        };
+        /** List media assets (capability; read) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Assets */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["Asset"][];
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        /**
+         * Upload a media asset (capability; upload)
+         * @description multipart/form-data with a `file` part declaring its Content-Type. Image 5 MiB / GIF 15 MiB / video 512 MiB caps plus the per-workspace storage quota.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        /** Format: binary */
+                        file: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Uploaded */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AssetEnvelope"];
+                    };
+                };
+                400: components["responses"]["ValidationError"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceID}/media/{mediaID}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceID: components["parameters"]["workspaceID"];
+                mediaID: string;
+            };
+            cookie?: never;
+        };
+        /** Download asset bytes (capability; read) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                    mediaID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Raw asset bytes */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/octet-stream": string;
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceID}/media/{mediaID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceID: components["parameters"]["workspaceID"];
+                mediaID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a media asset (capability; delete) */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                    mediaID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Deleted */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageEnvelope"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceID}/integrations/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceID: components["parameters"]["workspaceID"];
+            };
+            cookie?: never;
+        };
+        /** List integrations, secrets omitted (capability; read) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Integrations (offered providers always listed) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["Integration"][];
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceID}/integrations/{provider}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceID: components["parameters"]["workspaceID"];
+                provider: "ogshortener";
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Configure an integration (capability; manage_workspace)
+         * @description A submitted api_key is verified against the provider before being encrypted at rest; omitting it keeps the stored key.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                    provider: "ogshortener";
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        enabled: boolean;
+                        auto_apply?: boolean;
+                        api_key?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Updated integration */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["Integration"];
+                        };
+                    };
+                };
+                400: components["responses"]["ValidationError"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceID}/integrations/ogshortener/shorten": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceID: components["parameters"]["workspaceID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Replace every link in text with an OGShortener short link (capability; create) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        text: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Rewritten text */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                text: string;
+                            };
+                        };
+                    };
+                };
+                400: components["responses"]["ValidationError"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceID}/billing/wallet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceID: components["parameters"]["workspaceID"];
+            };
+            cookie?: never;
+        };
+        /** Wallet balance + per-platform publish costs (capability; read) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Wallet */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["Wallet"];
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceID}/billing/ledger": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceID: components["parameters"]["workspaceID"];
+            };
+            cookie?: never;
+        };
+        /** Wallet movement history, newest first (capability; read) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Ledger entries */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["LedgerEntry"][];
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceID}/billing/topup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceID: components["parameters"]["workspaceID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start a wallet top-up checkout (capability; manage_workspace)
+         * @description The charge amount is derived server-side from credits. Returns the provider's hosted checkout URL; crediting happens via the signed webhook, never on redirect.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description dev is development-only
+                         * @enum {string}
+                         */
+                        provider: "stripe" | "paystack" | "dev";
+                        /** Format: int64 */
+                        credits: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Hosted checkout URL */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                /** Format: uri */
+                                checkout_url: string;
+                            };
+                        };
+                    };
+                };
+                400: components["responses"]["ValidationError"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/billing/webhooks/stripe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stripe webhook (public; Stripe-Signature is the auth) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Acknowledged (credited */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Signature verification failed */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/billing/webhooks/paystack": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Paystack webhook (public; x-paystack-signature is the auth) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Acknowledged (credited */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Signature verification failed */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceID}/analytics/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceID: components["parameters"]["workspaceID"];
+            };
+            cookie?: never;
+        };
+        /** Workspace metrics overview, per (post, channel) (capability; read) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Latest metrics per post/channel */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                posts?: components["schemas"]["PostMetrics"][];
+                            };
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceID}/analytics/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceID: components["parameters"]["workspaceID"];
+            };
+            cookie?: never;
+        };
+        /** Export latest metrics as CSV (capability; read) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description CSV download */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/csv": string;
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceID}/analytics/posts/{postID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceID: components["parameters"]["workspaceID"];
+                postID: components["parameters"]["postID"];
+            };
+            cookie?: never;
+        };
+        /** Latest metrics for one post, broken out per channel (capability; read) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                    postID: components["parameters"]["postID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Per-channel metrics */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                /** Format: uuid */
+                                post_id?: string;
+                                channels?: components["schemas"]["ChannelMetrics"][];
+                            };
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspaceID}/analytics/posts/{postID}/series": {
+        parameters: {
+            query: {
+                channel_id: string;
                 metric?: string;
-                points?: components["schemas"]["SeriesPoint"][];
-              };
+                from?: string;
+                to?: string;
             };
-          };
+            header?: never;
+            path: {
+                workspaceID: components["parameters"]["workspaceID"];
+                postID: components["parameters"]["postID"];
+            };
+            cookie?: never;
         };
-        400: components["responses"]["ValidationError"];
-        401: components["responses"]["Unauthorized"];
-        403: components["responses"]["Forbidden"];
-      };
+        /** Time series of one metric for a post on a channel (capability; read) */
+        get: {
+            parameters: {
+                query: {
+                    channel_id: string;
+                    metric?: string;
+                    from?: string;
+                    to?: string;
+                };
+                header?: never;
+                path: {
+                    workspaceID: components["parameters"]["workspaceID"];
+                    postID: components["parameters"]["postID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Series points (default window [now-30d, now]) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                /** Format: uuid */
+                                post_id?: string;
+                                /** Format: uuid */
+                                channel_id?: string;
+                                metric?: string;
+                                points?: components["schemas"]["SeriesPoint"][];
+                            };
+                        };
+                    };
+                };
+                400: components["responses"]["ValidationError"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-  schemas: {
-    Error: {
-      error: {
-        /** @example invalid_token */
-        code?: string;
-        message?: string;
-        request_id?: string;
-        fields?: {
-          field?: string;
-          message?: string;
-        }[];
-      };
+    schemas: {
+        Error: {
+            error: {
+                /** @example invalid_token */
+                code?: string;
+                message?: string;
+                request_id?: string;
+                fields?: {
+                    field?: string;
+                    message?: string;
+                }[];
+            };
+        };
+        Readiness: {
+            /** @enum {string} */
+            status?: "ready" | "not ready";
+            checks?: {
+                [key: string]: string;
+            };
+        };
+        MessageEnvelope: {
+            data?: {
+                message?: string;
+            };
+        };
+        SignupRequest: {
+            /** Format: email */
+            email: string;
+            /** Format: password */
+            password: string;
+        };
+        LoginRequest: {
+            /** Format: email */
+            email: string;
+            /** Format: password */
+            password: string;
+        };
+        RefreshRequest: {
+            refresh_token?: string;
+        };
+        User: {
+            /** Format: uuid */
+            id: string;
+            /** Format: email */
+            email: string;
+            email_verified: boolean;
+            status: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        UserEnvelope: {
+            data?: components["schemas"]["User"];
+        };
+        Token: {
+            access_token: string;
+            /** @example Bearer */
+            token_type: string;
+            /** @description access-token lifetime in seconds */
+            expires_in: number;
+            csrf_token: string;
+            refresh_token?: string;
+            user?: components["schemas"]["User"];
+        };
+        TokenEnvelope: {
+            data?: components["schemas"]["Token"];
+        };
+        Workspace: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: uuid */
+            owner_user_id: string;
+            plan: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        Member: {
+            /** Format: uuid */
+            workspace_id: string;
+            /** Format: uuid */
+            user_id: string;
+            /** @enum {string} */
+            role: "owner" | "admin" | "editor" | "viewer" | "custom";
+            permissions: components["schemas"]["Capability"][];
+        };
+        MemberEnvelope: {
+            data?: components["schemas"]["Member"];
+        };
+        /** @enum {string} */
+        Capability: "read" | "create" | "update" | "delete" | "upload" | "publish" | "manage_channels" | "manage_members" | "manage_workspace";
+        AddMemberRequest: {
+            /** Format: email */
+            email: string;
+            /** @enum {string} */
+            role?: "owner" | "admin" | "editor" | "viewer";
+            capabilities?: components["schemas"]["Capability"][];
+        };
+        UpdateCapabilitiesRequest: {
+            /** @enum {string} */
+            role?: "owner" | "admin" | "editor" | "viewer";
+            capabilities?: components["schemas"]["Capability"][];
+        };
+        Channel: {
+            /** Format: uuid */
+            id: string;
+            platform: string;
+            platform_account_id: string;
+            handle: string;
+            display_name: string;
+            /** @enum {string} */
+            status: "active" | "expired" | "revoked";
+            /** Format: uuid */
+            connected_by?: string | null;
+            /** Format: date-time */
+            created_at: string;
+        };
+        ChannelEnvelope: {
+            data?: components["schemas"]["Channel"];
+        };
+        MediaMeta: {
+            /** Format: uuid */
+            media_id: string;
+            /** @enum {string} */
+            kind: "image" | "gif" | "video";
+            mime: string;
+            /** Format: int64 */
+            bytes: number;
+        };
+        VariantInput: {
+            /** Format: uuid */
+            channel_id: string;
+            body?: string;
+            media?: components["schemas"]["MediaMeta"][];
+            platform_options?: {
+                [key: string]: unknown;
+            };
+        };
+        Variant: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            channel_id: string;
+            body: string;
+            media?: components["schemas"]["MediaMeta"][];
+            platform_options?: {
+                [key: string]: unknown;
+            };
+        };
+        Post: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            workspace_id: string;
+            /** Format: uuid */
+            author_user_id?: string | null;
+            /** @example draft */
+            status: string;
+            /** Format: date-time */
+            created_at: string;
+            variants?: components["schemas"]["Variant"][];
+        };
+        PostEnvelope: {
+            data?: components["schemas"]["Post"];
+        };
+        PostWriteRequest: {
+            variants: components["schemas"]["VariantInput"][];
+        };
+        VariantValidation: {
+            /** Format: uuid */
+            channel_id: string;
+            valid: boolean;
+            code?: string;
+            message?: string;
+        };
+        Job: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            post_id: string;
+            /** Format: uuid */
+            channel_id: string;
+            /** Format: date-time */
+            run_at: string;
+            /** @enum {string} */
+            status: "scheduled" | "publishing" | "published" | "failed" | "canceled";
+            attempts: number;
+            last_error?: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        Slot: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            channel_id: string;
+            /** @description 0=Sunday .. 6=Saturday */
+            day_of_week: number;
+            /** @example 09:00 */
+            time_of_day: string;
+            /** @example America/New_York */
+            timezone: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        SlotEnvelope: {
+            data?: components["schemas"]["Slot"];
+        };
+        SlotRequest: {
+            /** Format: uuid */
+            channel_id: string;
+            day_of_week: number;
+            /** @example 09:00 */
+            time_of_day: string;
+            /** @example America/New_York */
+            timezone: string;
+        };
+        Asset: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            workspace_id: string;
+            /** @enum {string} */
+            kind: "image" | "gif" | "video";
+            mime: string;
+            width: number;
+            height: number;
+            duration_ms: number;
+            /** Format: int64 */
+            bytes: number;
+            status: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        AssetEnvelope: {
+            data?: components["schemas"]["Asset"];
+        };
+        PostMetrics: {
+            /** Format: uuid */
+            post_id: string;
+            /** Format: uuid */
+            channel_id: string;
+            platform_post_id: string;
+            metrics: {
+                [key: string]: number;
+            };
+            /** Format: date-time */
+            captured_at: string;
+        };
+        ChannelMetrics: {
+            /** Format: uuid */
+            channel_id: string;
+            platform_post_id: string;
+            metrics: {
+                [key: string]: number;
+            };
+            /** Format: date-time */
+            captured_at: string;
+        };
+        SeriesPoint: {
+            /** Format: int64 */
+            value: number;
+            /** Format: date-time */
+            captured_at: string;
+        };
+        Integration: {
+            /** @example ogshortener */
+            provider: string;
+            enabled: boolean;
+            auto_apply: boolean;
+            /** @description an API key is stored */
+            configured: boolean;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        LinkPreview: {
+            /** Format: uri */
+            url: string;
+            site_name: string;
+            title: string;
+            description: string;
+            image: string;
+        };
+        Wallet: {
+            /** Format: uuid */
+            workspace_id: string;
+            /**
+             * Format: int64
+             * @description credits
+             */
+            balance: number;
+            /** @description per-publish cost in credits by platform; absent platforms are free */
+            publish_costs: {
+                [key: string]: number;
+            };
+            /** Format: date-time */
+            updated_at: string;
+        };
+        LedgerEntry: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            workspace_id: string;
+            /** @enum {string} */
+            kind: "topup" | "publish_charge" | "refund" | "adjustment";
+            /**
+             * Format: int64
+             * @description signed; charges are negative
+             */
+            credits: number;
+            reference: string;
+            note: string;
+            /** Format: date-time */
+            created_at: string;
+        };
     };
-    Readiness: {
-      /** @enum {string} */
-      status?: "ready" | "not ready";
-      checks?: {
-        [key: string]: string;
-      };
+    responses: {
+        /** @description Missing or invalid authentication */
+        Unauthorized: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Authenticated but lacking the required capability or not a member */
+        Forbidden: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Resource not found (or hidden cross-workspace) */
+        NotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Conflicting state (e.g. duplicate) */
+        Conflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Malformed or invalid input */
+        ValidationError: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description CSRF token missing or mismatched (cookie flow) */
+        CSRFFailed: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Rate limit exceeded */
+        RateLimited: {
+            headers: {
+                /** @description Seconds until the next request is allowed */
+                "Retry-After"?: number;
+                "X-RateLimit-Limit"?: number;
+                "X-RateLimit-Remaining"?: number;
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
     };
-    MessageEnvelope: {
-      data?: {
-        message?: string;
-      };
+    parameters: {
+        workspaceID: string;
+        channelID: string;
+        postID: string;
     };
-    SignupRequest: {
-      /** Format: email */
-      email: string;
-      /** Format: password */
-      password: string;
-    };
-    LoginRequest: {
-      /** Format: email */
-      email: string;
-      /** Format: password */
-      password: string;
-    };
-    RefreshRequest: {
-      refresh_token?: string;
-    };
-    User: {
-      /** Format: uuid */
-      id: string;
-      /** Format: email */
-      email: string;
-      email_verified: boolean;
-      status: string;
-      /** Format: date-time */
-      created_at: string;
-    };
-    UserEnvelope: {
-      data?: components["schemas"]["User"];
-    };
-    Token: {
-      access_token: string;
-      /** @example Bearer */
-      token_type: string;
-      /** @description access-token lifetime in seconds */
-      expires_in: number;
-      csrf_token: string;
-      refresh_token?: string;
-      user?: components["schemas"]["User"];
-    };
-    TokenEnvelope: {
-      data?: components["schemas"]["Token"];
-    };
-    Workspace: {
-      /** Format: uuid */
-      id: string;
-      name: string;
-      /** Format: uuid */
-      owner_user_id: string;
-      plan: string;
-      /** Format: date-time */
-      created_at: string;
-    };
-    Member: {
-      /** Format: uuid */
-      workspace_id: string;
-      /** Format: uuid */
-      user_id: string;
-      /** @enum {string} */
-      role: "owner" | "admin" | "editor" | "viewer" | "custom";
-      permissions: components["schemas"]["Capability"][];
-    };
-    MemberEnvelope: {
-      data?: components["schemas"]["Member"];
-    };
-    /** @enum {string} */
-    Capability:
-      | "read"
-      | "create"
-      | "update"
-      | "delete"
-      | "upload"
-      | "publish"
-      | "manage_channels"
-      | "manage_members"
-      | "manage_workspace";
-    AddMemberRequest: {
-      /** Format: email */
-      email: string;
-      /** @enum {string} */
-      role?: "owner" | "admin" | "editor" | "viewer";
-      capabilities?: components["schemas"]["Capability"][];
-    };
-    UpdateCapabilitiesRequest: {
-      /** @enum {string} */
-      role?: "owner" | "admin" | "editor" | "viewer";
-      capabilities?: components["schemas"]["Capability"][];
-    };
-    Channel: {
-      /** Format: uuid */
-      id: string;
-      platform: string;
-      platform_account_id: string;
-      handle: string;
-      display_name: string;
-      /** @enum {string} */
-      status: "active" | "expired" | "revoked";
-      /** Format: uuid */
-      connected_by?: string | null;
-      /** Format: date-time */
-      created_at: string;
-    };
-    ChannelEnvelope: {
-      data?: components["schemas"]["Channel"];
-    };
-    MediaMeta: {
-      /** Format: uuid */
-      media_id: string;
-      /** @enum {string} */
-      kind: "image" | "gif" | "video";
-      mime: string;
-      /** Format: int64 */
-      bytes: number;
-    };
-    VariantInput: {
-      /** Format: uuid */
-      channel_id: string;
-      body?: string;
-      media?: components["schemas"]["MediaMeta"][];
-      platform_options?: {
-        [key: string]: unknown;
-      };
-    };
-    Variant: {
-      /** Format: uuid */
-      id: string;
-      /** Format: uuid */
-      channel_id: string;
-      body: string;
-      media?: components["schemas"]["MediaMeta"][];
-      platform_options?: {
-        [key: string]: unknown;
-      };
-    };
-    Post: {
-      /** Format: uuid */
-      id: string;
-      /** Format: uuid */
-      workspace_id: string;
-      /** Format: uuid */
-      author_user_id?: string | null;
-      /** @example draft */
-      status: string;
-      /** Format: date-time */
-      created_at: string;
-      variants?: components["schemas"]["Variant"][];
-    };
-    PostEnvelope: {
-      data?: components["schemas"]["Post"];
-    };
-    PostWriteRequest: {
-      variants: components["schemas"]["VariantInput"][];
-    };
-    VariantValidation: {
-      /** Format: uuid */
-      channel_id: string;
-      valid: boolean;
-      code?: string;
-      message?: string;
-    };
-    Job: {
-      /** Format: uuid */
-      id: string;
-      /** Format: uuid */
-      post_id: string;
-      /** Format: uuid */
-      channel_id: string;
-      /** Format: date-time */
-      run_at: string;
-      /** @enum {string} */
-      status: "scheduled" | "publishing" | "published" | "failed" | "canceled";
-      attempts: number;
-      last_error?: string;
-      /** Format: date-time */
-      created_at: string;
-    };
-    Slot: {
-      /** Format: uuid */
-      id: string;
-      /** Format: uuid */
-      channel_id: string;
-      /** @description 0=Sunday .. 6=Saturday */
-      day_of_week: number;
-      /** @example 09:00 */
-      time_of_day: string;
-      /** @example America/New_York */
-      timezone: string;
-      /** Format: date-time */
-      created_at: string;
-    };
-    SlotEnvelope: {
-      data?: components["schemas"]["Slot"];
-    };
-    SlotRequest: {
-      /** Format: uuid */
-      channel_id: string;
-      day_of_week: number;
-      /** @example 09:00 */
-      time_of_day: string;
-      /** @example America/New_York */
-      timezone: string;
-    };
-    Asset: {
-      /** Format: uuid */
-      id: string;
-      /** Format: uuid */
-      workspace_id: string;
-      /** @enum {string} */
-      kind: "image" | "gif" | "video";
-      mime: string;
-      width: number;
-      height: number;
-      duration_ms: number;
-      /** Format: int64 */
-      bytes: number;
-      status: string;
-      /** Format: date-time */
-      created_at: string;
-    };
-    AssetEnvelope: {
-      data?: components["schemas"]["Asset"];
-    };
-    PostMetrics: {
-      /** Format: uuid */
-      post_id: string;
-      /** Format: uuid */
-      channel_id: string;
-      platform_post_id: string;
-      metrics: {
-        [key: string]: number;
-      };
-      /** Format: date-time */
-      captured_at: string;
-    };
-    ChannelMetrics: {
-      /** Format: uuid */
-      channel_id: string;
-      platform_post_id: string;
-      metrics: {
-        [key: string]: number;
-      };
-      /** Format: date-time */
-      captured_at: string;
-    };
-    SeriesPoint: {
-      /** Format: int64 */
-      value: number;
-      /** Format: date-time */
-      captured_at: string;
-    };
-    Integration: {
-      /** @example ogshortener */
-      provider: string;
-      enabled: boolean;
-      auto_apply: boolean;
-      /** @description an API key is stored */
-      configured: boolean;
-      /** Format: date-time */
-      updated_at: string;
-    };
-    LinkPreview: {
-      /** Format: uri */
-      url: string;
-      site_name: string;
-      title: string;
-      description: string;
-      image: string;
-    };
-    Wallet: {
-      /** Format: uuid */
-      workspace_id: string;
-      /**
-       * Format: int64
-       * @description credits
-       */
-      balance: number;
-      /** @description per-publish cost in credits by platform; absent platforms are free */
-      publish_costs: {
-        [key: string]: number;
-      };
-      /** Format: date-time */
-      updated_at: string;
-    };
-    LedgerEntry: {
-      /** Format: uuid */
-      id: string;
-      /** Format: uuid */
-      workspace_id: string;
-      /** @enum {string} */
-      kind: "topup" | "publish_charge" | "refund" | "adjustment";
-      /**
-       * Format: int64
-       * @description signed; charges are negative
-       */
-      credits: number;
-      reference: string;
-      note: string;
-      /** Format: date-time */
-      created_at: string;
-    };
-  };
-  responses: {
-    /** @description Missing or invalid authentication */
-    Unauthorized: {
-      headers: {
-        [name: string]: unknown;
-      };
-      content: {
-        "application/json": components["schemas"]["Error"];
-      };
-    };
-    /** @description Authenticated but lacking the required capability or not a member */
-    Forbidden: {
-      headers: {
-        [name: string]: unknown;
-      };
-      content: {
-        "application/json": components["schemas"]["Error"];
-      };
-    };
-    /** @description Resource not found (or hidden cross-workspace) */
-    NotFound: {
-      headers: {
-        [name: string]: unknown;
-      };
-      content: {
-        "application/json": components["schemas"]["Error"];
-      };
-    };
-    /** @description Conflicting state (e.g. duplicate) */
-    Conflict: {
-      headers: {
-        [name: string]: unknown;
-      };
-      content: {
-        "application/json": components["schemas"]["Error"];
-      };
-    };
-    /** @description Malformed or invalid input */
-    ValidationError: {
-      headers: {
-        [name: string]: unknown;
-      };
-      content: {
-        "application/json": components["schemas"]["Error"];
-      };
-    };
-    /** @description CSRF token missing or mismatched (cookie flow) */
-    CSRFFailed: {
-      headers: {
-        [name: string]: unknown;
-      };
-      content: {
-        "application/json": components["schemas"]["Error"];
-      };
-    };
-    /** @description Rate limit exceeded */
-    RateLimited: {
-      headers: {
-        /** @description Seconds until the next request is allowed */
-        "Retry-After"?: number;
-        "X-RateLimit-Limit"?: number;
-        "X-RateLimit-Remaining"?: number;
-        [name: string]: unknown;
-      };
-      content: {
-        "application/json": components["schemas"]["Error"];
-      };
-    };
-  };
-  parameters: {
-    workspaceID: string;
-    channelID: string;
-    postID: string;
-  };
-  requestBodies: never;
-  headers: never;
-  pathItems: never;
+    requestBodies: never;
+    headers: never;
+    pathItems: never;
 }
 export type $defs = Record<string, never>;
 export type operations = Record<string, never>;

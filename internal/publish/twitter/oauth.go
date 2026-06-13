@@ -32,11 +32,14 @@ type tokenResponse struct {
 }
 
 // AuthURL builds the X authorize URL with PKCE S256 and CSRF state.
-func (a *Adapter) AuthURL(state, codeChallenge string) string {
+func (a *Adapter) AuthURL(state, codeChallenge, redirectURI string) string {
+	if redirectURI == "" {
+		redirectURI = a.cfg.RedirectURI
+	}
 	v := url.Values{}
 	v.Set("response_type", "code")
 	v.Set("client_id", a.cfg.ClientID)
-	v.Set("redirect_uri", a.cfg.RedirectURI)
+	v.Set("redirect_uri", redirectURI)
 	v.Set("scope", oauthScopes)
 	v.Set("state", state)
 	v.Set("code_challenge", codeChallenge)
@@ -45,11 +48,14 @@ func (a *Adapter) AuthURL(state, codeChallenge string) string {
 }
 
 // ExchangeCode swaps an authorization code (+ PKCE verifier) for tokens.
-func (a *Adapter) ExchangeCode(ctx context.Context, code, codeVerifier string) (*channel.Token, error) {
+func (a *Adapter) ExchangeCode(ctx context.Context, code, codeVerifier, redirectURI string) (*channel.Token, error) {
+	if redirectURI == "" {
+		redirectURI = a.cfg.RedirectURI
+	}
 	form := url.Values{}
 	form.Set("grant_type", "authorization_code")
 	form.Set("code", code)
-	form.Set("redirect_uri", a.cfg.RedirectURI)
+	form.Set("redirect_uri", redirectURI)
 	form.Set("code_verifier", codeVerifier)
 	form.Set("client_id", a.cfg.ClientID)
 	return a.tokenRequest(ctx, form)

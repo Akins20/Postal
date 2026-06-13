@@ -792,6 +792,11 @@ export interface paths {
                     "application/json": {
                         /** @example twitter */
                         platform: string;
+                        /**
+                         * @description Optional allowlisted OAuth callback override. Web omits it (server default); native clients send their deep link (e.g. postal://oauth-callback).
+                         * @example postal://oauth-callback
+                         */
+                        redirect_uri?: string;
                     };
                 };
             };
