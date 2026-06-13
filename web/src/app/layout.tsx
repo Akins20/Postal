@@ -24,7 +24,7 @@ const description =
 export const metadata: Metadata = {
   metadataBase: new URL(siteURL),
   title: {
-    default: "Postal — Free social-media scheduling & publishing",
+    default: "Postal: Free social-media scheduling & publishing",
     template: "%s · Postal",
   },
   description,
@@ -48,14 +48,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "Postal",
-    title: "Postal — Free social-media scheduling & publishing",
+    title: "Postal: Free social-media scheduling & publishing",
     description,
     url: "/",
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Postal — Free social-media scheduling & publishing",
+    title: "Postal: Free social-media scheduling & publishing",
     description,
   },
   robots: {

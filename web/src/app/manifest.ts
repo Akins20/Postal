@@ -5,7 +5,7 @@ import type { MetadataRoute } from "next";
 // dock and the OpenGraph card.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Postal — Free social-media scheduling & publishing",
+    name: "Postal: Free social-media scheduling & publishing",
     short_name: "Postal",
     description:
       "Free, no-paywall social-media scheduling and publishing. Compose once, schedule, and publish to X, Instagram, and TikTok.",

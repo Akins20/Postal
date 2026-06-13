@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /*
- * Postal design system — macOS design language (FRONTEND_PLAN §5/§5.1).
+ * Postal design system - macOS design language (FRONTEND_PLAN §5/§5.1).
  * Semantic tokens in :root/.dark drive every utility via @theme; no ad-hoc
  * color values in components. Dark mode is class-based (next-themes sets
  * .dark on <html> before first paint).
@@ -32,7 +32,7 @@
   --ring: oklch(0.57 0.2 257 / 0.65);
 
   /* Vibrancy materials: frosted but firmly readable. Dialogs are nearly
-     opaque — content behind a modal should be felt, not read. */
+     opaque - content behind a modal should be felt, not read. */
   --vibrancy-panel: oklch(1 0 0 / 0.86);
   --vibrancy-sidebar: oklch(0.98 0.004 255 / 0.82);
   --vibrancy-dock: oklch(0.99 0.003 255 / 0.78);
