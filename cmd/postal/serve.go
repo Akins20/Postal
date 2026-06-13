@@ -177,6 +177,16 @@ func (w *wiring) buildMailer() (auth.Mailer, error) {
 // encryption key (to seal tokens) and the auth/workspace stack; absent either,
 // they are disabled.
 func (w *wiring) wireChannels(deps *server.Deps) {
+	// The X Account Activity webhook only needs the consumer secret; wire it
+	// independently of the token vault so it works even when channels are
+	// otherwise disabled.
+	if w.cfg.Twitter.WebhookSecret != "" {
+		deps.TwitterWebhook = channel.NewTwitterWebhookHandler(w.cfg.Twitter.WebhookSecret, w.log)
+		w.log.Info("X webhook enabled", slog.String("path", "/api/v1/webhooks/twitter"))
+	} else {
+		w.log.Warn("POSTAL_X_WEBHOOK_SECRET not set; X webhook is disabled")
+	}
+
 	if w.enc == nil {
 		w.log.Warn("POSTAL_MASTER_KEY not set; channel/composer disabled (token vault unavailable)")
 		return

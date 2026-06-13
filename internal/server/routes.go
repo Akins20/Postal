@@ -47,6 +47,12 @@ func (s *Server) mountAPI(deps Deps) {
 			deps.BillingHandler.RegisterPublic(r)
 		}
 
+		// X/Twitter Account Activity webhook (CRC challenge + signed events).
+		// Public: authenticated by the request signature, not a session.
+		if deps.TwitterWebhook != nil {
+			deps.TwitterWebhook.RegisterPublic(r)
+		}
+
 		// Authenticated API: every route requires a valid access token, and
 		// state-changing cookie-authenticated requests are CSRF-protected.
 		if deps.Tokens != nil {

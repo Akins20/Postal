@@ -50,6 +50,7 @@ type Deps struct {
 	AnalyticsHandler   *analytics.Handler
 	BillingHandler     *billing.Handler
 	IntegrationHandler *integration.Handler
+	TwitterWebhook     *channel.TwitterWebhookHandler
 	RequestTimeout     time.Duration
 	// Production gates HSTS (only sent over the assumed-TLS production edge).
 	Production bool

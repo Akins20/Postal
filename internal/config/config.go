@@ -113,6 +113,10 @@ type Twitter struct {
 	RedirectURI  string
 	APIBaseURL   string
 	AuthBaseURL  string
+	// WebhookSecret is the app's consumer secret (API Key Secret), used to answer
+	// the Account Activity CRC challenge and verify event signatures. When empty
+	// the X webhook endpoint is not registered.
+	WebhookSecret string
 }
 
 // Instagram holds the Meta app credentials for the Instagram adapter. When
@@ -253,11 +257,12 @@ func Load() (Config, error) {
 			AllowedRedirects: getStringSlice("OAUTH_ALLOWED_REDIRECTS"),
 		},
 		Twitter: Twitter{
-			ClientID:     getString("X_CLIENT_ID", ""),
-			ClientSecret: getString("X_CLIENT_SECRET", ""),
-			RedirectURI:  getString("X_REDIRECT_URI", ""),
-			APIBaseURL:   getString("X_API_BASE_URL", ""),
-			AuthBaseURL:  getString("X_AUTH_BASE_URL", ""),
+			ClientID:      getString("X_CLIENT_ID", ""),
+			ClientSecret:  getString("X_CLIENT_SECRET", ""),
+			RedirectURI:   getString("X_REDIRECT_URI", ""),
+			APIBaseURL:    getString("X_API_BASE_URL", ""),
+			AuthBaseURL:   getString("X_AUTH_BASE_URL", ""),
+			WebhookSecret: getString("X_WEBHOOK_SECRET", ""),
 		},
 		Instagram: Instagram{
 			ClientID:     getString("IG_CLIENT_ID", ""),
