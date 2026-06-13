@@ -10,6 +10,8 @@ import {
   type AssignableRole,
   type Member,
 } from "@/data/members";
+import { ActivityFeed } from "@/features/members/activity-feed";
+import { MemberChannelAccess } from "@/features/members/member-channel-access";
 import { useActiveWorkspace } from "@/features/workspace/use-active-workspace";
 import type { NormalizedError } from "@/lib/api-error";
 import { radius, space, type } from "@/lib/tokens";
@@ -25,23 +27,40 @@ function roleTone(role: string): "accent" | "success" | "neutral" {
   return "neutral";
 }
 
-function MemberRow({ member, isYou }: { member: Member; isYou: boolean }) {
+function MemberRow({
+  workspaceId,
+  member,
+  isYou,
+  canManage,
+}: {
+  workspaceId: string;
+  member: Member;
+  isYou: boolean;
+  canManage: boolean;
+}) {
   const { palette } = usePalette();
   return (
-    <View style={[styles.row, { borderBottomColor: palette.separator }]}>
-      <View style={[styles.avatar, { backgroundColor: palette.accent }]}>
-        <Text style={styles.avatarText}>{member.role.charAt(0).toUpperCase()}</Text>
+    <View style={[styles.memberWrap, { borderBottomColor: palette.separator }]}>
+      <View style={styles.row}>
+        <View style={[styles.avatar, { backgroundColor: palette.accent }]}>
+          <Text style={styles.avatarText}>{member.role.charAt(0).toUpperCase()}</Text>
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={[styles.name, { color: palette.fg }]} numberOfLines={1}>
+            {member.user_id.slice(0, 8)}
+            {isYou ? " (you)" : ""}
+          </Text>
+          <Text style={[styles.sub, { color: palette.fgSubtle }]}>
+            {member.permissions?.length ?? 0} capabilities
+          </Text>
+        </View>
+        <StatusPill tone={roleTone(member.role)}>
+          {ROLE_LABELS[member.role] ?? member.role}
+        </StatusPill>
       </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={[styles.name, { color: palette.fg }]} numberOfLines={1}>
-          {member.user_id.slice(0, 8)}
-          {isYou ? " (you)" : ""}
-        </Text>
-        <Text style={[styles.sub, { color: palette.fgSubtle }]}>
-          {member.permissions?.length ?? 0} capabilities
-        </Text>
-      </View>
-      <StatusPill tone={roleTone(member.role)}>{ROLE_LABELS[member.role] ?? member.role}</StatusPill>
+      {canManage && member.role !== "owner" && (
+        <MemberChannelAccess workspaceId={workspaceId} userId={member.user_id} />
+      )}
     </View>
   );
 }
@@ -85,7 +104,13 @@ export default function MembersScreen() {
           </Text>
         )}
         {members?.map((m) => (
-          <MemberRow key={m.user_id} member={m} isYou={m.user_id === me?.id} />
+          <MemberRow
+            key={m.user_id}
+            workspaceId={active?.id ?? ""}
+            member={m}
+            isYou={m.user_id === me?.id}
+            canManage={canManage}
+          />
         ))}
       </Panel>
 
@@ -140,6 +165,8 @@ export default function MembersScreen() {
           </Button>
         </Panel>
       )}
+
+      {canManage && active && <ActivityFeed workspaceId={active.id} />}
     </ScrollView>
   );
 }
@@ -147,12 +174,11 @@ export default function MembersScreen() {
 const styles = StyleSheet.create({
   content: { padding: space.lg, gap: space.lg },
   cardTitle: { fontSize: type.body, fontWeight: "600", marginBottom: space.sm },
+  memberWrap: { borderBottomWidth: StyleSheet.hairlineWidth, paddingVertical: space.sm },
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: space.sm,
-    paddingVertical: space.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   avatar: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
   avatarText: { color: "#fff", fontSize: type.body, fontWeight: "700" },
