@@ -6,7 +6,12 @@ const expoConfig = require("eslint-config-expo/flat");
 
 module.exports = defineConfig([
   expoConfig,
-  { ignores: ["node_modules/*", ".expo/*", "src/api/schema.d.ts"] },
+  { ignores: ["node_modules/*", ".expo/*", "dist/*", "src/api/schema.d.ts"] },
+  {
+    // Test files use require() inside jest.mock factories (hoisting rules).
+    files: ["**/__tests__/**", "src/test/**"],
+    rules: { "@typescript-eslint/no-require-imports": "off", "no-console": "off" },
+  },
   {
     files: ["src/ui/**/*.{ts,tsx}"],
     rules: {

@@ -1,7 +1,9 @@
-import { Tabs } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
 import { BarChart3, Calendar, Home, Radio, SquarePen } from "lucide-react-native";
 
+import { useMe } from "@/data/auth";
 import { usePalette } from "@/lib/use-palette";
+import { BrandSplash } from "@/ui/brand-splash";
 
 /**
  * The dock's mobile counterpart: a five-item bottom tab bar (Home, Compose,
@@ -10,6 +12,11 @@ import { usePalette } from "@/lib/use-palette";
  */
 export default function TabLayout() {
   const { palette } = usePalette();
+  const { data: user, isPending } = useMe();
+
+  // Auth guard: bounce signed-out users to login.
+  if (isPending) return <BrandSplash />;
+  if (!user) return <Redirect href="/login" />;
 
   return (
     <Tabs

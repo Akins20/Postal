@@ -1,35 +1,45 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
-import { useState } from "react";
 import { StatusBar } from "expo-status-bar";
+import { useState } from "react";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { useBootstrap } from "@/features/auth/use-bootstrap";
 import { usePalette } from "@/lib/use-palette";
+import { BrandSplash } from "@/ui/brand-splash";
 
 /**
- * Root layout: query client, themed status bar, and the navigation stack.
- * Auth gating (redirect to login) arrives in 15.1.
+ * Root layout: query client + safe-area, then a session-bootstrap gate (try a
+ * Keystore refresh before first paint) wrapping the two route groups -
+ * (auth) public, (tabs) signed-in. Each group's layout handles its own
+ * redirect.
  */
 export default function RootLayout() {
-  // One client per app instance; avoids re-creation on re-render.
   const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
-      }),
+    () => new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 30_000 } } }),
   );
-  const { palette, scheme } = usePalette();
-
   return (
-    <QueryClientProvider client={queryClient}>
+    <SafeAreaProvider>
+      <QueryClientProvider client={queryClient}>
+        <SessionGate />
+      </QueryClientProvider>
+    </SafeAreaProvider>
+  );
+}
+
+function SessionGate() {
+  const ready = useBootstrap();
+  const { palette, scheme } = usePalette();
+  if (!ready) return <BrandSplash />;
+  return (
+    <>
       <StatusBar style={scheme === "dark" ? "light" : "dark"} />
       <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: palette.surface },
-        }}
+        screenOptions={{ headerShown: false, contentStyle: { backgroundColor: palette.surface } }}
       >
+        <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
       </Stack>
-    </QueryClientProvider>
+    </>
   );
 }

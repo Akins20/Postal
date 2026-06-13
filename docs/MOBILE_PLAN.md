@@ -112,9 +112,23 @@ Layer rules enforced with the same eslint `no-restricted-imports` boundaries.
   React 19.2 is too new to bet on NativeWind; same token names, swappable).
   Gotcha: RNTL v14 render() is async - always `await render(...)`.
   Emulator render check deferred to 15.1 (no AVD on this machine yet).
-- **15.1 Auth & session**: login/signup/reset screens (same zod schemas),
-  Keystore-backed session store, refresh interceptor, AuthGuard routing.
-  DoD: full auth loop against the local stack from the emulator.
+- [x] **15.1 Auth & session** + branding DONE 2026-06-13: generated the
+  Postal brand (paper-plane "publish" mark on the accent-blue gradient) -
+  app icon, Android adaptive icon (foreground/background/monochrome),
+  splash glyph, mobile + web favicons, web app-router icon/apple-icon, and a
+  vector `<Logo>` (react-native-svg) sharing the same shape; app.json renamed
+  to Postal (package app.postal.mobile, brand splash/adaptive colors); purged
+  the template's leftover assets. Auth: api-error normalizer, zod schemas,
+  Keystore session store (access in memory, refresh in expo-secure-store),
+  refresh-on-401 single-flight interceptor in the Bearer client, auth data
+  hooks (login/signup-then-login/logout/me/reset), login/signup/reset screens
+  with the AuthScaffold lockup, root bootstrap gate + per-group AuthGuard
+  redirects, and a real signed-in Home (account + verify reminder + sign out).
+  15 tests green (auth hooks save/clear the Keystore session; login screen
+  validation/submit/error); typecheck + lint clean; `expo export --platform
+  android` bundles clean. _Gotcha: RNTL v14 made render, renderHook AND
+  fireEvent all async - await every one._ Emulator click-through still owed
+  (no AVD on this machine).
 - **15.2 Workspaces & channels**: workspace switcher, channels list/connect
   (Custom Tabs + deep link)/disconnect with the platform caveats. DoD:
   connect X + IG + TikTok against the simulators from the emulator.
