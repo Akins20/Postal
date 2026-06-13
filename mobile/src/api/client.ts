@@ -17,9 +17,14 @@ import type { paths } from "./schema";
  * same shape as the web's apiFetch.
  */
 
-// Dev default = the host loopback as seen from the Android emulator (10.0.2.2
-// is the dev machine running `postal serve`). Real builds set the env var.
-export const API_ORIGIN = process.env.EXPO_PUBLIC_API_ORIGIN ?? "http://10.0.2.2:8080";
+// Resolution order: explicit EXPO_PUBLIC_API_ORIGIN wins; otherwise dev builds
+// use the host loopback as seen from the Android emulator (10.0.2.2 = the dev
+// machine running `postal serve`), and release builds use the live production
+// API. Set EXPO_PUBLIC_API_ORIGIN to override (e.g. staging).
+export const PRODUCTION_API_ORIGIN = "https://api.postal.lettstv.com";
+export const API_ORIGIN =
+  process.env.EXPO_PUBLIC_API_ORIGIN ??
+  (__DEV__ ? "http://10.0.2.2:8080" : PRODUCTION_API_ORIGIN);
 
 // Auth endpoints must NOT trigger refresh-on-401 (they would loop).
 const AUTH_PATHS = ["/auth/refresh", "/auth/login", "/auth/logout"];

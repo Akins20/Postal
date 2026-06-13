@@ -16,11 +16,18 @@ const securityHeaders = [
 ];
 
 /**
- * Dev: proxy `/api/*` to the Go backend so the browser sees one origin and the
+ * Proxy `/api/*` to the Go backend so the browser sees one origin and the
  * httpOnly session cookies + CSRF "just work" with no CORS (FRONTEND_PLAN §4).
- * In production the web app and API are deployed same-site, so no rewrite.
+ * The production API lives on a separate subdomain (api.postal.lettstv.com), so
+ * we keep proxying server-side in production too — cookies are scoped to
+ * `.postal.lettstv.com`, so they ride along whatever subdomain the web app is
+ * served from. Override the target with API_PROXY_TARGET.
  */
-const apiTarget = process.env.API_PROXY_TARGET ?? "http://localhost:8080";
+const apiTarget =
+  process.env.API_PROXY_TARGET ??
+  (process.env.NODE_ENV === "production"
+    ? "https://api.postal.lettstv.com"
+    : "http://localhost:8080");
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -34,7 +41,6 @@ const nextConfig: NextConfig = {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
   async rewrites() {
-    if (process.env.NODE_ENV === "production") return [];
     return [{ source: "/api/:path*", destination: `${apiTarget}/api/:path*` }];
   },
 };
