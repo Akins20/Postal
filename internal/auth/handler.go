@@ -93,6 +93,7 @@ func (h *Handler) Routes() chi.Router {
 	r.With(h.rateLimit("rl:auth:refresh", refreshIPRule), csrf).Post("/refresh", web.Handler(h.log, h.refresh))
 	r.With(h.rateLimit("rl:auth:logout", refreshIPRule), csrf).Post("/logout", web.Handler(h.log, h.logout))
 	r.With(h.rateLimit("rl:auth:verify", tokenIPRule)).Post("/verify-email", web.Handler(h.log, h.verifyEmail))
+	r.With(h.rateLimit("rl:auth:verify-resend", resetIPRule)).Post("/verify-email/resend", web.Handler(h.log, h.resendVerification))
 	r.With(h.rateLimit("rl:auth:reset", resetIPRule)).Post("/password-reset/request", web.Handler(h.log, h.requestReset))
 	r.With(h.rateLimit("rl:auth:reset-confirm", tokenIPRule)).Post("/password-reset/confirm", web.Handler(h.log, h.confirmReset))
 

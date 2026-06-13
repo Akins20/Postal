@@ -38,6 +38,43 @@ func (s *Service) VerifyEmail(ctx context.Context, token string) error {
 	return nil
 }
 
+// ResendEmailVerification re-issues a verification token for an unverified
+// account and emails it. Like RequestPasswordReset it always reports success
+// (no account enumeration); it is a no-op for unknown or already-verified
+// addresses.
+func (s *Service) ResendEmailVerification(ctx context.Context, email, ip string) error {
+	email = normalizeEmail(email)
+
+	user, err := s.pool.Queries().GetUserByEmail(ctx, email)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil // do not disclose non-existence
+		}
+		return apperr.Internal(err)
+	}
+	if user.EmailVerified {
+		return nil // already verified; nothing to send
+	}
+
+	token, err := newOpaqueToken()
+	if err != nil {
+		return apperr.Internal(err)
+	}
+	if _, err := s.pool.Queries().CreateEmailVerificationToken(ctx, sqlc.CreateEmailVerificationTokenParams{
+		UserID:    user.ID,
+		TokenHash: hashToken(token),
+		ExpiresAt: tsFromTime(s.clock().Add(emailVerifyTTL)),
+	}); err != nil {
+		return apperr.Internal(err)
+	}
+
+	if mailErr := s.mailer.SendEmailVerification(ctx, email, token); mailErr != nil {
+		_ = mailErr // mail failures are non-fatal; the user can retry
+	}
+	s.recordAudit(ctx, &user.ID, "user.verification_resent", ip, nil)
+	return nil
+}
+
 // RequestPasswordReset issues a reset token for the address if it exists. It
 // always reports success to avoid revealing whether an account exists.
 func (s *Service) RequestPasswordReset(ctx context.Context, email, ip string) error {

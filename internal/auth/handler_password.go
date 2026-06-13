@@ -47,6 +47,21 @@ func (h *Handler) requestReset(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func (h *Handler) resendVerification(w http.ResponseWriter, r *http.Request) error {
+	var req resetRequestRequest // reuses the {email} shape
+	if err := web.DecodeJSON(w, r, &req); err != nil {
+		return err
+	}
+	// Always reports success unless an internal error occurs (no enumeration).
+	if err := h.svc.ResendEmailVerification(r.Context(), req.Email, ratelimit.ClientIPKey(r)); err != nil {
+		return err
+	}
+	web.Respond(w, http.StatusOK, map[string]string{
+		"message": "if that email needs verification, a new link has been sent",
+	})
+	return nil
+}
+
 func (h *Handler) confirmReset(w http.ResponseWriter, r *http.Request) error {
 	var req resetConfirmRequest
 	if err := web.DecodeJSON(w, r, &req); err != nil {

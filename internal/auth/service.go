@@ -152,6 +152,11 @@ func (s *Service) Login(ctx context.Context, email, password, ip string) (LoginR
 	if user.Status != "active" {
 		return LoginResult{}, apperr.Forbidden("account_inactive", "this account is not active")
 	}
+	// Email must be verified before a session is issued. The dedicated code lets
+	// clients offer a "resend verification" affordance instead of a dead end.
+	if !user.EmailVerified {
+		return LoginResult{}, apperr.Forbidden("email_not_verified", "please verify your email address before signing in")
+	}
 
 	access, err := s.tokens.Issue(user.ID)
 	if err != nil {
