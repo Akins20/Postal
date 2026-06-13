@@ -44,6 +44,7 @@ issues:
   # npm package) — not our code.
   exclude-dirs:
     - web
+    - mobile
   exclude-rules:
     # Test files may use weaker error handling and higher complexity for table tests.
     - path: _test\.go

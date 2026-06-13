@@ -43,6 +43,8 @@ type Service struct {
 	authz    Authorizer
 	audit    security.Recorder
 	clock    func() time.Time
+	// allowedRedirects bounds client-supplied OAuth redirect_uris (anti-open-redirect).
+	allowedRedirects map[string]struct{}
 }
 
 // NewService builds a channel Service. clock defaults to time.Now.
@@ -77,11 +79,30 @@ type View struct {
 // StartConnect begins an OAuth flow: it generates PKCE + CSRF state, stores the
 // flow context, and returns the provider authorize URL. The caller's
 // manage_channels capability is enforced by route middleware.
-func (s *Service) StartConnect(ctx context.Context, workspaceID, userID uuid.UUID, platform string) (string, error) {
+// AllowRedirects sets the allowlist of client-supplied OAuth redirect URIs
+// (e.g. the web callback page and a native deep link). Clients may only
+// override the adapter default with a URI in this set. Returns s for chaining.
+func (s *Service) AllowRedirects(uris []string) *Service {
+	s.allowedRedirects = make(map[string]struct{}, len(uris))
+	for _, u := range uris {
+		if u != "" {
+			s.allowedRedirects[u] = struct{}{}
+		}
+	}
+	return s
+}
+
+func (s *Service) StartConnect(ctx context.Context, workspaceID, userID uuid.UUID, platform, redirectURI string) (string, error) {
 	provider, ok := s.registry.Get(platform)
 	if !ok {
 		return "", apperr.Validation("unsupported_platform", "unsupported platform: "+platform).
 			WithField("platform", "unsupported")
+	}
+	if redirectURI != "" {
+		if _, ok := s.allowedRedirects[redirectURI]; !ok {
+			return "", apperr.Validation("invalid_redirect", "redirect_uri is not allowed").
+				WithField("redirect_uri", "not allowed")
+		}
 	}
 	verifier, challenge, err := newPKCE()
 	if err != nil {
@@ -92,11 +113,12 @@ func (s *Service) StartConnect(ctx context.Context, workspaceID, userID uuid.UUI
 		UserID:       userID,
 		Platform:     platform,
 		CodeVerifier: verifier,
+		RedirectURI:  redirectURI,
 	})
 	if err != nil {
 		return "", apperr.Internal(err)
 	}
-	return provider.AuthURL(state, challenge), nil
+	return provider.AuthURL(state, challenge, redirectURI), nil
 }
 
 // CompleteConnect finishes an OAuth flow: it validates the single-use state,
@@ -119,7 +141,7 @@ func (s *Service) CompleteConnect(ctx context.Context, callerUserID uuid.UUID, s
 		return View{}, apperr.Validation("unsupported_platform", "unsupported platform")
 	}
 
-	token, err := provider.ExchangeCode(ctx, code, st.CodeVerifier)
+	token, err := provider.ExchangeCode(ctx, code, st.CodeVerifier, st.RedirectURI)
 	if err != nil {
 		return View{}, apperr.Validation("oauth_exchange_failed", "could not complete authorization with the provider")
 	}

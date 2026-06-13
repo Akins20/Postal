@@ -117,10 +117,13 @@ func (a *Adapter) Validate(v publish.PostVariant) error {
 
 // AuthURL implements channel.OAuthProvider. Meta's dialog has no PKCE; the
 // challenge parameter is accepted and ignored.
-func (a *Adapter) AuthURL(state, _ string) string {
+func (a *Adapter) AuthURL(state, _, redirectURI string) string {
+	if redirectURI == "" {
+		redirectURI = a.cfg.RedirectURI
+	}
 	v := url.Values{}
 	v.Set("client_id", a.cfg.ClientID)
-	v.Set("redirect_uri", a.cfg.RedirectURI)
+	v.Set("redirect_uri", redirectURI)
 	v.Set("state", state)
 	v.Set("scope", oauthScopes)
 	v.Set("response_type", "code")
@@ -130,11 +133,14 @@ func (a *Adapter) AuthURL(state, _ string) string {
 // ExchangeCode implements channel.OAuthProvider: code -> short-lived token ->
 // long-lived (~60 day) token. Meta has no refresh grant; the long-lived token
 // itself is stored as the "refresh token" and re-exchanged before expiry.
-func (a *Adapter) ExchangeCode(ctx context.Context, code, _ string) (*channel.Token, error) {
+func (a *Adapter) ExchangeCode(ctx context.Context, code, _, redirectURI string) (*channel.Token, error) {
+	if redirectURI == "" {
+		redirectURI = a.cfg.RedirectURI
+	}
 	v := url.Values{}
 	v.Set("client_id", a.cfg.ClientID)
 	v.Set("client_secret", a.cfg.ClientSecret)
-	v.Set("redirect_uri", a.cfg.RedirectURI)
+	v.Set("redirect_uri", redirectURI)
 	v.Set("code", code)
 	var short struct {
 		AccessToken string `json:"access_token"`

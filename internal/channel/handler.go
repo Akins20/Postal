@@ -48,6 +48,9 @@ func (h *Handler) RegisterCallback(r chi.Router) {
 
 type connectRequest struct {
 	Platform string `json:"platform"`
+	// RedirectURI optionally overrides the server's default OAuth callback with
+	// an allowlisted one (native clients send their deep link). Empty = web default.
+	RedirectURI string `json:"redirect_uri"`
 }
 
 func (h *Handler) list(w http.ResponseWriter, r *http.Request) error {
@@ -76,7 +79,7 @@ func (h *Handler) connect(w http.ResponseWriter, r *http.Request) error {
 	if err := web.DecodeJSON(w, r, &req); err != nil {
 		return err
 	}
-	authURL, err := h.svc.StartConnect(r.Context(), workspaceID, userID, req.Platform)
+	authURL, err := h.svc.StartConnect(r.Context(), workspaceID, userID, req.Platform, req.RedirectURI)
 	if err != nil {
 		return err
 	}

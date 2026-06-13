@@ -39,9 +39,12 @@ type OAuthProvider interface {
 	// Platform returns the provider's platform key (e.g. "twitter").
 	Platform() string
 	// AuthURL builds the provider authorize URL with PKCE S256 and CSRF state.
-	AuthURL(state, codeChallenge string) string
+	// redirectURI overrides the adapter's configured callback (empty = default);
+	// it lets web and native clients use distinct, allowlisted redirects.
+	AuthURL(state, codeChallenge, redirectURI string) string
 	// ExchangeCode swaps an authorization code (+ PKCE verifier) for tokens.
-	ExchangeCode(ctx context.Context, code, codeVerifier string) (*Token, error)
+	// redirectURI must match the one used in AuthURL (empty = adapter default).
+	ExchangeCode(ctx context.Context, code, codeVerifier, redirectURI string) (*Token, error)
 	// RefreshToken obtains a fresh token set from a refresh token.
 	RefreshToken(ctx context.Context, refreshToken string) (*Token, error)
 	// Account resolves the connected account's identity from an access token.

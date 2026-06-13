@@ -24,10 +24,10 @@ import (
 type fakeProvider struct{}
 
 func (fakeProvider) Platform() string { return "fake" }
-func (fakeProvider) AuthURL(state, challenge string) string {
+func (fakeProvider) AuthURL(state, challenge, _ string) string {
 	return "https://fake.test/authorize?state=" + url.QueryEscape(state) + "&code_challenge=" + url.QueryEscape(challenge)
 }
-func (fakeProvider) ExchangeCode(_ context.Context, code, _ string) (*channel.Token, error) {
+func (fakeProvider) ExchangeCode(_ context.Context, code, _, _ string) (*channel.Token, error) {
 	return &channel.Token{AccessToken: "access-" + code, RefreshToken: "refresh-" + code, Scopes: []string{"read", "write"}, ExpiresAt: time.Now().Add(time.Hour)}, nil
 }
 func (fakeProvider) RefreshToken(_ context.Context, _ string) (*channel.Token, error) {
@@ -94,7 +94,7 @@ func TestChannelOAuthRoundTrip_Integration(t *testing.T) {
 	svc := channel.NewService(pool, channel.NewRegistry(fakeProvider{}), enc, rdb, wsSvc, nil, nil)
 
 	// 1. StartConnect -> authorize URL carrying the state.
-	authURL, err := svc.StartConnect(ctx, wsID, userID, "fake")
+	authURL, err := svc.StartConnect(ctx, wsID, userID, "fake", "")
 	if err != nil {
 		t.Fatalf("StartConnect: %v", err)
 	}
@@ -168,7 +168,7 @@ func TestCompleteConnect_RejectsForeignUser_Integration(t *testing.T) {
 	wsSvc := workspace.NewService(pool, nil, nil)
 	svc := channel.NewService(pool, channel.NewRegistry(fakeProvider{}), enc, rdb, wsSvc, nil, nil)
 
-	authURL, err := svc.StartConnect(ctx, wsID, userID, "fake")
+	authURL, err := svc.StartConnect(ctx, wsID, userID, "fake", "")
 	if err != nil {
 		t.Fatalf("StartConnect: %v", err)
 	}
@@ -187,7 +187,7 @@ func TestStartConnect_UnsupportedPlatform_Integration(t *testing.T) {
 	wsID, userID := seedOwner(t, pool)
 	svc := channel.NewService(pool, channel.NewRegistry(fakeProvider{}), enc, rdb, workspace.NewService(pool, nil, nil), nil, nil)
 
-	if _, err := svc.StartConnect(ctx, wsID, userID, "myspace"); err == nil {
+	if _, err := svc.StartConnect(ctx, wsID, userID, "myspace", ""); err == nil {
 		t.Error("unsupported platform should error")
 	}
 }

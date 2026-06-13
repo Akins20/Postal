@@ -28,14 +28,14 @@ func newAdapter(t *testing.T) (*tiktok.Adapter, *tiktoksim.Server) {
 
 func connect(t *testing.T, a *tiktok.Adapter) channel.Token {
 	t.Helper()
-	tok, err := a.ExchangeCode(context.Background(), "ttcode-test", "verifier")
+	tok, err := a.ExchangeCode(context.Background(), "ttcode-test", "verifier", "")
 	require.NoError(t, err)
 	return *tok
 }
 
 func TestOAuthAndIdentity(t *testing.T) {
 	a, _ := newAdapter(t)
-	auth := a.AuthURL("state-1", "challenge")
+	auth := a.AuthURL("state-1", "challenge", "")
 	assert.Contains(t, auth, "/v2/auth/authorize/?")
 	assert.Contains(t, auth, "client_key=tt-key")
 	assert.Contains(t, auth, "code_challenge=challenge")

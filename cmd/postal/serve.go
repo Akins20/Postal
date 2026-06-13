@@ -172,7 +172,8 @@ func (w *wiring) wireChannels(deps *server.Deps) {
 	}
 
 	adapters := buildAdapters(w.cfg, w.log)
-	channelSvc := channel.NewService(w.pool, channel.NewRegistry(toOAuthProviders(adapters)...), w.enc, w.cache, w.wsSvc, w.auditor, nil)
+	channelSvc := channel.NewService(w.pool, channel.NewRegistry(toOAuthProviders(adapters)...), w.enc, w.cache, w.wsSvc, w.auditor, nil).
+		AllowRedirects(w.cfg.OAuth.AllowedRedirects)
 	deps.ChannelHandler = channel.NewHandler(channelSvc, w.wsSvc, w.log)
 
 	// Keep media interfaces nil (not a typed-nil) when storage is disabled, so the

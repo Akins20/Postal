@@ -28,14 +28,14 @@ func newAdapter(t *testing.T) (*instagram.Adapter, *instagramsim.Server) {
 
 func connect(t *testing.T, a *instagram.Adapter) channel.Token {
 	t.Helper()
-	tok, err := a.ExchangeCode(context.Background(), "igcode-test", "")
+	tok, err := a.ExchangeCode(context.Background(), "igcode-test", "", "")
 	require.NoError(t, err)
 	return *tok
 }
 
 func TestOAuthAndIdentity(t *testing.T) {
 	a, _ := newAdapter(t)
-	auth := a.AuthURL("state-1", "challenge")
+	auth := a.AuthURL("state-1", "challenge", "")
 	assert.Contains(t, auth, "/v21.0/dialog/oauth?")
 	assert.Contains(t, auth, "state=state-1")
 
