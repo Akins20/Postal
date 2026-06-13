@@ -11,12 +11,16 @@ import { Button } from "@/ui/primitives/button";
 import { FormField } from "@/ui/primitives/form-field";
 
 import { applyServerErrors } from "./form-errors";
+import { ResendVerification } from "./resend-verification";
 import { loginSchema, type LoginValues } from "./schemas";
 
 export function LoginForm() {
   const router = useRouter();
   const login = useLogin();
   const [formError, setFormError] = useState<string | null>(null);
+  // When set, the account exists but its email is unverified: show a resend
+  // affordance instead of a dead-end error.
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
@@ -30,11 +34,31 @@ export function LoginForm() {
       await login.mutateAsync(values);
       router.replace("/");
     } catch (e) {
-      if (!applyServerErrors(e as NormalizedError, setError)) {
-        setFormError((e as NormalizedError).message);
+      const err = e as NormalizedError;
+      if (err.code === "email_not_verified") {
+        setUnverifiedEmail(values.email);
+        return;
+      }
+      if (!applyServerErrors(err, setError)) {
+        setFormError(err.message);
       }
     }
   });
+
+  if (unverifiedEmail) {
+    return (
+      <div role="status" className="flex flex-col gap-4 text-center">
+        <p className="text-fg-muted text-sm">
+          Please verify your email before signing in. We sent a link to{" "}
+          <span className="text-fg font-medium">{unverifiedEmail}</span>.
+        </p>
+        <ResendVerification email={unverifiedEmail} />
+        <Button variant="secondary" onClick={() => setUnverifiedEmail(null)}>
+          Back to sign in
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">

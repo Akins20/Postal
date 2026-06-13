@@ -11,12 +11,14 @@ import { Button } from "@/ui/primitives/button";
 import { FormField } from "@/ui/primitives/form-field";
 
 import { applyServerErrors } from "./form-errors";
+import { ResendVerification } from "./resend-verification";
 import { signupSchema, type SignupValues } from "./schemas";
 
 export function SignupForm() {
   const signup = useSignup();
   const [formError, setFormError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [email, setEmail] = useState("");
   const {
     register,
     handleSubmit,
@@ -28,6 +30,7 @@ export function SignupForm() {
     setFormError(null);
     try {
       await signup.mutateAsync(values);
+      setEmail(values.email);
       setDone(true);
     } catch (e) {
       if (!applyServerErrors(e as NormalizedError, setError)) {
@@ -40,9 +43,12 @@ export function SignupForm() {
     return (
       <div role="status" className="flex flex-col gap-4 text-center">
         <p className="text-fg-muted text-sm">
-          Your account is ready. We&apos;ve sent a verification email - verify it, then sign in.
+          Check your inbox. We sent a verification link to{" "}
+          <span className="text-fg font-medium">{email}</span>. Open it to finish setting up your
+          account, then sign in.
         </p>
-        <Button asChild>
+        <ResendVerification email={email} />
+        <Button asChild variant="secondary">
           <Link href="/login">Go to sign in</Link>
         </Button>
       </div>

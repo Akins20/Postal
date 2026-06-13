@@ -80,6 +80,28 @@ export function useVerifyEmail() {
   });
 }
 
+/**
+ * Resend the account-verification email. Uses a direct fetch (the endpoint is
+ * not in the generated schema) through the same-origin /api proxy. The backend
+ * always reports success (no account enumeration) but rate-limits per IP, so a
+ * 429 surfaces as a normalized error for the cooldown UI.
+ */
+export function useResendVerification() {
+  return useMutation<void, NormalizedError, { email: string }>({
+    mutationFn: async (body) => {
+      const response = await fetch("/api/v1/auth/verify-email/resend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => undefined);
+        throw normalizeError(response.status, err);
+      }
+    },
+  });
+}
+
 export function useRequestReset() {
   return useMutation<void, NormalizedError, { email: string }>({
     mutationFn: async (body) => {
