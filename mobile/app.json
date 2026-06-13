@@ -45,6 +45,18 @@
       "typedRoutes": true,
       "reactCompiler": true
     },
-    "primaryColor": "#2f6bef"
+    "primaryColor": "#2f6bef",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "40835f7d-4fc6-45a4-9cff-881bb45abef3"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/40835f7d-4fc6-45a4-9cff-881bb45abef3"
+    }
   }
 }
