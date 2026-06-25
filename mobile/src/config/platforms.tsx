@@ -60,6 +60,18 @@ function FacebookGlyph({
   );
 }
 
+function TelegramGlyph({
+  size = 20,
+  color = "currentColor",
+  ...p
+}: GlyphProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill={color} {...p}>
+      <Path d="M21.94 4.66a1 1 0 0 0-1.06-.14L2.6 11.84c-.84.33-.82 1.53.03 1.84l4.34 1.57 1.7 5.16c.2.6.95.78 1.4.33l2.4-2.36 4.5 3.31c.5.37 1.22.1 1.36-.51L23 5.7a1 1 0 0 0-1.06-1.04ZM9.4 14.2l-.27 4.06-1.3-3.95 9.2-6.66-7.63 6.55Z" />
+    </Svg>
+  );
+}
+
 export interface PlatformInfo {
   key: string;
   label: string;
@@ -72,6 +84,8 @@ export interface PlatformInfo {
   requiresMedia?: boolean;
   /** One-line caveat shown on the connect row. */
   caveat?: string;
+  /** Connects with user-supplied credentials (a form), not an OAuth redirect. */
+  manual?: boolean;
 }
 
 export const PLATFORMS: PlatformInfo[] = [
@@ -99,6 +113,15 @@ export const PLATFORMS: PlatformInfo[] = [
     Glyph: FacebookGlyph,
     hint: "Publish text, links, photos, and videos to a Facebook Page.",
     caveat: "Posts to a Facebook Page you manage, not a personal profile.",
+  },
+  {
+    key: "telegram",
+    label: "Telegram",
+    Glyph: TelegramGlyph,
+    hint: "Publish to a Telegram channel or group via your own bot.",
+    manual: true,
+    caveat:
+      "Create a bot with @BotFather, add it as admin, then enter its token and chat id.",
   },
   {
     key: "tiktok",

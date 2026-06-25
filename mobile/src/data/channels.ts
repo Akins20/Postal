@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { api } from "@/api/client";
+import { api, API_ORIGIN, refreshSession } from "@/api/client";
 import type { components } from "@/api/schema";
 import { normalizeError, type NormalizedError } from "@/lib/api-error";
+import { getAccessToken } from "@/lib/secure-session";
 
 export type Channel = components["schemas"]["Channel"];
 export type ChannelStatus = Channel["status"];
@@ -12,7 +13,8 @@ export type ChannelStatus = Channel["status"];
 export const OAUTH_REDIRECT = "postal://oauth-callback";
 
 export const channelKeys = {
-  list: (workspaceId: string) => ["workspaces", workspaceId, "channels"] as const,
+  list: (workspaceId: string) =>
+    ["workspaces", workspaceId, "channels"] as const,
 };
 
 /** Connected social accounts for a workspace. */
@@ -46,7 +48,8 @@ export function useConnectChannel(workspaceId: string) {
           body: { platform, redirect_uri: OAUTH_REDIRECT },
         },
       );
-      if (!response.ok || !data?.data?.authorize_url) throw normalizeError(response.status, error);
+      if (!response.ok || !data?.data?.authorize_url)
+        throw normalizeError(response.status, error);
       return data.data.authorize_url;
     },
   });
@@ -55,15 +58,59 @@ export function useConnectChannel(workspaceId: string) {
 /** Complete the OAuth flow with the state+code from the redirect. */
 export function useCompleteOAuth() {
   const qc = useQueryClient();
-  return useMutation<Channel, NormalizedError, { state: string; code: string }>({
-    mutationFn: async (query) => {
-      const { data, error, response } = await api.GET("/api/v1/channels/oauth/callback", {
-        params: { query },
-      });
-      if (!response.ok || !data?.data) throw normalizeError(response.status, error);
-      return data.data as Channel;
+  return useMutation<Channel, NormalizedError, { state: string; code: string }>(
+    {
+      mutationFn: async (query) => {
+        const { data, error, response } = await api.GET(
+          "/api/v1/channels/oauth/callback",
+          {
+            params: { query },
+          },
+        );
+        if (!response.ok || !data?.data)
+          throw normalizeError(response.status, error);
+        return data.data as Channel;
+      },
+      onSuccess: () => qc.invalidateQueries({ queryKey: ["workspaces"] }),
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["workspaces"] }),
+  );
+}
+
+/**
+ * Connect a manual (non-OAuth) provider like Telegram from supplied credentials.
+ * Direct Bearer fetch (endpoint not in the schema) with refresh-on-401.
+ */
+export function useConnectManual(workspaceId: string) {
+  const qc = useQueryClient();
+  return useMutation<
+    void,
+    NormalizedError,
+    { platform: string; credentials: Record<string, string> }
+  >({
+    mutationFn: async (body) => {
+      const run = () => {
+        const token = getAccessToken();
+        return fetch(
+          `${API_ORIGIN}/api/v1/workspaces/${workspaceId}/channels/connect-manual`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify(body),
+          },
+        );
+      };
+      let res = await run();
+      if (res.status === 401 && (await refreshSession())) res = await run();
+      if (!res.ok) {
+        const err = await res.json().catch(() => undefined);
+        throw normalizeError(res.status, err);
+      }
+    },
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: channelKeys.list(workspaceId) }),
   });
 }
 
@@ -73,10 +120,13 @@ export function useDisconnectChannel(workspaceId: string) {
     mutationFn: async ({ channelId }) => {
       const { data, error, response } = await api.DELETE(
         "/api/v1/workspaces/{workspaceID}/channels/{channelID}",
-        { params: { path: { workspaceID: workspaceId, channelID: channelId } } },
+        {
+          params: { path: { workspaceID: workspaceId, channelID: channelId } },
+        },
       );
       if (!response.ok || !data) throw normalizeError(response.status, error);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: channelKeys.list(workspaceId) }),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: channelKeys.list(workspaceId) }),
   });
 }

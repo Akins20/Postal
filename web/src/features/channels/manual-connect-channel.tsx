@@ -39,7 +39,28 @@ export function ManualConnectChannel({ workspaceId }: { workspaceId: string; pla
   }
 
   return (
-    <form onSubmit={onSubmit} className="w-full max-w-xs flex-col gap-2 sm:flex sm:basis-full">
+    <form onSubmit={onSubmit} className="w-full max-w-md flex-col gap-2 sm:flex sm:basis-full">
+      <div className="border-separator bg-elevated/40 mb-1 rounded-lg border p-3">
+        <p className="text-fg mb-1.5 text-sm font-medium">How to set up Telegram</p>
+        <ol className="text-fg-muted flex list-decimal flex-col gap-1.5 pl-4 text-xs leading-relaxed">
+          <li>
+            In Telegram, open a chat with <strong>@BotFather</strong> and send <code>/newbot</code>.
+            Follow the prompts to name your bot; BotFather replies with a token like{" "}
+            <code>123456:ABC-DEF...</code>.
+          </li>
+          <li>
+            Create (or open) the channel or group you want to post to, then add your new bot as an{" "}
+            <strong>Administrator</strong> with the <strong>Post Messages</strong> permission.
+          </li>
+          <li>
+            Get the chat id: for a <strong>public</strong> channel use <code>@yourchannel</code>;
+            for a <strong>private</strong> channel/group, forward any message from it to{" "}
+            <strong>@userinfobot</strong> (or @getidsbot) to read the numeric id, e.g.{" "}
+            <code>-1001234567890</code>.
+          </li>
+          <li>Paste the bot token and chat id below, then Connect.</li>
+        </ol>
+      </div>
       <FormField
         label="Bot token"
         value={botToken}
