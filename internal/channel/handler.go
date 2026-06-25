@@ -36,6 +36,8 @@ func (h *Handler) RegisterWorkspaceScoped(r chi.Router) {
 		cr.With(workspace.RequireCapability(h.wsSvc, workspace.CapManageChannels, h.log)).
 			Post("/connect", web.Handler(h.log, h.connect))
 		cr.With(workspace.RequireCapability(h.wsSvc, workspace.CapManageChannels, h.log)).
+			Post("/connect-manual", web.Handler(h.log, h.connectManual))
+		cr.With(workspace.RequireCapability(h.wsSvc, workspace.CapManageChannels, h.log)).
 			Delete("/{channelID}", web.Handler(h.log, h.disconnect))
 	})
 }
@@ -84,6 +86,34 @@ func (h *Handler) connect(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	web.Respond(w, http.StatusOK, map[string]string{"authorize_url": authURL})
+	return nil
+}
+
+type connectManualRequest struct {
+	Platform    string            `json:"platform"`
+	Credentials map[string]string `json:"credentials"`
+}
+
+// connectManual connects a non-OAuth provider (e.g. Telegram) from supplied
+// credentials and returns the connected channel.
+func (h *Handler) connectManual(w http.ResponseWriter, r *http.Request) error {
+	userID, ok := web.UserID(r.Context())
+	if !ok {
+		return apperr.Unauthorized("missing_token", "authentication required")
+	}
+	workspaceID, err := uuid.Parse(chi.URLParam(r, workspace.WorkspaceURLParam))
+	if err != nil {
+		return apperr.Validation("invalid_workspace_id", "invalid workspace id")
+	}
+	var req connectManualRequest
+	if err := web.DecodeJSON(w, r, &req); err != nil {
+		return err
+	}
+	view, err := h.svc.ConnectManual(r.Context(), userID, workspaceID, req.Platform, req.Credentials)
+	if err != nil {
+		return err
+	}
+	web.Respond(w, http.StatusOK, view)
 	return nil
 }
 

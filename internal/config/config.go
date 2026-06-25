@@ -49,6 +49,7 @@ type Config struct {
 	OAuth        OAuth
 	Instagram    Instagram
 	Facebook     Facebook
+	Telegram     Telegram
 	TikTok       TikTok
 	Storage      Storage
 	Billing      Billing
@@ -140,6 +141,15 @@ type Facebook struct {
 	RedirectURI  string
 	APIBaseURL   string
 	AuthBaseURL  string
+}
+
+// Telegram holds the Telegram adapter settings. Telegram has no app-level
+// credentials (each user supplies a bot token at connect time), so Enabled
+// controls whether the adapter is registered. APIBaseURL overrides the Bot API
+// host (dev/tests point at the simulator).
+type Telegram struct {
+	Enabled    bool
+	APIBaseURL string
 }
 
 // TikTok holds the TikTok app credentials for the TikTok adapter. When
@@ -289,6 +299,10 @@ func Load() (Config, error) {
 			RedirectURI:  getString("FB_REDIRECT_URI", ""),
 			APIBaseURL:   getString("FB_API_BASE_URL", ""),
 			AuthBaseURL:  getString("FB_AUTH_BASE_URL", ""),
+		},
+		Telegram: Telegram{
+			Enabled:    getBool("TELEGRAM_ENABLED", false),
+			APIBaseURL: getString("TELEGRAM_API_BASE_URL", ""),
 		},
 		TikTok: TikTok{
 			ClientKey:    getString("TIKTOK_CLIENT_KEY", ""),

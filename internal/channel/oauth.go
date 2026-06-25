@@ -53,6 +53,14 @@ type OAuthProvider interface {
 	Revoke(ctx context.Context, token string) error
 }
 
+// ManualConnector is implemented by providers that connect via user-supplied
+// credentials (e.g. a Telegram bot token + chat id) rather than an OAuth
+// redirect. ConnectManual validates the credentials and returns the channel
+// token plus the resolved account identity.
+type ManualConnector interface {
+	ConnectManual(ctx context.Context, creds map[string]string) (*Token, *Account, error)
+}
+
 // Registry resolves OAuthProviders by platform key.
 type Registry struct {
 	providers map[string]OAuthProvider

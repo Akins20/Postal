@@ -154,7 +154,7 @@ func (s *Service) CompleteConnect(ctx context.Context, callerUserID uuid.UUID, s
 		return View{}, apperr.Internal(err)
 	}
 
-	ch, err := s.persistChannel(ctx, st, callerUserID, account, sealed, token.Scopes, token.ExpiresAt)
+	ch, err := s.persistChannel(ctx, st.WorkspaceID, st.Platform, callerUserID, account, sealed, token.Scopes, token.ExpiresAt)
 	if err != nil {
 		return View{}, err
 	}
@@ -163,12 +163,45 @@ func (s *Service) CompleteConnect(ctx context.Context, callerUserID uuid.UUID, s
 	return toView(ch), nil
 }
 
+// ConnectManual connects a channel from user-supplied credentials, for providers
+// that do not use OAuth (e.g. Telegram: bot token + chat id). It validates
+// manage_channels, runs the provider's credential check, and stores the sealed
+// token like the OAuth flow.
+func (s *Service) ConnectManual(ctx context.Context, callerUserID, workspaceID uuid.UUID, platform string, creds map[string]string) (View, error) {
+	if err := s.requireManageChannels(ctx, workspaceID, callerUserID); err != nil {
+		return View{}, err
+	}
+	provider, ok := s.registry.Get(platform)
+	if !ok {
+		return View{}, apperr.Validation("unsupported_platform", "unsupported platform")
+	}
+	mc, ok := provider.(ManualConnector)
+	if !ok {
+		return View{}, apperr.Validation("manual_unsupported", "this platform connects through OAuth, not credentials")
+	}
+	token, account, err := mc.ConnectManual(ctx, creds)
+	if err != nil {
+		return View{}, apperr.Validation("connect_failed", "could not connect: "+err.Error())
+	}
+	sealed, err := s.vault.seal(token)
+	if err != nil {
+		return View{}, apperr.Internal(err)
+	}
+	ch, err := s.persistChannel(ctx, workspaceID, platform, callerUserID, account, sealed, token.Scopes, token.ExpiresAt)
+	if err != nil {
+		return View{}, err
+	}
+	s.recordAudit(ctx, workspaceID, callerUserID, "channel.connect", ch.ID.String(),
+		map[string]any{"platform": platform, "handle": account.Handle})
+	return toView(ch), nil
+}
+
 // persistChannel upserts the channel row and its credential atomically.
-func (s *Service) persistChannel(ctx context.Context, st oauthState, connectedBy uuid.UUID, account *Account, sealed sealedCredential, scopes []string, expiresAt time.Time) (sqlc.Channel, error) {
+func (s *Service) persistChannel(ctx context.Context, workspaceID uuid.UUID, platform string, connectedBy uuid.UUID, account *Account, sealed sealedCredential, scopes []string, expiresAt time.Time) (sqlc.Channel, error) {
 	var ch sqlc.Channel
 	err := s.pool.WithTx(ctx, func(q *sqlc.Queries) error {
 		existing, getErr := q.GetChannelByAccount(ctx, sqlc.GetChannelByAccountParams{
-			WorkspaceID: st.WorkspaceID, Platform: st.Platform, PlatformAccountID: account.ID,
+			WorkspaceID: workspaceID, Platform: platform, PlatformAccountID: account.ID,
 		})
 		switch {
 		case getErr == nil:
@@ -185,7 +218,7 @@ func (s *Service) persistChannel(ctx context.Context, st oauthState, connectedBy
 		case errors.Is(getErr, pgx.ErrNoRows):
 			// Anti-abuse: cap connected channels per workspace. Counted inside the
 			// tx so concurrent connects can't both slip past the limit.
-			count, cErr := q.CountActiveChannelsForWorkspace(ctx, st.WorkspaceID)
+			count, cErr := q.CountActiveChannelsForWorkspace(ctx, workspaceID)
 			if cErr != nil {
 				return cErr
 			}
@@ -193,8 +226,8 @@ func (s *Service) persistChannel(ctx context.Context, st oauthState, connectedBy
 				return errChannelQuota
 			}
 			created, err := q.CreateChannel(ctx, sqlc.CreateChannelParams{
-				WorkspaceID:       st.WorkspaceID,
-				Platform:          st.Platform,
+				WorkspaceID:       workspaceID,
+				Platform:          platform,
 				PlatformAccountID: account.ID,
 				Handle:            account.Handle,
 				DisplayName:       account.DisplayName,

@@ -20,6 +20,7 @@ import (
 	"github.com/Akins20/postal/internal/publish"
 	"github.com/Akins20/postal/internal/publish/facebook"
 	"github.com/Akins20/postal/internal/publish/instagram"
+	"github.com/Akins20/postal/internal/publish/telegram"
 	"github.com/Akins20/postal/internal/publish/tiktok"
 	"github.com/Akins20/postal/internal/publish/twitter"
 	"github.com/Akins20/postal/internal/ratelimit"
@@ -338,6 +339,11 @@ func buildAdapters(cfg config.Config, log *slog.Logger) []publish.Adapter {
 		}))
 	} else {
 		log.Warn("POSTAL_FB_CLIENT_ID not set; Facebook is disabled")
+	}
+	if cfg.Telegram.Enabled {
+		adapters = append(adapters, telegram.New(telegram.Config{APIBaseURL: cfg.Telegram.APIBaseURL}))
+	} else {
+		log.Warn("POSTAL_TELEGRAM_ENABLED not set; Telegram is disabled")
 	}
 	if cfg.TikTok.ClientKey != "" {
 		adapters = append(adapters, tiktok.New(tiktok.Config{
