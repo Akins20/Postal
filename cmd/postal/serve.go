@@ -18,6 +18,7 @@ import (
 	"github.com/Akins20/postal/internal/platform/storage"
 	"github.com/Akins20/postal/internal/post"
 	"github.com/Akins20/postal/internal/publish"
+	"github.com/Akins20/postal/internal/publish/facebook"
 	"github.com/Akins20/postal/internal/publish/instagram"
 	"github.com/Akins20/postal/internal/publish/tiktok"
 	"github.com/Akins20/postal/internal/publish/twitter"
@@ -326,6 +327,17 @@ func buildAdapters(cfg config.Config, log *slog.Logger) []publish.Adapter {
 		}))
 	} else {
 		log.Warn("POSTAL_IG_CLIENT_ID not set; Instagram is disabled")
+	}
+	if cfg.Facebook.ClientID != "" {
+		adapters = append(adapters, facebook.New(facebook.Config{
+			ClientID:     cfg.Facebook.ClientID,
+			ClientSecret: cfg.Facebook.ClientSecret,
+			RedirectURI:  cfg.Facebook.RedirectURI,
+			APIBaseURL:   cfg.Facebook.APIBaseURL,
+			AuthBaseURL:  cfg.Facebook.AuthBaseURL,
+		}))
+	} else {
+		log.Warn("POSTAL_FB_CLIENT_ID not set; Facebook is disabled")
 	}
 	if cfg.TikTok.ClientKey != "" {
 		adapters = append(adapters, tiktok.New(tiktok.Config{

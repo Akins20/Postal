@@ -5,16 +5,18 @@ import (
 	"log/slog"
 	"os"
 
+	facebooksim "github.com/Akins20/postal/internal/publish/simulator/facebook"
 	instagramsim "github.com/Akins20/postal/internal/publish/simulator/instagram"
 	tiktoksim "github.com/Akins20/postal/internal/publish/simulator/tiktok"
 	twittersim "github.com/Akins20/postal/internal/publish/simulator/twitter"
 )
 
-// Default simulator addresses; override with POSTAL_<X|IG|TIKTOK>_SIM_ADDR.
+// Default simulator addresses; override with POSTAL_<X|IG|FB|TIKTOK>_SIM_ADDR.
 const (
 	defaultXSimAddr      = "127.0.0.1:10090"
 	defaultIGSimAddr     = "127.0.0.1:10091"
 	defaultTikTokSimAddr = "127.0.0.1:10092"
+	defaultFBSimAddr     = "127.0.0.1:10093"
 )
 
 // runSim runs the platform API simulators as one process for local dev and
@@ -42,6 +44,13 @@ func runSim(ctx context.Context, log *slog.Logger) error {
 	}
 	defer tt.Close()
 	log.Info("tiktok simulator listening", "url", tt.URL())
+
+	fb, err := facebooksim.NewAt(envOrDefault("POSTAL_FB_SIM_ADDR", defaultFBSimAddr))
+	if err != nil {
+		return err
+	}
+	defer fb.Close()
+	log.Info("facebook simulator listening", "url", fb.URL())
 
 	<-ctx.Done()
 	log.Info("simulators shutting down")

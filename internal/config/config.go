@@ -48,6 +48,7 @@ type Config struct {
 	Twitter      Twitter
 	OAuth        OAuth
 	Instagram    Instagram
+	Facebook     Facebook
 	TikTok       TikTok
 	Storage      Storage
 	Billing      Billing
@@ -123,6 +124,17 @@ type Twitter struct {
 // ClientID is empty the adapter is not registered. Base URLs override the
 // real Meta hosts (dev/tests point at the simulator).
 type Instagram struct {
+	ClientID     string
+	ClientSecret string
+	RedirectURI  string
+	APIBaseURL   string
+	AuthBaseURL  string
+}
+
+// Facebook holds the Meta app credentials for the Facebook Pages adapter. When
+// ClientID is empty the adapter is not registered. Base URLs override the real
+// Meta hosts (dev/tests point at the simulator).
+type Facebook struct {
 	ClientID     string
 	ClientSecret string
 	RedirectURI  string
@@ -270,6 +282,13 @@ func Load() (Config, error) {
 			RedirectURI:  getString("IG_REDIRECT_URI", ""),
 			APIBaseURL:   getString("IG_API_BASE_URL", ""),
 			AuthBaseURL:  getString("IG_AUTH_BASE_URL", ""),
+		},
+		Facebook: Facebook{
+			ClientID:     getString("FB_CLIENT_ID", ""),
+			ClientSecret: getString("FB_CLIENT_SECRET", ""),
+			RedirectURI:  getString("FB_REDIRECT_URI", ""),
+			APIBaseURL:   getString("FB_API_BASE_URL", ""),
+			AuthBaseURL:  getString("FB_AUTH_BASE_URL", ""),
 		},
 		TikTok: TikTok{
 			ClientKey:    getString("TIKTOK_CLIENT_KEY", ""),

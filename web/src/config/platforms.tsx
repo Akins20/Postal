@@ -50,6 +50,13 @@ export const PLATFORMS: PlatformInfo[] = [
     caveat: "Needs a Business/Creator account linked to a Facebook Page. No text-only posts.",
   },
   {
+    key: "facebook",
+    label: "Facebook",
+    icon: FacebookGlyph,
+    hint: "Publish text, links, photos, and videos to a Facebook Page.",
+    caveat: "Posts to a Facebook Page you manage, not a personal profile.",
+  },
+  {
     key: "tiktok",
     label: "TikTok",
     icon: TikTokGlyph,
@@ -60,6 +67,15 @@ export const PLATFORMS: PlatformInfo[] = [
       "No text-only posts. Until the app passes TikTok's audit, API posts stay private to you.",
   },
 ];
+
+/** Facebook brand glyph (the "f" mark), filled like the X mark. */
+function FacebookGlyph(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden width="1em" height="1em" {...props}>
+      <path d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07c0 6.03 4.39 11.03 10.13 11.93v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.96.93-1.96 1.89v2.25h3.33l-.53 3.49h-2.8V24C19.61 23.1 24 18.1 24 12.07z" />
+    </svg>
+  );
+}
 
 /**
  * Instagram brand glyph (camera outline), drawn to sit alongside lucide icons.
