@@ -52,8 +52,12 @@ describe("ChannelsPanel", () => {
     expect(await screen.findByText("No accounts connected yet")).toBeInTheDocument();
     expect(screen.getByText("X (Twitter)")).toBeInTheDocument();
     expect(screen.getByText("Instagram")).toBeInTheDocument();
+    expect(screen.getByText("Facebook")).toBeInTheDocument();
+    expect(screen.getByText("Telegram")).toBeInTheDocument();
     expect(screen.getByText("TikTok")).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "Connect" })).toHaveLength(3);
+    // One Connect button per platform (Telegram's manual form is collapsed to a
+    // Connect button too): twitter, instagram, facebook, telegram, tiktok.
+    expect(screen.getAllByRole("button", { name: "Connect" })).toHaveLength(5);
   });
 
   it("lists connected channels with their health status", async () => {

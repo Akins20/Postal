@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { api } from "@/api/client";
+import { api, csrfToken } from "@/api/client";
 import type { components } from "@/api/schema";
 import { normalizeError, type NormalizedError } from "@/lib/api-error";
 
@@ -65,6 +65,35 @@ export function useCompleteOAuth() {
     // The state is workspace-bound server-side; we don't know which workspace
     // it belongs to here, so refresh every channels list we hold.
     onSuccess: () => qc.invalidateQueries({ queryKey: ["workspaces"] }),
+  });
+}
+
+/**
+ * Connect a channel from user-supplied credentials (manual providers like
+ * Telegram). The endpoint is not in the generated schema, so this uses a direct
+ * fetch through the same-origin /api proxy with the CSRF double-submit token.
+ */
+export function useConnectManual(workspaceId: string) {
+  const qc = useQueryClient();
+  return useMutation<
+    void,
+    NormalizedError,
+    { platform: string; credentials: Record<string, string> }
+  >({
+    mutationFn: async (body) => {
+      const csrf = csrfToken();
+      const res = await fetch(`/api/v1/workspaces/${workspaceId}/channels/connect-manual`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", ...(csrf ? { "X-CSRF-Token": csrf } : {}) },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => undefined);
+        throw normalizeError(res.status, err);
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: channelKeys.list(workspaceId) }),
   });
 }
 

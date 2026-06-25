@@ -14,6 +14,7 @@ import { Tooltip } from "@/ui/primitives/tooltip";
 
 import { ChannelCard } from "./channel-card";
 import { ConnectChannelButton } from "./connect-channel-button";
+import { ManualConnectChannel } from "./manual-connect-channel";
 
 /** The Channels screen: connected accounts plus the connect-a-platform list. */
 export function ChannelsPanel() {
@@ -100,12 +101,16 @@ export function ChannelsPanel() {
                 <p className="text-fg-muted text-xs">{p.hint}</p>
                 {p.caveat && <p className="text-warning mt-0.5 text-xs">{p.caveat}</p>}
               </div>
-              <ConnectChannelButton
-                workspaceId={active.id}
-                platform={p.key}
-                label={isConnected ? "Add another" : "Connect"}
-                variant={isConnected ? "secondary" : "primary"}
-              />
+              {p.manual ? (
+                <ManualConnectChannel workspaceId={active.id} platform={p.key} />
+              ) : (
+                <ConnectChannelButton
+                  workspaceId={active.id}
+                  platform={p.key}
+                  label={isConnected ? "Add another" : "Connect"}
+                  variant={isConnected ? "secondary" : "primary"}
+                />
+              )}
             </div>
           );
         })}
